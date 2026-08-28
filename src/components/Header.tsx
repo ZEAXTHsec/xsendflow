@@ -95,18 +95,17 @@ export default function Header() {
 
           {/* Right Action Button & Settings */}
           <div className="flex items-center gap-2">
-            <button
-              data-testid="header-settings-btn"
-              onClick={() => setSettingsOpen(true)}
-              className="text-xs font-bold px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-all active:scale-95"
-              title="SMTP Accounts, API Keys & Settings"
-            >
-              <Settings className="w-3.5 h-3.5 text-slate-600" />
-              <span className="hidden sm:inline">Settings</span>
-            </button>
-
             {userEmail ? (
               <div className="flex items-center gap-2">
+                <button
+                  data-testid="header-settings-btn"
+                  onClick={() => setSettingsOpen(true)}
+                  className="text-xs font-bold px-3 py-2 rounded-xl text-slate-700 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 flex items-center gap-1.5 transition-all active:scale-95"
+                  title="SMTP Accounts, API Keys & Settings"
+                >
+                  <Settings className="w-3.5 h-3.5 text-slate-600" />
+                  <span className="hidden sm:inline">Settings</span>
+                </button>
                 <Link
                   href="/studio"
                   className="text-xs font-bold px-4 py-2 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white transition-all shadow-md shadow-indigo-500/20 flex items-center gap-1.5 active:scale-95 glow-tag"
