@@ -6,18 +6,17 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import CampaignsTab from '@/components/tabs/CampaignsTab';
 import LeadCleanerTab from '@/components/tabs/LeadCleanerTab';
-import SequenceStudioTab from '@/components/tabs/SequenceStudioTab';
 import PitchPageBuilderTab from '@/components/tabs/PitchPageBuilderTab';
 import AnalyticsTab from '@/components/tabs/AnalyticsTab';
 import DesktopExportModal from '@/components/export/DesktopExportModal';
 import ProfileSettingsModal from '@/components/settings/ProfileSettingsModal';
 import OnboardingTour from '@/components/onboarding/OnboardingTour';
 import { Lead, SequenceStep, PitchPageConfig } from '@/lib/types';
-import { Mail, Sparkles, Zap, Monitor, BarChart3, Download, Settings, ShieldCheck, Lock, LogIn, ArrowRight } from 'lucide-react';
+import { Mail, Sparkles, Monitor, BarChart3, Download, Settings, ShieldCheck, Lock, LogIn, ArrowRight, Users } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function StudioPage() {
-  const [activeTab, setActiveTab] = useState<'analytics' | 'campaigns' | 'cleaner' | 'sequence' | 'pitch'>('analytics');
+  const [activeTab, setActiveTab] = useState<'analytics' | 'campaigns' | 'leads' | 'pitch'>('analytics');
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -167,50 +166,50 @@ export default function StudioPage() {
     );
   }
 
-  // 3. Authenticated Studio Experience
+  // 3. Authenticated Studio Experience (Zero-Data-Loss Architecture)
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       <Header />
 
-      {/* Unified Studio Navigation Rail */}
-      <div className="border-b border-slate-200 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-3.5 sticky top-16 z-40 shadow-xs">
+      {/* Unified SaaS Navigation Rail */}
+      <div className="border-b border-slate-200 bg-white/90 backdrop-blur-xl px-4 sm:px-6 py-3 sticky top-16 z-40 shadow-2xs">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          {/* Sub Navigation */}
+          {/* Main 4 SaaS Pillars */}
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 bg-slate-100 p-1.5 rounded-2xl border border-slate-200/80">
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
                 activeTab === 'analytics'
                   ? 'bg-white text-purple-700 shadow-sm border border-purple-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
               <BarChart3 className="w-3.5 h-3.5 text-purple-600" />
-              <span>1. Dashboard &amp; Analytics</span>
+              <span>Dashboard</span>
             </button>
 
             <button
               onClick={() => setActiveTab('campaigns')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
                 activeTab === 'campaigns'
                   ? 'bg-white text-blue-700 shadow-sm border border-blue-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
               <Mail className="w-3.5 h-3.5 text-blue-600" />
-              <span>2. Campaigns &amp; Schedule</span>
+              <span>Campaigns</span>
             </button>
 
             <button
-              onClick={() => setActiveTab('cleaner')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-                activeTab === 'cleaner'
+              onClick={() => setActiveTab('leads')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+                activeTab === 'leads'
                   ? 'bg-white text-indigo-700 shadow-sm border border-indigo-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-              <span>3. Lead Sanitizer</span>
+              <Users className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Lead Database</span>
               {leads.length > 0 && (
                 <span className="bg-indigo-100 text-indigo-700 px-1.5 py-0.5 rounded-full text-[10px] font-extrabold">
                   {leads.length}
@@ -219,35 +218,23 @@ export default function StudioPage() {
             </button>
 
             <button
-              onClick={() => setActiveTab('sequence')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-                activeTab === 'sequence'
+              onClick={() => setActiveTab('pitch')}
+              className={`px-4 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
+                activeTab === 'pitch'
                   ? 'bg-white text-emerald-700 shadow-sm border border-emerald-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
               }`}
             >
-              <Zap className="w-3.5 h-3.5 text-emerald-600" />
-              <span>4. Spintax Studio</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('pitch')}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all whitespace-nowrap ${
-                activeTab === 'pitch'
-                  ? 'bg-white text-rose-700 shadow-sm border border-rose-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-              }`}
-            >
-              <Monitor className="w-3.5 h-3.5 text-rose-600" />
-              <span>5. Pitch Pages</span>
+              <Monitor className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Pitch Pages</span>
             </button>
           </div>
 
-          {/* Quick Actions */}
+          {/* Quick Actions & Settings */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => setIsSettingsOpen(true)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-2xs"
+              className="text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
             >
               <Settings className="w-3.5 h-3.5 text-slate-500" />
               <span>Mailboxes &amp; Keys</span>
@@ -255,7 +242,7 @@ export default function StudioPage() {
 
             <button
               onClick={() => setIsExportOpen(true)}
-              className="text-xs font-bold px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-2xs"
+              className="text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export CSV</span>
@@ -264,32 +251,32 @@ export default function StudioPage() {
         </div>
       </div>
 
-      {/* Main Studio Viewport */}
+      {/* Main Studio Viewport (Zero Data Loss: Hidden instead of Unmounted) */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 py-8">
-        {activeTab === 'analytics' && <AnalyticsTab />}
-        {activeTab === 'campaigns' && <CampaignsTab leads={leads} onImportLeadsToStudio={setLeads} />}
-        {activeTab === 'cleaner' && (
+        <div className={activeTab === 'analytics' ? 'block' : 'hidden'}>
+          <AnalyticsTab />
+        </div>
+
+        <div className={activeTab === 'campaigns' ? 'block' : 'hidden'}>
+          <CampaignsTab leads={leads} onImportLeadsToStudio={setLeads} />
+        </div>
+
+        <div className={activeTab === 'leads' ? 'block' : 'hidden'}>
           <LeadCleanerTab
             leads={leads}
             setLeads={setLeads}
-            onProceedToSequence={() => setActiveTab('sequence')}
+            onProceedToSequence={() => setActiveTab('campaigns')}
           />
-        )}
-        {activeTab === 'sequence' && (
-          <SequenceStudioTab
-            sequence={sequence}
-            setSequence={setSequence}
-            onProceedToPitch={() => setActiveTab('pitch')}
-          />
-        )}
-        {activeTab === 'pitch' && (
+        </div>
+
+        <div className={activeTab === 'pitch' ? 'block' : 'hidden'}>
           <PitchPageBuilderTab
             leads={leads}
             pitchConfig={pitchConfig}
             setPitchConfig={setPitchConfig}
             onProceedToAnalytics={() => setActiveTab('analytics')}
           />
-        )}
+        </div>
       </main>
 
       <Footer />
@@ -308,7 +295,7 @@ export default function StudioPage() {
       />
 
       <OnboardingTour
-        onNavigateTab={(tab) => setActiveTab(tab as any)}
+        onNavigateTab={(tab) => setActiveTab(tab === 'sequence' || tab === 'cleaner' ? 'campaigns' : tab as any)}
         onOpenSettings={() => setIsSettingsOpen(true)}
       />
     </div>
