@@ -1,0 +1,103 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: #ffffff;
+    --foreground: #0f172a;
+    --surface-glass: rgba(255, 255, 255, 0.85);
+    --surface-glass-hover: rgba(255, 255, 255, 0.98);
+    --border-glass: #e2e8f0;
+    --border-glass-highlight: #cbd5e1;
+    --primary-blue: #2563eb;
+    --primary-indigo: #4f46e5;
+    --accent-emerald: #10b981;
+    --accent-purple: #7c3aed;
+    --urgency-red: #ef4444;
+  }
+
+  body {
+    background-color: #ffffff;
+    background-image: 
+      radial-gradient(ellipse 70% 45% at 50% -10%, rgba(99, 102, 241, 0.09), transparent 70%),
+      radial-gradient(ellipse 50% 35% at 90% 20%, rgba(59, 130, 246, 0.08), transparent 60%),
+      radial-gradient(ellipse 45% 30% at 10% 40%, rgba(168, 85, 247, 0.06), transparent 60%),
+      radial-gradient(ellipse 60% 40% at 85% 85%, rgba(16, 185, 129, 0.05), transparent 65%);
+    background-attachment: fixed;
+    color: #0f172a;
+    font-family: var(--font-geist-sans), 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.01em;
+  }
+}
+
+/* Pristine Light Glassmorphism Cards */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border: 1px solid #e2e8f0;
+  box-shadow: 
+    0 4px 20px -2px rgba(15, 23, 42, 0.04),
+    0 1px 3px 0 rgba(15, 23, 42, 0.02);
+}
+
+.glass-panel-hover {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-hover:hover {
+  background: #ffffff;
+  border-color: #cbd5e1;
+  box-shadow: 
+    0 12px 30px -4px rgba(15, 23, 42, 0.08),
+    0 4px 10px -2px rgba(15, 23, 42, 0.03);
+  transform: translateY(-2px);
+}
+
+.glass-nav {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px) saturate(180%);
+  -webkit-backdrop-filter: blur(20px) saturate(180%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Tabular Figures */
+.tnum {
+  font-feature-settings: "tnum";
+  font-variant-numeric: tabular-nums;
+}
+
+/* Subtle Shimmer */
+.glow-tag {
+  position: relative;
+  overflow: hidden;
+}
+.glow-tag::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -100%; width: 50%; height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  transform: skewX(-20deg);
+  animation: shine 6s infinite;
+}
+
+@keyframes shine {
+  0%, 80% { left: -100%; }
+  100% { left: 200%; }
+}
+
+/* Clean Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
