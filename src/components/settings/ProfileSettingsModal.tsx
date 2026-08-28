@@ -11,69 +11,15 @@ interface Props {
   initialTab?: 'senders' | 'api' | 'preferences';
 }
 
-export const DEFAULT_USER_SENDERS: SenderAccount[] = [
-  {
-    id: 'sender-google-1',
-    email: 'aftab@digixflyy.online',
-    label: 'Aftab M. (Google Workspace)',
-    smtpHost: 'smtp.gmail.com',
-    smtpPort: 587,
-    smtpUser: 'aftab@digixflyy.online',
-    smtpPass: 'pjenrrxrswdxhqdj',
-    dailyLimit: 100,
-    dailySentCount: 0,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'sender-hostinger-1',
-    email: 'aftab@poe2lab.com',
-    label: 'Hostinger Inbox 1',
-    smtpHost: 'smtp.hostinger.com',
-    smtpPort: 465,
-    smtpUser: 'aftab@poe2lab.com',
-    smtpPass: 'Aftab123)',
-    dailyLimit: 100,
-    dailySentCount: 0,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'sender-hostinger-2',
-    email: 'aftab@aftabconsults.com',
-    label: 'Hostinger Inbox 2',
-    smtpHost: 'smtp.hostinger.com',
-    smtpPort: 465,
-    smtpUser: 'aftab@aftabconsults.com',
-    smtpPass: 'Aftab123)',
-    dailyLimit: 100,
-    dailySentCount: 0,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'sender-hostinger-3',
-    email: 'aftab@mohammadaftab.com',
-    label: 'Hostinger Inbox 3',
-    smtpHost: 'smtp.hostinger.com',
-    smtpPort: 465,
-    smtpUser: 'aftab@mohammadaftab.com',
-    smtpPass: 'Aftab123)',
-    dailyLimit: 100,
-    dailySentCount: 0,
-    createdAt: new Date().toISOString()
-  }
-];
+export const DEFAULT_USER_SENDERS: SenderAccount[] = [];
 
 const getInitialSenders = (): SenderAccount[] => {
-  if (typeof window === 'undefined') return DEFAULT_USER_SENDERS;
+  if (typeof window === 'undefined') return [];
   try {
     const saved = localStorage.getItem('xsendflow_senders');
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed) && parsed.length > 0) {
-        if (parsed.length === 1 && parsed[0].email === 'outreach@xsendflow.com') {
-          return DEFAULT_USER_SENDERS;
-        }
-        return parsed;
-      }
+      if (Array.isArray(parsed)) return parsed;
     }
   } catch {
     // Ignore

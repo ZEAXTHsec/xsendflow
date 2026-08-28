@@ -17,46 +17,21 @@ export interface SenderAccount {
   createdAt: string;
 }
 
-const DEFAULT_SENDERS: SenderAccount[] = [
-  {
-    id: 'sender-1',
-    email: 'outreach@xsendflow.com',
-    label: 'Primary Google Workspace',
-    smtpHost: 'smtp.gmail.com',
-    smtpPort: 587,
-    smtpUser: 'outreach@xsendflow.com',
-    smtpPass: '••••••••••••',
-    dailyLimit: 100,
-    dailySentCount: 24,
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: 'sender-2',
-    email: 'partners@xsendflow.io',
-    label: 'Secondary Hostinger Mailbox',
-    smtpHost: 'smtp.hostinger.com',
-    smtpPort: 465,
-    smtpUser: 'partners@xsendflow.io',
-    smtpPass: '••••••••••••',
-    dailyLimit: 80,
-    dailySentCount: 15,
-    createdAt: new Date().toISOString()
-  }
-];
+const DEFAULT_SENDERS: SenderAccount[] = [];
 
 export default function SendersTab() {
   const [senders, setSenders] = useState<SenderAccount[]>(() => {
-    if (typeof window === 'undefined') return DEFAULT_SENDERS;
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('xsendflow_senders');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        if (Array.isArray(parsed)) return parsed;
       }
     } catch {
       // Ignore
     }
-    return DEFAULT_SENDERS;
+    return [];
   });
 
   const [isAdding, setIsAdding] = useState(false);
