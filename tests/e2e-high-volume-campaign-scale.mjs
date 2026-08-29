@@ -71,13 +71,13 @@ async function runHighVolumeScaleAudit() {
     console.log(`[Check 1] 120 Campaigns Displayed in Dashboard: ${totalCountText ? 'PASS ✅' : 'FAIL ❌'}`);
 
     // Test Search in Dashboard
-    await page.fill('input[placeholder*="Search campaigns"]', 'Fintech');
+    await page.fill('input[placeholder*="campaigns"]', 'Fintech');
     await page.waitForTimeout(300);
     const hasFintech = await page.locator('text=Fintech').first().isVisible();
     console.log(`[Check 2] Dashboard Search Filter by "Fintech": ${hasFintech ? 'PASS ✅' : 'FAIL ❌'}`);
 
     // Clear Search
-    await page.fill('input[placeholder*="Search campaigns"]', '');
+    await page.fill('input[placeholder*="campaigns"]', '');
     await page.waitForTimeout(200);
 
     // 4. Test CampaignsTab with 120 Campaigns
