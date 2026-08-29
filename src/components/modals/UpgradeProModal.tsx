@@ -66,8 +66,8 @@ export default function UpgradeProModal({
       desc: 'Free plan includes 250 verified contacts in your database. Upgrade to Pro to import and launch campaigns to unlimited leads.'
     },
     vps_daemon: {
-      title: 'Unlock 24/7 Cloud Background Sending',
-      desc: 'Free plan dispatches while your browser is open. Pro unlocks our dedicated 24/7/365 Oracle VPS queue worker so your campaigns dispatch while you sleep.'
+      title: 'Unlock 24/7 Cloud-Powered Background Sending',
+      desc: 'Free plan dispatches while your browser is open. Pro unlocks our dedicated 24/7/365 cloud queue engine so your campaigns dispatch autonomously while your laptop is closed.'
     },
     bulk_ai: {
       title: 'Unlock Bulk AI Icebreaker Enrichment',
@@ -90,7 +90,7 @@ export default function UpgradeProModal({
       annual: 249,
       features: [
         'Unlimited Connected Mailboxes',
-        '24/7 Headless VPS Cloud Daemon',
+        '24/7 Cloud-Powered Background Dispatch',
         'Up to 5 Simultaneous Active Campaigns',
         'Unlimited Contacts & Bulk AI Enrichment'
       ]
@@ -104,7 +104,7 @@ export default function UpgradeProModal({
         'Unlimited Active Campaigns',
         'Multi-Client Workspace Isolation',
         'Shareable Live Client Reports (/report/[token])',
-        'Dedicated VPS IP Routing & Sockets'
+        'Dedicated Cloud Engine Routing & Sockets'
       ]
     }
   }[selectedPlan];

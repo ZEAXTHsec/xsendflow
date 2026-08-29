@@ -159,7 +159,7 @@ export default function PricingPage() {
               </p>
               <ul className="space-y-2.5 text-xs text-slate-700 pt-2 font-medium">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> <strong>Unlimited Connected Mailboxes</strong></li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> <strong>24/7 VPS Cloud Queue Daemon</strong></li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> <strong>24/7 Cloud-Powered Background Queue</strong></li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Unlimited Contacts &amp; Campaigns</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Multi-Mailbox Weighted Rotation</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Bulk AI Icebreaker Enrichment</li>
@@ -194,7 +194,7 @@ export default function PricingPage() {
               <ul className="space-y-2.5 text-xs text-slate-700 pt-2 font-medium">
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Everything in Pro Unlimited</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Multi-Client Workspace Isolation</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Dedicated Cloud VPS Outbound IP</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Dedicated Cloud Engine Outbound Routing</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Team Seats &amp; Granular Roles</li>
                 <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Priority 1-on-1 Deliverability Audit</li>
               </ul>

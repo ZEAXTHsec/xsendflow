@@ -27,7 +27,7 @@ const faqs = [
   },
   {
     q: 'Which SMTP providers are supported?',
-    a: 'All standard SMTP providers including Gmail/Google Workspace, Microsoft Outlook/365, Zoho Mail, Hostinger, Amazon SES, SendGrid, Mailgun, and custom private VPS mail servers.'
+    a: 'All standard SMTP providers including Gmail/Google Workspace, Microsoft Outlook/365, Zoho Mail, Hostinger, Amazon SES, SendGrid, Mailgun, and custom private cloud mail servers.'
   }
 ];
 

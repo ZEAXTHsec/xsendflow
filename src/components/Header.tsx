@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Sparkles, LogIn, ArrowRight, ShieldCheck } from 'lucide-react';
+import { Sparkles, LogIn, ArrowRight, ShieldCheck, Cloud } from 'lucide-react';
 import ProfileSettingsModal from './settings/ProfileSettingsModal';
 import UpgradeProModal from './modals/UpgradeProModal';
 import { createClient } from '@/lib/supabase/client';
@@ -94,9 +94,10 @@ export default function Header() {
             {isStudio && (
               <div className="hidden sm:flex items-center gap-2 pl-3 border-l border-slate-200">
                 <span className="text-[11px] font-bold text-slate-500 font-mono uppercase tracking-wider">Workspace</span>
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-bold">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-[10px] font-mono font-bold">
+                  <Cloud className="w-3 h-3 text-cyan-600" />
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  VPS Engine Active
+                  Cloud-Powered Active
                 </span>
               </div>
             )}

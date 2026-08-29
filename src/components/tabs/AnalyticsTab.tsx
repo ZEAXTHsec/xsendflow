@@ -5,7 +5,7 @@ import {
   BarChart3, CheckCircle2, Send, Eye, MessageSquare, TrendingUp, 
   Zap, ShieldCheck, Mail, Users, ArrowUpRight, Clock, Plus, 
   Activity, Server, Sparkles, RefreshCw, Flame, ExternalLink,
-  Search, Play, Pause, FileText, ChevronRight, ChevronLeft, ArrowRight
+  Search, Play, Pause, FileText, ChevronRight, ChevronLeft, ArrowRight, Cloud
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Campaign } from './CampaignsTab';
@@ -139,8 +139,9 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           <div className="space-y-3">
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
+                <Cloud className="w-3.5 h-3.5 text-cyan-400" />
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>VPS Cloud Cluster Active (US-East)</span>
+                <span>Cloud-Powered Dispatch Active</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-indigo-400" />

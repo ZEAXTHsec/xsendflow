@@ -5,7 +5,7 @@ import {
   X, Server, Key, Settings, Plus, CheckCircle2, AlertCircle, 
   Trash2, Eye, EyeOff, RefreshCw, Check, Zap, Sparkles, Building2,
   Crown, ShieldCheck, User, CreditCard, Copy, Download, Radio,
-  Mail, Clock, Sliders, ArrowRight
+  Mail, Clock, Sliders, ArrowRight, Cloud
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SenderAccount } from '../tabs/SendersTab';
@@ -635,12 +635,15 @@ export default function ProfileSettingsModal({
                   </div>
 
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">24/7 VPS Cloud Daemon</span>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1">
+                      <Cloud className="w-3.5 h-3.5 text-cyan-600" />
+                      <span>24/7 Cloud Background Queue</span>
+                    </span>
                     <div className="text-lg font-extrabold text-slate-900 font-mono">
-                      {license.plan === 'free' ? 'Browser Only' : 'Active (Cloud Cluster)'}
+                      {license.plan === 'free' ? 'Browser Only' : 'Active (Cloud Powered)'}
                     </div>
                     <span className="text-[10px] text-slate-400 block">
-                      {license.plan === 'free' ? 'Upgrade to Pro' : 'Autonomous Background Queue'}
+                      {license.plan === 'free' ? 'Upgrade to Pro' : 'Autonomous 24/7 Cloud Engine'}
                     </span>
                   </div>
                 </div>

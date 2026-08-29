@@ -11,7 +11,8 @@ export interface LicenseDetails {
   autoRenew: boolean;
   maxInboxes: number | string;
   maxCampaigns: number | string;
-  vpsActive: boolean;
+  cloudActive: boolean;
+  vpsActive?: boolean;
 }
 
 const DEFAULT_LICENSE_EXPIRY_DAYS = 30;
@@ -71,6 +72,7 @@ export function createDefaultLicense(plan: UserPlan, cycle: 'monthly' | 'annual'
     autoRenew: plan !== 'free',
     maxInboxes: plan === 'free' ? 1 : 'Unlimited',
     maxCampaigns: plan === 'free' ? 1 : plan === 'pro' ? 5 : 'Unlimited',
+    cloudActive: plan !== 'free',
     vpsActive: plan !== 'free',
   };
 
