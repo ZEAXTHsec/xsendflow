@@ -43,29 +43,61 @@ export function getStoredLicense(): LicenseDetails {
   return createDefaultLicense(currentPlan);
 }
 
-export function createDefaultLicense(plan: UserPlan, cycle: 'monthly' | 'annual' | 'lifetime' = 'monthly'): LicenseDetails {
+/**
+ * Creates, Upgrades, or Cumulatively Extends an existing license.
+ * - Upgrading tiers generates a new tier key (e.g. XSF-AGENCY-...) and stacks days.
+ * - Buying another month/year on the same tier keeps the key and adds +30 / +365 days to the existing expiration date.
+ */
+export function createDefaultLicense(
+  plan: UserPlan, 
+  cycle: 'monthly' | 'annual' | 'lifetime' = 'monthly'
+): LicenseDetails {
   const now = new Date();
-  const expiry = new Date(now);
-  
+  let existingLicense: LicenseDetails | null = null;
+
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = localStorage.getItem('xsendflow_license');
+      if (raw) existingLicense = JSON.parse(raw);
+    } catch {}
+  }
+
+  // Calculate Base Expiry: If user still has valid days, stack on top of existing expiration!
+  let baseDate = now;
+  if (existingLicense && existingLicense.plan !== 'free' && existingLicense.expiresAt) {
+    const existingExpiryDate = new Date(existingLicense.expiresAt);
+    if (existingExpiryDate.getTime() > now.getTime()) {
+      baseDate = existingExpiryDate; // Stack onto existing remaining days
+    }
+  }
+
+  const expiry = new Date(baseDate);
+
   if (plan === 'free') {
     expiry.setFullYear(now.getFullYear() + 99); // Free never expires
   } else if (cycle === 'annual') {
-    expiry.setFullYear(now.getFullYear() + 1);
+    expiry.setFullYear(expiry.getFullYear() + 1); // +365 days
   } else {
-    expiry.setDate(now.getDate() + DEFAULT_LICENSE_EXPIRY_DAYS);
+    expiry.setDate(expiry.getDate() + DEFAULT_LICENSE_EXPIRY_DAYS); // +30 days
   }
 
   const daysRemaining = Math.max(0, Math.ceil((expiry.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
 
-  const randomHash = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
-  const prefix = plan === 'agency' ? 'XSF-AGENCY' : plan === 'pro' ? 'XSF-PRO' : 'XSF-FREE';
-  const licenseKey = `${prefix}-${randomHash}`;
+  // Key Generation: If renewing on same tier, preserve key. If upgrading, issue tier-appropriate key.
+  let licenseKey = '';
+  if (existingLicense && existingLicense.plan === plan && existingLicense.licenseKey) {
+    licenseKey = existingLicense.licenseKey;
+  } else {
+    const randomHash = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+    const prefix = plan === 'agency' ? 'XSF-AGENCY' : plan === 'pro' ? 'XSF-PRO' : 'XSF-FREE';
+    licenseKey = `${prefix}-${randomHash}`;
+  }
 
   const license: LicenseDetails = {
     plan,
     licenseKey,
     status: 'active',
-    issuedAt: now.toISOString(),
+    issuedAt: existingLicense?.issuedAt || now.toISOString(),
     expiresAt: expiry.toISOString(),
     daysRemaining,
     billingCycle: cycle,
@@ -79,6 +111,9 @@ export function createDefaultLicense(plan: UserPlan, cycle: 'monthly' | 'annual'
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem('xsendflow_license', JSON.stringify(license));
+      localStorage.setItem('xsendflow_user_plan', plan);
+      window.dispatchEvent(new Event('xsendflow_plan_updated'));
+      window.dispatchEvent(new Event('xsendflow_license_updated'));
     } catch {}
   }
 
@@ -95,7 +130,7 @@ export function saveLicense(license: LicenseDetails): void {
   } catch {}
 }
 
-export function redeemLicenseCode(code: string): { success: boolean; plan?: UserPlan; message: string } {
+export function redeemLicenseCode(code: string): { success: boolean; plan?: UserPlan; message: string; daysRemaining?: number } {
   const clean = code.trim().toUpperCase();
 
   if (!clean) {
@@ -125,6 +160,7 @@ export function redeemLicenseCode(code: string): { success: boolean; plan?: User
   return {
     success: true,
     plan: targetPlan,
-    message: `License Activated! Upgraded to ${targetPlan.toUpperCase()} with 365 days of scale.`,
+    daysRemaining: updatedLicense.daysRemaining,
+    message: `License Activated! Upgraded to ${targetPlan.toUpperCase()} with ${updatedLicense.daysRemaining} days active.`,
   };
 }
