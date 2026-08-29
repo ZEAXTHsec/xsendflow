@@ -4,6 +4,9 @@ import React, { useState, useEffect } from 'react';
 import { Server, Plus, CheckCircle2, AlertCircle, Trash2, Eye, EyeOff, RefreshCw, ShieldCheck } from 'lucide-react';
 import confetti from 'canvas-confetti';
 
+import UpgradeProModal from '../modals/UpgradeProModal';
+import { UserPlan } from '@/lib/planLimits';
+
 export interface SenderAccount {
   id: string;
   email: string;
@@ -35,6 +38,7 @@ export default function SendersTab() {
   });
 
   const [isAdding, setIsAdding] = useState(false);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [email, setEmail] = useState('');
   const [label, setLabel] = useState('');
   const [smtpHost, setSmtpHost] = useState('smtp.gmail.com');
@@ -149,11 +153,23 @@ export default function SendersTab() {
         </div>
 
         <button
-          onClick={() => setIsAdding(true)}
+          onClick={() => {
+            const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+            if (currentPlan === 'free' && senders.length >= 1) {
+              setIsUpgradeOpen(true);
+              return;
+            }
+            setIsAdding(true);
+          }}
           className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-500/20 flex items-center gap-2 active:scale-95 glow-tag shrink-0"
         >
           <Plus className="w-4 h-4" />
           <span>Add SMTP Mailbox</span>
+          {((typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') === 'free') && senders.length >= 1 && (
+            <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono">
+              PRO
+            </span>
+          )}
         </button>
       </div>
 
@@ -444,6 +460,12 @@ export default function SendersTab() {
           ))}
         </div>
       </div>
+
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason="mailbox_limit"
+      />
     </div>
   );
 }

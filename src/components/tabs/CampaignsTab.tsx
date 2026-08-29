@@ -705,6 +705,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       else resolvedUnsubscribeText = customUnsubscribeText;
     }
 
+    const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    const activeRunningCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
+    const isFreePlanBlocked = plan === 'free' && activeRunningCount >= 1;
+
+    const initialStatus = isFreePlanBlocked
+      ? 'paused'
+      : (windowCheck.inWindow ? 'in_progress' : 'scheduled');
+
     const newCampaign: Campaign = {
       id: createId('camp'),
       name: name.trim(),
@@ -717,7 +725,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       windowEnd: is24Hours ? '23:59' : windowEnd,
       timezone,
       is24Hours,
-      status: windowCheck.inWindow ? 'in_progress' : 'scheduled',
+      status: initialStatus,
       steps,
       recipients: uploadedRecipients,
       isSandbox: isSandboxMode,
@@ -741,8 +749,9 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       setDraftInfo(null);
     } catch {}
 
-    // If currently inside the schedule window or 24/7, send first email; otherwise let background ticker wait
-    if (windowCheck.inWindow) {
+    if (isFreePlanBlocked) {
+      alert(`⚠️ Free Plan Limit (1 Active Campaign):\nYour new campaign "${newCampaign.name}" was saved as Paused because another campaign is already actively running.\n\nPause your active campaign anytime to start this one, or upgrade to Pro.`);
+    } else if (windowCheck.inWindow) {
       setTimeout(() => {
         handleSendBatchSimulation(newCampaign.id, newCampaign, 1);
       }, 200);
@@ -1169,17 +1178,26 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              onClick={loadSampleCampaignData}
-              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs px-4 py-3 rounded-xl transition-all active:scale-95"
-            >
-              Load Sample Campaign
-            </button>
-            <button
-              onClick={() => { setIsCreating(true); setWizardStep(1); }}
+              onClick={() => {
+                const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                const activeRunningCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
+                if (plan === 'free' && activeRunningCount >= 1) {
+                  setUpgradeReason('campaign_limit');
+                  setIsUpgradeOpen(true);
+                  return;
+                }
+                setIsCreating(true);
+                setWizardStep(1);
+              }}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
               <span>New Campaign Wizard</span>
+              {userPlan === 'free' && activeCount >= 1 && (
+                <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono">
+                  1 ACTIVE
+                </span>
+              )}
             </button>
           </div>
         </div>
@@ -2151,6 +2169,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 </div>
               </div>
 
+              {userPlan === 'free' && activeCount >= 1 && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-center justify-between gap-3">
+                  <span>🔒 Free Plan: 1 campaign is already actively running. This campaign will be saved as <strong>Paused</strong>.</span>
+                  <button
+                    type="button"
+                    onClick={() => { setUpgradeReason('campaign_limit'); setIsUpgradeOpen(true); }}
+                    className="text-xs font-black text-amber-900 underline hover:text-amber-950 shrink-0"
+                  >
+                    Upgrade to Pro ➔
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <button
                   onClick={() => setWizardStep(3)}
@@ -2170,9 +2201,13 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
                   <button
                     onClick={handleFinalizeCreateCampaign}
-                    className="text-xs font-bold bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white px-7 py-3 rounded-xl shadow-lg shadow-emerald-500/20 transition-all active:scale-95 glow-tag"
+                    className={`text-xs font-bold px-7 py-3 rounded-xl shadow-lg transition-all active:scale-95 glow-tag ${
+                      userPlan === 'free' && activeCount >= 1
+                        ? 'bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white shadow-amber-500/20'
+                        : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/20'
+                    }`}
                   >
-                    <span>Launch &amp; Schedule Campaign 🚀</span>
+                    <span>{userPlan === 'free' && activeCount >= 1 ? 'Save Campaign as Paused 💾' : 'Launch & Schedule Campaign 🚀'}</span>
                   </button>
                 </div>
               </div>

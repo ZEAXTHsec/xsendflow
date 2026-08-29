@@ -661,11 +661,23 @@ export default function ProfileSettingsModal({
                   </div>
                   {!isAddingSender && (
                     <button
-                      onClick={() => setIsAddingSender(true)}
+                      onClick={() => {
+                        const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                        if (currentPlan === 'free' && senders.length >= 1) {
+                          setIsUpgradeOpen(true);
+                          return;
+                        }
+                        setIsAddingSender(true);
+                      }}
                       className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
                     >
                       <Plus className="w-3.5 h-3.5" />
                       <span>Add New SMTP</span>
+                      {((typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') === 'free') && senders.length >= 1 && (
+                        <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono">
+                          PRO
+                        </span>
+                      )}
                     </button>
                   )}
                 </div>
