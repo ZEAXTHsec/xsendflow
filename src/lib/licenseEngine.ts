@@ -68,6 +68,12 @@ export function getStoredLicense(): LicenseDetails {
       parsed.daysRemaining = diffDays;
       if (diffDays <= 0 && parsed.plan !== 'free') {
         parsed.status = 'expired';
+        parsed.plan = 'free';
+        parsed.maxInboxes = 1;
+        parsed.maxCampaigns = 1;
+        parsed.cloudActive = false;
+        localStorage.setItem('xsendflow_user_plan', 'free');
+        localStorage.setItem('xsendflow_license', JSON.stringify(parsed));
       }
       return parsed;
     }
