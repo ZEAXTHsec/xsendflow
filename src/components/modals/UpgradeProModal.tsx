@@ -89,23 +89,28 @@ export default function UpgradeProModal({
       name: 'Pro Unlimited',
       monthly: 29,
       annual: 249,
+      badge: 'Most Popular',
+      desc: 'For founders & growth teams scaling outbound',
       features: [
         'Unlimited Connected Mailboxes',
-        '24/7 Cloud-Powered Background Dispatch',
         'Up to 5 Simultaneous Active Campaigns',
-        'Unlimited Contacts & Bulk AI Enrichment'
+        '24/7 Cloud-Powered Background Dispatch',
+        'Unlimited Contacts & Real-time Verification',
+        'Multi-Step Spintax & AI Icebreakers'
       ]
     },
     agency: {
       name: 'Agency Scale',
       monthly: 79,
       annual: 690,
+      badge: 'Agencies & Teams',
+      desc: 'For agencies running multi-client fleets',
       features: [
         'Everything in Pro Unlimited',
-        'Unlimited Active Campaigns',
+        'Unlimited Simultaneous Active Campaigns',
         'Multi-Client Workspace Isolation',
         'Shareable Live Client Reports (/report/[token])',
-        'Dedicated Cloud Engine Routing & Sockets'
+        'Dedicated High-Throughput Cloud Sockets'
       ]
     }
   }[selectedPlan];
@@ -115,7 +120,6 @@ export default function UpgradeProModal({
   const handleRazorpayCheckout = async () => {
     setLoading(true);
     try {
-      // 1. Ensure Razorpay script loaded
       if (!window.Razorpay) {
         const script = document.createElement('script');
         script.src = 'https://checkout.razorpay.com/v1/checkout.js';
@@ -124,7 +128,6 @@ export default function UpgradeProModal({
         await new Promise((resolve) => { script.onload = resolve; });
       }
 
-      // 2. Create Order
       const res = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -143,7 +146,6 @@ export default function UpgradeProModal({
         throw new Error(orderData.error || 'Could not initiate Razorpay order');
       }
 
-      // 3. Open Razorpay Modal
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_live_STudsDAainFSIM',
         amount: orderData.amount,
@@ -200,140 +202,170 @@ export default function UpgradeProModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl rounded-3xl bg-[#0b101b] border border-slate-800 text-white shadow-2xl overflow-hidden p-6 sm:p-8 space-y-6">
-        {/* Ambient Glows */}
-        <div className="absolute top-0 right-0 w-72 h-72 bg-indigo-600/15 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute bottom-0 left-0 w-72 h-72 bg-purple-600/15 rounded-full blur-3xl pointer-events-none" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-150">
+      <div className="relative w-full max-w-lg rounded-3xl bg-[#0b0f19] border border-slate-800/90 text-white shadow-2xl overflow-hidden p-6 sm:p-7 space-y-5 transform-gpu will-change-transform">
+        
+        {/* Subtle Ambient Radial Highlight */}
+        <div className="absolute top-0 right-1/4 w-80 h-32 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
 
         {/* Header */}
-        <div className="relative z-10 flex items-start justify-between">
-          <div className="flex items-center gap-3">
-            <LogoIcon size="md" />
-            <div>
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-gradient-to-r from-indigo-500/20 to-purple-500/20 border border-indigo-500/30 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-wider">
-                <Sparkles className="w-3 h-3 text-cyan-400" />
-                <span>Enterprise Gating &amp; Scale</span>
-              </div>
-              <h3 className="text-xl font-black text-white mt-1">{triggerCopy.title}</h3>
+        <div className="relative z-10 flex items-start justify-between gap-4 border-b border-slate-800/70 pb-4">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-wider">
+              <Sparkles className="w-3 h-3 text-indigo-400" />
+              <span>Scale &amp; Growth Plan</span>
             </div>
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">{triggerCopy.title}</h3>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-md pt-0.5">{triggerCopy.desc}</p>
           </div>
 
           <button
             onClick={onClose}
             aria-label="Close Upgrade Modal"
             id="close-upgrade-modal-btn"
-            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
+            className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800/80 transition-colors shrink-0"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Trigger Context Description */}
-        <p className="text-xs text-slate-300 leading-relaxed relative z-10">
-          {triggerCopy.desc}
-        </p>
-
-        {/* Tier Selector (Pro vs Agency) */}
-        <div className="grid grid-cols-2 gap-3 p-1.5 rounded-2xl bg-slate-900 border border-slate-800 relative z-10">
+        {/* Plan Selector Radio Cards (Zero-Layout-Shift, Instant Feedback) */}
+        <div className="grid grid-cols-2 gap-3 relative z-10">
+          {/* Pro Plan Card */}
           <button
             type="button"
             onClick={() => setSelectedPlan('pro')}
-            className={`p-3.5 rounded-xl text-left transition-all border ${
+            className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
               selectedPlan === 'pro'
-                ? 'bg-indigo-600/15 border-indigo-500 text-white shadow-md'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 text-white shadow-md shadow-indigo-950/50'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
             }`}
           >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 text-indigo-400" /> Pro Unlimited
-              </span>
-              <span className="text-xs font-black text-indigo-300">$29/mo</span>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold flex items-center gap-1 text-white">
+                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Pro Unlimited
+                </span>
+                <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                  selectedPlan === 'pro' ? 'border-indigo-400 bg-indigo-500' : 'border-slate-600'
+                }`}>
+                  {selectedPlan === 'pro' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight">Solo founders &amp; teams</p>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">For founders &amp; growth leaders</p>
+
+            <div className="pt-3 flex items-baseline gap-1">
+              <span className="text-lg font-black text-white font-mono tracking-tight">
+                ${billingCycle === 'monthly' ? '29' : '249'}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+              </span>
+            </div>
           </button>
 
+          {/* Agency Plan Card */}
           <button
             type="button"
             onClick={() => setSelectedPlan('agency')}
-            className={`p-3.5 rounded-xl text-left transition-all border relative ${
+            className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
               selectedPlan === 'agency'
-                ? 'bg-purple-600/15 border-purple-500 text-white shadow-md'
-                : 'border-transparent text-slate-400 hover:text-slate-200'
+                ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-500 text-white shadow-md shadow-purple-950/50'
+                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
             }`}
           >
-            <span className="absolute -top-2 right-2 px-1.5 py-0.2 rounded-full bg-purple-500 text-white font-mono font-bold text-[8px] uppercase">
-              Agencies
-            </span>
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold flex items-center gap-1.5">
-                <Building2 className="w-3.5 h-3.5 text-purple-400" /> Agency Scale
-              </span>
-              <span className="text-xs font-black text-purple-300">$79/mo</span>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold flex items-center gap-1 text-white">
+                  <Building2 className="w-3.5 h-3.5 text-purple-400" /> Agency Scale
+                </span>
+                <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                  selectedPlan === 'agency' ? 'border-purple-400 bg-purple-500' : 'border-slate-600'
+                }`}>
+                  {selectedPlan === 'agency' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                </span>
+              </div>
+              <p className="text-[10px] text-slate-400 leading-tight">Agencies &amp; multi-client</p>
             </div>
-            <p className="text-[10px] text-slate-400 mt-1">Multi-client &amp; team workspaces</p>
+
+            <div className="pt-3 flex items-baseline gap-1">
+              <span className="text-lg font-black text-white font-mono tracking-tight">
+                ${billingCycle === 'monthly' ? '79' : '690'}
+              </span>
+              <span className="text-[10px] text-slate-400 font-medium">
+                /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+              </span>
+            </div>
           </button>
         </div>
 
-        {/* Selected Tier Feature Matrix */}
-        <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5 relative z-10">
-          <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            Included in {planPricing.name}:
+        {/* Feature Matrix Included */}
+        <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 space-y-2.5 relative z-10">
+          <div className="flex items-center justify-between">
+            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+              Included in {planPricing.name}:
+            </span>
+            <span className="text-[10px] font-mono text-indigo-300 font-bold">
+              {planPricing.badge}
+            </span>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+          <div className="space-y-1.5">
             {planPricing.features.map((feat, idx) => (
-              <div key={idx} className="flex items-center gap-2 text-slate-200">
+              <div key={idx} className="flex items-center gap-2 text-slate-200 text-xs">
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span className="text-[11px] leading-tight">{feat}</span>
+                <span className="text-[11px] leading-tight text-slate-300">{feat}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Billing Cycle Switcher */}
-        <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900 border border-slate-800 text-xs relative z-10">
-          <span className="text-slate-300 font-semibold">Billing Frequency:</span>
-          <div className="flex items-center gap-1.5 bg-slate-950 p-1 rounded-xl border border-slate-800">
+        {/* Billing Frequency Switcher (Clean Segmented Control) */}
+        <div className="flex items-center justify-between p-2.5 rounded-2xl bg-slate-900/80 border border-slate-800/80 text-xs relative z-10">
+          <span className="text-slate-300 font-bold pl-1">Billing Term:</span>
+          <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800/90">
             <button
               type="button"
               onClick={() => setBillingCycle('monthly')}
-              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all ${
-                billingCycle === 'monthly' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400'
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors duration-150 ${
+                billingCycle === 'monthly' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
-              Monthly (${selectedPlan === 'pro' ? '29' : '79'}/mo)
+              Monthly
             </button>
             <button
               type="button"
               onClick={() => setBillingCycle('annual')}
-              className={`px-3 py-1 rounded-lg font-bold text-xs transition-all flex items-center gap-1 ${
-                billingCycle === 'annual' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400'
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-colors duration-150 flex items-center gap-1.5 ${
+                billingCycle === 'annual' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-400 hover:text-slate-200'
               }`}
             >
               <span>Annual</span>
-              <span className="text-[9px] bg-emerald-500 text-slate-950 px-1.5 py-0.2 rounded font-black">
-                Save 20%
+              <span className="text-[9px] bg-emerald-400 text-slate-950 px-1.5 py-0.2 rounded font-black tracking-wide">
+                20% OFF
               </span>
             </button>
           </div>
         </div>
 
-        {/* 1-Click Razorpay Checkout Button */}
+        {/* Checkout CTA */}
         <button
           type="button"
           disabled={loading}
           onClick={handleRazorpayCheckout}
-          className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white font-extrabold text-xs py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/30 active:scale-95 transition-all relative z-10"
+          className="w-full bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-black text-xs py-3.5 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/20 active:scale-[0.98] transition-all duration-150 relative z-10"
         >
-          <Zap className="w-4 h-4 text-cyan-300" />
-          <span>{loading ? 'Initiating Razorpay...' : `Upgrade to ${planPricing.name} — $${currentPrice} / ${billingCycle === 'monthly' ? 'month' : 'year'}`}</span>
+          <Zap className="w-4 h-4 text-amber-300 fill-amber-300" />
+          <span>
+            {loading ? 'Initiating Checkout...' : `Upgrade to ${planPricing.name} • $${currentPrice} / ${billingCycle === 'monthly' ? 'month' : 'year'}`}
+          </span>
           <ArrowRight className="w-4 h-4" />
         </button>
 
-        <div className="flex items-center justify-center gap-4 text-[10px] text-slate-400 relative z-10">
-          <span className="flex items-center gap-1">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 256-Bit TLS
+        {/* Security / Guarantee Footer */}
+        <div className="flex items-center justify-center gap-3 text-[10px] text-slate-500 relative z-10 pt-1">
+          <span className="flex items-center gap-1 text-slate-400">
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> 256-Bit SSL
           </span>
           <span>•</span>
           <span>Instant Auto-Activation</span>
