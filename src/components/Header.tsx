@@ -51,7 +51,6 @@ export default function Header() {
     { href: '/pricing', label: 'Pricing' },
     { href: '/changelog', label: 'Updates' },
     { href: '/faq', label: 'FAQ' },
-    { href: '/coffee', label: '☕' },
   ];
 
   return (

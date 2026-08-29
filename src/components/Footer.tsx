@@ -15,14 +15,8 @@ export default function Footer() {
             <span className="font-bold text-sm text-slate-900 tracking-tight">XSendFlow</span>
           </div>
           <p className="text-slate-600 max-w-sm leading-relaxed text-[11px]">
-            The zero-cost cold email acceleration suite &amp; AI deliverability studio. Stop paying $79–149/mo for simple sending tools.
+            The zero-cost cold email acceleration suite &amp; deliverability engine. Stop paying $79–149/mo for basic sending tools.
           </p>
-          <div className="flex items-center gap-3 pt-1">
-            <Link href="/coffee" className="text-amber-600 hover:text-amber-700 flex items-center gap-1 text-[11px] transition-colors font-medium">
-              <Heart className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-              <span>Support Development</span>
-            </Link>
-          </div>
         </div>
 
         {/* Column 1: Product */}
