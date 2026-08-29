@@ -23,6 +23,7 @@ interface Props {
     | 'general';
   targetTier?: 'pro' | 'agency';
   userEmail?: string;
+  userId?: string;
   onSuccess?: () => void;
 }
 
@@ -38,6 +39,7 @@ export default function UpgradeProModal({
   triggerReason = 'general', 
   targetTier = 'pro',
   userEmail, 
+  userId,
   onSuccess 
 }: Props) {
   const [selectedPlan, setSelectedPlan] = useState<'pro' | 'agency'>(targetTier);
@@ -127,8 +129,11 @@ export default function UpgradeProModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: currentPrice,
+          planId: selectedPlan,
           plan: selectedPlan,
-          billingCycle
+          billingCycle,
+          userEmail,
+          userId: userId || null
         })
       });
 
@@ -157,10 +162,12 @@ export default function UpgradeProModal({
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
-                order_id: response.razorpay_order_id,
-                payment_id: response.razorpay_payment_id,
-                signature: response.razorpay_signature,
-                plan: selectedPlan
+                razorpay_order_id: response.razorpay_order_id,
+                razorpay_payment_id: response.razorpay_payment_id,
+                razorpay_signature: response.razorpay_signature,
+                planId: selectedPlan,
+                userEmail,
+                userId: userId || null
               })
             });
 

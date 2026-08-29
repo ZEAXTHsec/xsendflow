@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest) {
   try {
-    const { planId, amount, currency = 'USD' } = await req.json();
+    const { planId, amount, currency = 'USD', userId, userEmail } = await req.json();
 
     const keyId = process.env.RAZORPAY_KEY_ID || 'rzp_live_STudsDAainFSIM';
     const keySecret = process.env.RAZORPAY_KEY_SECRET || 'rAY0ejs6KVokpPM3QuBOmxXc';
@@ -24,6 +24,8 @@ export async function POST(req: NextRequest) {
         receipt: `rcpt_${planId}_${Date.now()}`,
         notes: {
           plan: planId,
+          userId: userId || '',
+          userEmail: userEmail || '',
           app: 'XSendFlow'
         }
       })
