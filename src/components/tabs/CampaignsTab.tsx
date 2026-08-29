@@ -46,6 +46,7 @@ export interface Campaign {
   status: 'draft' | 'scheduled' | 'sending' | 'in_progress' | 'done' | 'paused';
   steps: CampaignStep[];
   recipients: CampaignRecipient[];
+  isSandbox?: boolean;
   createdAt: string;
 }
 
@@ -134,6 +135,7 @@ export default function CampaignsTab({ leads }: Props) {
   const [windowStart, setWindowStart] = useState('09:00');
   const [windowEnd, setWindowEnd] = useState('17:00');
   const [timezone, setTimezone] = useState('America/New_York (EST)');
+  const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   // Step 2: CSV & Contacts
   const [uploadedRecipients, setUploadedRecipients] = useState<CampaignRecipient[]>([]);
@@ -172,16 +174,45 @@ export default function CampaignsTab({ leads }: Props) {
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [wizardSpintaxSamples, setWizardSpintaxSamples] = useState<string[]>([]);
 
-  // Inspector state
+  // Inspector & Virtual Sandbox state
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [recipientSearch, setRecipientSearch] = useState('');
   const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'scheduled' | 'done'>('all');
+  const [isVirtualInspectorOpen, setIsVirtualInspectorOpen] = useState(false);
+  const [simulatedLogs, setSimulatedLogs] = useState<Array<{
+    id: string;
+    campaignId: string;
+    campaignName: string;
+    senderEmail: string;
+    senderLabel: string;
+    recipientEmail: string;
+    recipientName: string;
+    company: string;
+    subject: string;
+    body: string;
+    sentAt: string;
+  }>>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('xsendflow_simulated_logs');
+      return saved ? JSON.parse(saved) : [];
+    } catch { return []; }
+  });
+  const [selectedSimulatedEmail, setSelectedSimulatedEmail] = useState<any>(null);
 
   // Test email modal
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [testEmailTo, setTestEmailTo] = useState('');
   const [testSentSuccess, setTestSentSuccess] = useState(false);
   const isSendingMapRef = React.useRef<Record<string, boolean>>({});
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('xsendflow_simulated_logs', JSON.stringify(simulatedLogs));
+    } catch {
+      // Ignore
+    }
+  }, [simulatedLogs]);
 
   useEffect(() => {
     try {
@@ -492,6 +523,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       status: inWindow ? 'in_progress' : 'scheduled',
       steps,
       recipients: uploadedRecipients,
+      isSandbox: isSandboxMode,
       createdAt: new Date().toISOString()
     };
 
