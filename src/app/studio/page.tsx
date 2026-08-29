@@ -100,6 +100,32 @@ export default function StudioPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
+        // 1. First check if a real Supabase session exists (e.g. from Google OAuth)
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          setUser(session.user);
+          // Clear mock storage so real authenticated user takes full effect
+          localStorage.removeItem('xsendflow_mock_user');
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.plan) {
+            setUserPlan(profile.plan as UserPlan);
+            localStorage.setItem('xsendflow_user_plan', profile.plan);
+          } else {
+            // New Google OAuth user defaults to agency/pro for test or free
+            const currentPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+            setUserPlan(currentPlan);
+          }
+          setAuthLoading(false);
+          return;
+        }
+
+        // 2. If no real session, check mock session for local testing
         const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
         if (mockUserStr) {
           try {
@@ -112,23 +138,8 @@ export default function StudioPage() {
           } catch {}
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUser(session.user);
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('plan')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profile?.plan) {
-            setUserPlan(profile.plan as UserPlan);
-            localStorage.setItem('xsendflow_user_plan', profile.plan);
-          }
-        } else {
-          const guest = { id: 'guest-founder', email: 'outreach@xsendflow.com' };
-          setUser(guest);
-        }
+        const guest = { id: 'guest-founder', email: 'outreach@xsendflow.com' };
+        setUser(guest);
       } catch (err) {
         setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
       } finally {
@@ -140,6 +151,7 @@ export default function StudioPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
         setUser(session.user);
+        localStorage.removeItem('xsendflow_mock_user');
         const { data: profile } = await supabase
           .from('profiles')
           .select('plan')
