@@ -1268,10 +1268,16 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                     ) : (
                       <div className="space-y-4">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                            <label className="block text-xs font-bold text-slate-900">
-                              Daily Send Limit
-                            </label>
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2.5">
+                            <div className="flex items-center justify-between">
+                              <label className="block text-xs font-bold text-slate-900">
+                                Daily Send Limit
+                              </label>
+                              <span className="text-[11px] text-slate-500 font-mono">
+                                {senders.length} Connected Inbox{senders.length > 1 ? 'es' : ''}
+                              </span>
+                            </div>
+
                             <div className="flex items-center gap-3">
                               <input
                                 type="range"
@@ -1286,7 +1292,28 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                                 {editDailyLimit}/day
                               </span>
                             </div>
-                            <p className="text-[11px] text-slate-500">Evenly split across all sender inboxes.</p>
+
+                            {/* Smart Mailbox Deliverability Guard */}
+                            {(() => {
+                              const inboxesCount = senders.length || 1;
+                              const safeCap = inboxesCount * 50;
+                              const isOverCap = editDailyLimit > safeCap;
+                              const perInbox = Math.round(editDailyLimit / inboxesCount);
+
+                              return isOverCap ? (
+                                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed flex items-start gap-2">
+                                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                                  <div>
+                                    <strong>High Volume Warning:</strong> {editDailyLimit}/day across {inboxesCount} inbox{inboxesCount > 1 ? 'es' : ''} = ~{perInbox}/inbox/day. Safe limit is 40–50/day per inbox to avoid spam filters. Connect {Math.ceil(editDailyLimit / 40)}+ inboxes or reduce to {safeCap}/day.
+                                  </div>
+                                </div>
+                              ) : (
+                                <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 pt-0.5">
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                                  <span>Safe inbox health: ~{perInbox} emails/day per connected mailbox.</span>
+                                </div>
+                              );
+                            })()}
                           </div>
 
                           <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
