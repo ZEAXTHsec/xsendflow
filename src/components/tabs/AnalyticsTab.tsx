@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Campaign, CampaignRecipient } from './CampaignsTab';
-import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns, SenderAccount } from '@/lib/mockData/agencyMockData';
+import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns, getHighVolumeMockCampaigns, SenderAccount } from '@/lib/mockData/agencyMockData';
 
 interface Props {
   onNavigateTab?: (tab: 'campaigns' | 'leads' | 'pitch') => void;
@@ -34,6 +34,16 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'draft' | 'done'>('all');
   const [currentPage, setCurrentPage] = useState(1);
   const [draftInfo, setDraftInfo] = useState<{ name: string; lastSavedAt: string; step: number } | null>(null);
+
+  const handleLoad100Campaigns = () => {
+    const hvFleets = getHighVolumeMockCampaigns(100, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    setCampaigns(hvFleets);
+    localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(hvFleets));
+    window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    try {
+      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
+    } catch {}
+  };
 
   const ITEMS_PER_PAGE = 4;
 
@@ -228,6 +238,15 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2 py-0.5 rounded-full border border-slate-200">
                 {campaigns.length} Total
               </span>
+              <button
+                type="button"
+                onClick={handleLoad100Campaigns}
+                className="text-[11px] font-extrabold bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-900 border border-indigo-200/80 px-2.5 py-0.5 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
+                title="Populate 100+ realistic enterprise campaigns for demo"
+              >
+                <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
+                <span>Load 100+ Fleet</span>
+              </button>
             </div>
             <p className="text-xs text-slate-500">Monitor active cloud queues, pause campaigns, or finish pending drafts</p>
           </div>

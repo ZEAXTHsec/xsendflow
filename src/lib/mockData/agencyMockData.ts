@@ -213,3 +213,89 @@ export function getAgencyMockCampaigns(origin = 'http://localhost:3000'): Campai
     }
   ];
 }
+
+export function getHighVolumeMockCampaigns(count = 100, origin = 'http://localhost:3000'): Campaign[] {
+  const industries = ['Fintech & Payments', 'GenAI SaaS', 'Healthcare & Biotech', 'Cybersecurity Ops', 'Cloud Logistics', 'EdTech Scale', 'DevOps & Infra', 'B2B MarTech', 'PropTech Real Estate', 'Autonomous Robotics'];
+  const locations = ['New York (EST)', 'San Francisco (PST)', 'London (GMT)', 'Singapore (SGT)', 'Berlin (CET)', 'Toronto (EST)', 'Tokyo (JST)', 'Sydney (AEST)'];
+  const tzMap: Record<string, string> = {
+    'New York (EST)': 'America/New_York (EST)',
+    'San Francisco (PST)': 'America/Los_Angeles (PST)',
+    'London (GMT)': 'Europe/London (GMT)',
+    'Singapore (SGT)': 'Asia/Singapore (SGT)',
+    'Berlin (CET)': 'Europe/Berlin (CET)',
+    'Toronto (EST)': 'America/Toronto (EST)',
+    'Tokyo (JST)': 'Asia/Tokyo (JST)',
+    'Sydney (AEST)': 'Australia/Sydney (AEST)'
+  };
+  const senders = ['sender-agency-1', 'sender-agency-2', 'sender-agency-3', 'sender-agency-4'];
+
+  const campaigns: Campaign[] = [];
+
+  for (let i = 1; i <= count; i++) {
+    const ind = industries[(i - 1) % industries.length];
+    const loc = locations[(i - 1) % locations.length];
+    const tz = tzMap[loc] || 'America/New_York (EST)';
+    const is24h = i % 5 === 0;
+    
+    // Status distribution: 40% active/sending, 30% scheduled, 20% done, 10% paused
+    const statusVal = (i % 10 < 4) ? 'in_progress' : (i % 10 < 7) ? 'scheduled' : (i % 10 < 9) ? 'done' : 'paused';
+    
+    const leadCount = 20 + ((i * 7) % 80);
+    const recipients = [];
+    for (let r = 1; r <= leadCount; r++) {
+      const isSent = statusVal === 'done' ? true : statusVal === 'in_progress' ? r <= Math.floor(leadCount * 0.65) : false;
+      const isOpened = isSent && (r % 2 === 0);
+      const isReplied = isOpened && (r % 5 === 0);
+
+      recipients.push({
+        id: `rec-${i}-${r}`,
+        email: `prospect.${r}@${ind.toLowerCase().replace(/[^a-z]/g, '')}-${i}.com`,
+        firstName: `Leader${r}`,
+        company: `${ind.split(' ')[0]} #${i}`,
+        title: 'VP of Growth & Engineering',
+        website: `https://${ind.toLowerCase().replace(/[^a-z]/g, '')}.com`,
+        icebreaker: `Impressive scale and architecture with ${ind.split(' ')[0]}.`,
+        pitchUrl: `${origin}/p/${ind.toLowerCase().replace(/[^a-z]/g, '')}-${i}`,
+        status: isReplied ? 'replied' as const : isOpened ? 'opened' as const : isSent ? 'sent' as const : 'pending' as const,
+        sentAt: isSent ? `10:${String(10 + (r % 45)).padStart(2, '0')} AM` : undefined
+      });
+    }
+
+    campaigns.push({
+      id: `camp-hv-${i}`,
+      name: `#${String(i).padStart(3, '0')}: ${ind} Enterprise Outreach (${loc.split(' ')[0]})`,
+      fromName: i % 2 === 0 ? 'Alex Turner' : 'Sarah Jenkins',
+      senderId: senders[i % senders.length],
+      selectedSenderIds: senders.slice(0, (i % 3) + 2),
+      delaySeconds: 40 + (i % 35),
+      dailyLimit: 100 + ((i * 15) % 150),
+      windowStart: '09:00',
+      windowEnd: '17:30',
+      timezone: tz,
+      is24Hours: is24h,
+      status: statusVal,
+      trackOpens: true,
+      trackClicks: true,
+      includeUnsubscribe: true,
+      unsubscribeText: 'PS: Let me know if you would like me to remove your address.',
+      steps: [
+        {
+          id: 1,
+          dayDelay: 0,
+          subject: `{Quick question|Brief inquiry} re: ${ind.split(' ')[0]} scaling in ${loc.split(' ')[0]}`,
+          body: `Hey {{First_Name}},\n\n{{Icebreaker}}\n\nWe put together a tailored deliverability review for {{Company}} here: {{Pitch_Page_URL}}\n\nWorth a brief 5-minute sync this week?\n\nBest,\nAlex`
+        },
+        {
+          id: 2,
+          dayDelay: 3,
+          subject: `Re: quick question re: {{Company}}`,
+          body: `Hi {{First_Name}},\n\nWanted to float this back to the top of your inbox. Did you get a chance to take a look at the custom walkthrough ({{Pitch_Page_URL}})?\n\nBest,\nAlex`
+        }
+      ],
+      recipients,
+      createdAt: new Date(Date.now() - (count - i) * 7200000).toISOString()
+    });
+  }
+
+  return campaigns;
+}

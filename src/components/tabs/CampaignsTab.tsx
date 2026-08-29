@@ -14,7 +14,7 @@ import UpgradeProModal from '../modals/UpgradeProModal';
 import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
 import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone } from '@/lib/engine/timeZoneScheduler';
-import { getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
+import { getAgencyMockCampaigns, getHighVolumeMockCampaigns } from '@/lib/mockData/agencyMockData';
 
 export interface CampaignStep {
   id: number;
@@ -1064,7 +1064,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     const mockFleets = getAgencyMockCampaigns(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
     setCampaigns(mockFleets);
     try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(mockFleets));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
       confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    } catch {}
+  };
+
+  const load100CampaignData = () => {
+    const hvFleets = getHighVolumeMockCampaigns(100, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    setCampaigns(hvFleets);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(hvFleets));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
     } catch {}
   };
 
@@ -2310,7 +2322,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 placeholder="Search across campaigns..."
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs w-48 sm:w-60 focus:outline-none focus:border-indigo-500"
+                className="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs w-44 sm:w-56 focus:outline-none focus:border-indigo-500"
               />
             </div>
             {searchQuery && (
@@ -2322,6 +2334,16 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 Clear
               </button>
             )}
+
+            <button
+              type="button"
+              onClick={load100CampaignData}
+              className="text-xs font-bold bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-900 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
+              title="Populate 100+ realistic enterprise campaigns for high-volume scale testing"
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+              <span>Load 100+ Fleet</span>
+            </button>
           </div>
         </div>
 
