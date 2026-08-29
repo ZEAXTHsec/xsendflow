@@ -466,26 +466,12 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               const isDraft = camp.status === 'draft';
               const isDone = camp.status === 'done';
 
-              // Dynamic Visual Theme for Campaign Thumbnail
-              const nameLower = camp.name.toLowerCase();
-              let thumbGradient = 'from-blue-600 to-indigo-600';
-              let IconElem = Send;
-              if (nameLower.includes('fintech') || nameLower.includes('payment')) {
-                thumbGradient = 'from-amber-500 to-orange-600';
-                IconElem = Zap;
-              } else if (nameLower.includes('ai') || nameLower.includes('genai') || nameLower.includes('saas')) {
-                thumbGradient = 'from-indigo-600 to-purple-600';
-                IconElem = Sparkles;
-              } else if (nameLower.includes('cyber') || nameLower.includes('security') || nameLower.includes('ops')) {
-                thumbGradient = 'from-cyan-600 to-blue-700';
-                IconElem = ShieldCheck;
-              } else if (nameLower.includes('health') || nameLower.includes('biotech')) {
-                thumbGradient = 'from-emerald-500 to-teal-600';
-                IconElem = Activity;
-              } else if (nameLower.includes('devops') || nameLower.includes('infra')) {
-                thumbGradient = 'from-rose-500 to-pink-600';
-                IconElem = Server;
-              }
+              const senderInitials = (camp.fromName || 'Alex Turner')
+                .split(' ')
+                .map((n: string) => n[0])
+                .join('')
+                .slice(0, 2)
+                .toUpperCase();
 
               const campIndex = (currentPage - 1) * ITEMS_PER_PAGE + idx;
 
@@ -493,12 +479,19 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 <div
                   key={camp.id}
                   onClick={() => onNavigateTab?.('campaigns')}
-                  className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col xl:flex-row xl:items-center justify-between gap-4 group"
+                  className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col xl:flex-row xl:items-center justify-between gap-4 group"
                 >
-                  {/* Left: Icon Thumbnail + Campaign Identity */}
-                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${thumbGradient} flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform`}>
-                      <IconElem className="w-5 h-5" />
+                  {/* Left: Sender Account Avatar + Campaign Identity */}
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="relative shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-slate-900 text-white font-mono font-bold text-xs flex items-center justify-center border border-slate-800 shadow-2xs tracking-wider">
+                        {senderInitials}
+                      </div>
+                      <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white ${
+                        isSending ? 'bg-emerald-500 ring-1 ring-emerald-200' :
+                        isPaused ? 'bg-amber-400' :
+                        isDone ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`} />
                     </div>
 
                     <div className="space-y-1 min-w-0 flex-1">
@@ -525,7 +518,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       </div>
 
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-mono">
-                        <span className="text-slate-700 font-medium">From: {camp.fromName || 'Alex Turner'}</span>
+                        <span className="text-slate-700 font-medium">Sender: {camp.fromName || 'Alex Turner'}</span>
                         <span>•</span>
                         <span>{camp.steps?.length || 1} Touchpoints</span>
                         <span>•</span>
