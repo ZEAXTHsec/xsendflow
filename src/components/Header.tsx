@@ -6,6 +6,7 @@ import { usePathname } from 'next/navigation';
 import { Sparkles, Settings, LogIn, LogOut, User } from 'lucide-react';
 import ProfileSettingsModal from './settings/ProfileSettingsModal';
 import { createClient } from '@/lib/supabase/client';
+import Logo from './ui/Logo';
 
 export default function Header() {
   const pathname = usePathname();
@@ -58,13 +59,8 @@ export default function Header() {
       <nav className="glass-nav sticky top-0 z-50 w-full transition-all">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Brand */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-700 flex items-center justify-center font-black text-white text-sm shadow-md shadow-indigo-500/20 group-hover:scale-105 transition-transform">
-              X
-            </div>
-            <span className="font-extrabold text-base text-slate-900 tracking-tight leading-none group-hover:text-indigo-600 transition-colors">
-              XSendFlow
-            </span>
+          <Link href="/" className="group hover:opacity-90 transition-opacity">
+            <Logo size="md" />
           </Link>
 
           {/* Center Nav Links */}

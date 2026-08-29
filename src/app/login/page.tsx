@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { Mail, Lock, Sparkles, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import Logo from '@/components/ui/Logo';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -79,15 +80,8 @@ export default function LoginPage() {
 
       {/* Navigation Header */}
       <header className="max-w-6xl mx-auto w-full px-6 py-6 flex items-center justify-between z-10">
-        <Link href="/" className="flex items-center gap-2.5 group">
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-500 to-cyan-400 p-0.5 shadow-lg shadow-indigo-500/20 group-hover:scale-105 transition-transform duration-300">
-            <div className="w-full h-full bg-[#0b0f19] rounded-[10px] flex items-center justify-center">
-              <Sparkles className="w-4 h-4 text-cyan-400" />
-            </div>
-          </div>
-          <span className="font-extrabold text-lg tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400">
-            XSend<span className="text-cyan-400">Flow</span>
-          </span>
+        <Link href="/" className="hover:opacity-90 transition-opacity">
+          <Logo size="lg" theme="dark" />
         </Link>
         <Link
           href="/"

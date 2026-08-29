@@ -3,6 +3,7 @@ import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Sparkles, ShieldCheck, Zap, ArrowRight, CheckCircle2, Monitor } from 'lucide-react';
+import { LogoIcon } from '@/components/ui/Logo';
 
 export const metadata: Metadata = {
   title: 'XSendFlow — Free Cold Email Acceleration & AI Deliverability Studio',
@@ -15,14 +16,24 @@ export default function HomePage() {
       <Header />
 
       {/* ═══ HERO SECTION ═══ */}
-      <section className="relative pt-24 pb-20 px-4 sm:px-6 overflow-hidden text-center">
+      <section className="relative pt-20 pb-20 px-4 sm:px-6 overflow-hidden text-center">
         {/* Soft Ambient Multi-Color Mesh Glows (Blue, Purple, Mint) */}
         <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[700px] h-[400px] bg-gradient-to-tr from-indigo-200/40 via-purple-200/30 to-blue-200/40 blur-[110px] rounded-full pointer-events-none -z-10" />
 
         <div className="max-w-4xl mx-auto space-y-6">
+          {/* Logo Badge */}
+          <div className="flex items-center justify-center">
+            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-slate-900 text-white shadow-xl shadow-indigo-500/10 border border-slate-800">
+              <LogoIcon size="sm" />
+              <span className="text-xs font-mono font-bold tracking-tight text-slate-200">
+                XSendFlow 2.0 • Zero-Cost Cold Email Engine
+              </span>
+            </div>
+          </div>
+
           {/* Eyebrow Callout - Psychological Urgency Red */}
           <div className="inline-block text-xs sm:text-sm font-bold text-rose-600 tracking-tight">
-            Stop paying $79–149/month for email software
+            Stop paying $79–149/month for basic sending tools
           </div>
 
           {/* Hero Heading */}

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { Heart, Sparkles } from 'lucide-react';
+import Logo from './ui/Logo';
 
 export default function Footer() {
   return (
@@ -8,12 +9,9 @@ export default function Footer() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 grid grid-cols-2 md:grid-cols-5 gap-8">
         {/* Brand Column */}
         <div className="col-span-2 space-y-3">
-          <div className="flex items-center gap-2.5">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-indigo-600 to-blue-600 flex items-center justify-center font-bold text-white text-xs shadow-sm">
-              X
-            </div>
-            <span className="font-bold text-sm text-slate-900 tracking-tight">XSendFlow</span>
-          </div>
+          <Link href="/" className="inline-block hover:opacity-90 transition-opacity">
+            <Logo size="sm" />
+          </Link>
           <p className="text-slate-600 max-w-sm leading-relaxed text-[11px]">
             The zero-cost cold email acceleration suite &amp; deliverability engine. Stop paying $79–149/mo for basic sending tools.
           </p>

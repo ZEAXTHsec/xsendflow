@@ -4,6 +4,7 @@ import React, { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { CheckCircle2, ShieldCheck, Mail, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import Logo from '@/components/ui/Logo';
 
 function UnsubscribeContent() {
   const searchParams = useSearchParams();
@@ -44,14 +45,11 @@ function UnsubscribeContent() {
         </p>
       </div>
 
-      <div className="pt-4">
-        <Link
-          href="https://xsendflow.com"
-          className="text-xs font-bold text-slate-400 hover:text-white transition-colors inline-flex items-center gap-1"
-        >
-          <span>Powered by XSendFlow</span>
-          <ArrowRight className="w-3.5 h-3.5" />
+      <div className="pt-4 flex flex-col items-center gap-2">
+        <Link href="/" className="hover:opacity-90 transition-opacity">
+          <Logo size="sm" theme="dark" />
         </Link>
+        <span className="text-[10px] text-slate-500 font-medium">Enterprise Cold Email Deliverability</span>
       </div>
     </div>
   );
