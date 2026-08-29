@@ -5,7 +5,8 @@ import {
   BarChart3, CheckCircle2, Send, Eye, MessageSquare, TrendingUp, 
   Zap, ShieldCheck, Mail, Users, ArrowUpRight, Clock, Plus, 
   Activity, Server, Sparkles, RefreshCw, Flame, ExternalLink,
-  Search, Play, Pause, FileText, ChevronRight, ChevronLeft, ArrowRight, Cloud
+  Search, Play, Pause, FileText, ChevronRight, ChevronLeft, ArrowRight, Cloud,
+  Copy, Download, X, Sliders, Layers, Filter, Check, Trash2, Inbox, AlertCircle
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Campaign, CampaignRecipient } from './CampaignsTab';
@@ -35,6 +36,90 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [sortBy, setSortBy] = useState<'default' | 'open_rate' | 'sent' | 'replies'>('default');
   const [currentPage, setCurrentPage] = useState(1);
   const [draftInfo, setDraftInfo] = useState<{ name: string; lastSavedAt: string; step: number } | null>(null);
+
+  // Dedicated In-Dashboard Campaign Inspector State
+  const [selectedInspectCampaign, setSelectedInspectCampaign] = useState<Campaign | null>(null);
+  const [inspectActiveTab, setInspectActiveTab] = useState<'leads' | 'sequence' | 'mailboxes' | 'pacing'>('leads');
+  const [leadFilterStatus, setLeadFilterStatus] = useState<'all' | 'replied' | 'opened' | 'sent' | 'pending'>('all');
+  const [leadSearch, setLeadSearch] = useState('');
+  const [copiedId, setCopiedId] = useState(false);
+  const [editDailyLimit, setEditDailyLimit] = useState<number>(150);
+  const [editDelaySeconds, setEditDelaySeconds] = useState<number>(45);
+
+  const handleOpenInspector = (camp: Campaign, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    setSelectedInspectCampaign(camp);
+    setEditDailyLimit(camp.dailyLimit || 150);
+    setEditDelaySeconds(camp.delaySeconds || 45);
+    setInspectActiveTab('leads');
+  };
+
+  const handleCloneCampaign = (camp: Campaign, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const cloned: Campaign = {
+      ...camp,
+      id: `camp_${Date.now()}`,
+      name: `${camp.name} (Copy)`,
+      status: 'draft',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [cloned, ...campaigns];
+    setCampaigns(updated);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
+    setSelectedInspectCampaign(cloned);
+  };
+
+  const handleExportLeadsCSV = (camp: Campaign, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    if (!camp.recipients || camp.recipients.length === 0) {
+      alert('No leads in this campaign to export.');
+      return;
+    }
+    const headers = ['Email', 'First Name', 'Company', 'Status', 'Sent At'];
+    const rows = camp.recipients.map(r => [
+      `"${r.email}"`,
+      `"${r.firstName || ''}"`,
+      `"${r.company || ''}"`,
+      `"${r.status || 'pending'}"`,
+      `"${r.sentAt || ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${camp.name.replace(/[^a-zA-Z0-9]/g, '_')}_leads.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSavePacingSettings = () => {
+    if (!selectedInspectCampaign) return;
+    const updated = campaigns.map(c => {
+      if (c.id === selectedInspectCampaign.id) {
+        return {
+          ...c,
+          dailyLimit: editDailyLimit,
+          delaySeconds: editDelaySeconds
+        };
+      }
+      return c;
+    });
+    setCampaigns(updated);
+    setSelectedInspectCampaign({
+      ...selectedInspectCampaign,
+      dailyLimit: editDailyLimit,
+      delaySeconds: editDelaySeconds
+    });
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
+    alert('Campaign pacing and velocity settings updated successfully!');
+  };
 
   const handleLoad100Campaigns = () => {
     const hvFleets = getHighVolumeMockCampaigns(100, typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
@@ -478,7 +563,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               return (
                 <div
                   key={camp.id}
-                  onClick={() => onNavigateTab?.('campaigns')}
+                  onClick={() => handleOpenInspector(camp)}
                   className="p-3 sm:p-3.5 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col xl:flex-row xl:items-center justify-between gap-4 group"
                 >
                   {/* Left: Sender Account Avatar + Campaign Identity */}
@@ -545,8 +630,8 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                     </div>
                   </div>
 
-                  {/* Right: Rich Metric Chips & Action Controls */}
-                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between xl:justify-end gap-3 shrink-0">
+                  {/* Right: Rich Metric Chips & Competitor Action Controls */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between xl:justify-end gap-2.5 shrink-0">
                     <div className="flex items-center gap-1.5 font-mono text-[11px]">
                       <div className="px-2.5 py-1 rounded-xl bg-purple-50 border border-purple-200/80 text-purple-900 flex items-center gap-1 font-bold">
                         <Eye className="w-3 h-3 text-purple-600" />
@@ -561,12 +646,12 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                    <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                       {!isDraft && (
                         <button
                           type="button"
                           onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
-                          className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
+                          className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
                           title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
                         >
                           {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
@@ -575,8 +660,26 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
                       <button
                         type="button"
-                        onClick={() => onNavigateTab?.('campaigns')}
-                        className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all shadow-2xs flex items-center gap-1 group-hover:border-indigo-300 group-hover:text-indigo-600"
+                        onClick={(e) => handleCloneCampaign(camp, e)}
+                        className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-indigo-600 transition-colors shadow-2xs"
+                        title="Duplicate / Clone Sequence"
+                      >
+                        <Copy className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleExportLeadsCSV(camp, e)}
+                        className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-emerald-600 transition-colors shadow-2xs"
+                        title="Export Leads CSV Report"
+                      >
+                        <Download className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleOpenInspector(camp, e)}
+                        className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all shadow-2xs flex items-center gap-1 group-hover:border-indigo-300 group-hover:text-indigo-600"
                       >
                         <span>Inspect</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -777,6 +880,420 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           </div>
         </div>
       </div>
+
+      {/* 6. DEDICATED IN-DASHBOARD CAMPAIGN INTELLIGENCE INSPECTOR MODAL */}
+      {selectedInspectCampaign && (() => {
+        const camp = selectedInspectCampaign;
+        const totalRecips = camp.recipients?.length || 0;
+        const sentRecips = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
+        const openRecips = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'opened' || r.status === 'replied').length || 0;
+        const replyRecips = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'replied').length || 0;
+
+        const progressPct = totalRecips > 0 ? Math.round((sentRecips / totalRecips) * 100) : 0;
+        const openPct = sentRecips > 0 ? Math.round((openRecips / sentRecips) * 100) : 68;
+        const replyPct = sentRecips > 0 ? Math.round((replyRecips / sentRecips) * 100) : 14.2;
+
+        const isSending = camp.status === 'sending' || camp.status === 'in_progress' || camp.status === 'scheduled';
+        const isPaused = camp.status === 'paused';
+        const isDraft = camp.status === 'draft';
+        const isDone = camp.status === 'done';
+
+        const filteredLeads = (camp.recipients || []).filter(r => {
+          const matchesSearch = !leadSearch.trim() || 
+            r.email.toLowerCase().includes(leadSearch.toLowerCase()) || 
+            (r.firstName && r.firstName.toLowerCase().includes(leadSearch.toLowerCase())) ||
+            (r.company && r.company.toLowerCase().includes(leadSearch.toLowerCase()));
+          
+          if (!matchesSearch) return false;
+          if (leadFilterStatus === 'all') return true;
+          if (leadFilterStatus === 'replied') return r.status === 'replied';
+          if (leadFilterStatus === 'opened') return r.status === 'opened' || r.status === 'replied';
+          if (leadFilterStatus === 'sent') return r.status === 'sent' || r.status === 'opened' || r.status === 'replied';
+          if (leadFilterStatus === 'pending') return r.status === 'pending';
+          return true;
+        });
+
+        const senderInitials = (camp.fromName || 'Alex Turner')
+          .split(' ')
+          .map((n: string) => n[0])
+          .join('')
+          .slice(0, 2)
+          .toUpperCase();
+
+        return (
+          <div className="fixed inset-0 z-50 bg-slate-950/70 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6 animate-in fade-in duration-200">
+            <div className="w-full max-w-4xl max-h-[90vh] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+              
+              {/* Modal Top Header */}
+              <div className="p-5 sm:p-6 border-b border-slate-100 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-3.5 min-w-0">
+                  <div className="w-10 h-10 rounded-xl bg-slate-900 text-white font-mono font-bold text-xs flex items-center justify-center border border-slate-800 shadow-2xs shrink-0 tracking-wider">
+                    {senderInitials}
+                  </div>
+                  <div className="space-y-1 min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <h3 className="text-base font-black text-slate-900 truncate">
+                        {camp.name}
+                      </h3>
+                      <span className={`text-[10px] font-mono font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                        isSending ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                        isPaused ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                        isDone ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                        'bg-slate-100 text-slate-700 border-slate-200'
+                      }`}>
+                        {isSending ? 'Active Dispatch' : isPaused ? 'Paused' : isDraft ? 'Draft' : 'Completed'}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-500 font-mono flex flex-wrap items-center gap-2">
+                      <span>Sender: <strong className="text-slate-800">{camp.fromName || 'Alex Turner'}</strong></span>
+                      <span>•</span>
+                      <span>{camp.steps?.length || 1} Steps</span>
+                      <span>•</span>
+                      <span>{camp.is24Hours ? '24/7 Continuous' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Modal Competitor Header Action Buttons */}
+                <div className="flex items-center gap-2 shrink-0">
+                  {!isDraft && (
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        handleToggleCampaignStatus(camp.id, e);
+                        setSelectedInspectCampaign({
+                          ...camp,
+                          status: isSending ? 'paused' : 'sending' as any
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-xl border text-xs font-bold transition-all shadow-2xs flex items-center gap-1.5 ${
+                        isSending ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100' : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                      }`}
+                    >
+                      {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                      <span>{isSending ? 'Pause' : 'Resume'}</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleCloneCampaign(camp, e)}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5"
+                    title="Clone this campaign sequence"
+                  >
+                    <Copy className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Clone</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleExportLeadsCSV(camp, e)}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5"
+                    title="Download leads CSV with statuses"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span className="hidden sm:inline">Export CSV</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setSelectedInspectCampaign(null)}
+                    className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 text-slate-500 hover:text-slate-900 transition-colors"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+
+              {/* Modal KPI Strip */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-5 bg-white border-b border-slate-100">
+                <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">Dispatch Volume</span>
+                  <div className="text-lg font-black text-slate-900 font-mono">{sentRecips} / {totalRecips}</div>
+                  <div className="text-[10px] text-indigo-600 font-bold">{progressPct}% completed</div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-purple-700 uppercase">Open Rate</span>
+                  <div className="text-lg font-black text-purple-900 font-mono">{openPct}%</div>
+                  <div className="text-[10px] text-purple-600">Spintax variant tracking</div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-emerald-700 uppercase">Reply Rate</span>
+                  <div className="text-lg font-black text-emerald-900 font-mono">{replyPct}%</div>
+                  <div className="text-[10px] text-emerald-600">High intent prospects</div>
+                </div>
+
+                <div className="p-3 rounded-2xl bg-blue-50/70 border border-blue-100 space-y-1">
+                  <span className="text-[10px] font-mono font-bold text-blue-700 uppercase">Deliverability</span>
+                  <div className="text-lg font-black text-blue-900 font-mono">100%</div>
+                  <div className="text-[10px] text-blue-600">0.0% bounce rate</div>
+                </div>
+              </div>
+
+              {/* Modal Tab Navigation */}
+              <div className="flex items-center gap-2 px-5 pt-3 border-b border-slate-200 bg-slate-50/40 text-xs font-bold">
+                <button
+                  type="button"
+                  onClick={() => setInspectActiveTab('leads')}
+                  className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                    inspectActiveTab === 'leads' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Users className="w-3.5 h-3.5" />
+                  <span>Recipient Leads ({totalRecips})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInspectActiveTab('sequence')}
+                  className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                    inspectActiveTab === 'sequence' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Layers className="w-3.5 h-3.5" />
+                  <span>Sequence Steps ({camp.steps?.length || 1})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInspectActiveTab('mailboxes')}
+                  className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                    inspectActiveTab === 'mailboxes' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Mail className="w-3.5 h-3.5" />
+                  <span>Rotated Mailboxes ({senders.length})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setInspectActiveTab('pacing')}
+                  className={`pb-2.5 px-3 border-b-2 transition-all flex items-center gap-1.5 ${
+                    inspectActiveTab === 'pacing' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Sliders className="w-3.5 h-3.5" />
+                  <span>Pacing &amp; Safety Controls</span>
+                </button>
+              </div>
+
+              {/* Modal Body Content */}
+              <div className="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4">
+                
+                {/* Tab 1: Recipient Leads & Live Status Stream */}
+                {inspectActiveTab === 'leads' && (
+                  <div className="space-y-4">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div className="relative flex-1 max-w-sm">
+                        <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                        <input
+                          type="text"
+                          value={leadSearch}
+                          onChange={e => setLeadSearch(e.target.value)}
+                          placeholder="Search leads by name, email, company..."
+                          className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500 w-full"
+                        />
+                      </div>
+
+                      <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+                        <button
+                          type="button"
+                          onClick={() => setLeadFilterStatus('all')}
+                          className={`px-2.5 py-1 rounded-lg transition-all ${leadFilterStatus === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'}`}
+                        >
+                          All ({totalRecips})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLeadFilterStatus('replied')}
+                          className={`px-2.5 py-1 rounded-lg transition-all ${leadFilterStatus === 'replied' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600'}`}
+                        >
+                          Replied ({replyRecips})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLeadFilterStatus('opened')}
+                          className={`px-2.5 py-1 rounded-lg transition-all ${leadFilterStatus === 'opened' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600'}`}
+                        >
+                          Opened ({openRecips})
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setLeadFilterStatus('pending')}
+                          className={`px-2.5 py-1 rounded-lg transition-all ${leadFilterStatus === 'pending' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600'}`}
+                        >
+                          Queued ({totalRecips - sentRecips})
+                        </button>
+                      </div>
+                    </div>
+
+                    {filteredLeads.length > 0 ? (
+                      <div className="rounded-2xl border border-slate-200 overflow-hidden">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-slate-50 border-b border-slate-200 text-slate-500 font-mono text-[10px] font-bold uppercase">
+                            <tr>
+                              <th className="py-2.5 px-4">Contact</th>
+                              <th className="py-2.5 px-4">Company</th>
+                              <th className="py-2.5 px-4">Status</th>
+                              <th className="py-2.5 px-4 text-right">Activity Timestamp</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-100">
+                            {filteredLeads.map((r, i) => (
+                              <tr key={i} className="hover:bg-slate-50/80 transition-colors">
+                                <td className="py-2.5 px-4">
+                                  <div className="font-bold text-slate-900">{r.email}</div>
+                                  <div className="text-[11px] text-slate-400 font-mono">{r.firstName || 'Lead'}</div>
+                                </td>
+                                <td className="py-2.5 px-4 text-slate-700 font-medium">
+                                  {r.company || 'Enterprise Org'}
+                                </td>
+                                <td className="py-2.5 px-4">
+                                  <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                                    r.status === 'replied' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                                    r.status === 'opened' ? 'bg-purple-50 text-purple-800 border-purple-200' :
+                                    r.status === 'sent' ? 'bg-blue-50 text-blue-800 border-blue-200' :
+                                    'bg-slate-100 text-slate-700 border-slate-200'
+                                  }`}>
+                                    {r.status === 'replied' ? '🟢 Replied' :
+                                     r.status === 'opened' ? '👁️ Opened' :
+                                     r.status === 'sent' ? '📬 Sent' : '⏳ Queued'}
+                                  </span>
+                                </td>
+                                <td className="py-2.5 px-4 text-right text-slate-400 font-mono text-[11px]">
+                                  {r.sentAt ? new Date(r.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Scheduled in queue'}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    ) : (
+                      <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
+                        No recipient leads match your filter.
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Tab 2: Sequence Steps & Drop-off Performance */}
+                {inspectActiveTab === 'sequence' && (
+                  <div className="space-y-4">
+                    {(camp.steps || []).map((step, idx) => (
+                      <div key={idx} className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2">
+                            <span className="w-6 h-6 rounded-lg bg-indigo-600 text-white font-mono font-bold text-xs flex items-center justify-center">
+                              {idx + 1}
+                            </span>
+                            <h4 className="text-xs font-bold text-slate-900">
+                              {idx === 0 ? 'Initial Hook / Cold Email' : `Follow-up Touchpoint (+${idx * 3} days)`}
+                            </h4>
+                          </div>
+                          <div className="flex items-center gap-3 font-mono text-[11px]">
+                            <span className="text-purple-700 font-bold">{idx === 0 ? '68% Opens' : '45% Opens'}</span>
+                            <span className="text-emerald-700 font-bold">{idx === 0 ? '12% Replies' : '8% Replies'}</span>
+                          </div>
+                        </div>
+
+                        <div className="p-3 bg-white rounded-xl border border-slate-200 space-y-1.5">
+                          <div className="text-xs font-bold text-slate-800 font-mono">
+                            Subject: {step.subject || 'Quick question regarding your outbound stack'}
+                          </div>
+                          <div className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
+                            {step.body || 'Hi {{firstName}}, noticed your team is expanding enterprise sales...'}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tab 3: Rotated Mailboxes & Health */}
+                {inspectActiveTab === 'mailboxes' && (
+                  <div className="space-y-3">
+                    <p className="text-xs text-slate-500">
+                      This campaign distributes sending volume across all authenticated mailboxes to ensure 0% domain burn:
+                    </p>
+                    {senders.map((s, i) => (
+                      <div key={i} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
+                        <div className="space-y-0.5">
+                          <div className="text-xs font-bold text-slate-900">{s.label || 'Sender Account'}</div>
+                          <div className="text-[11px] font-mono text-slate-500">{s.email}</div>
+                        </div>
+                        <div className="flex items-center gap-3 font-mono text-xs">
+                          <span className="text-slate-600 font-medium">Allocated: <strong>{Math.round(camp.dailyLimit / senders.length || 30)}/day</strong></span>
+                          <span className="px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-800 text-[10px] font-bold">100% HEALTH</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {/* Tab 4: Pacing, Safety & Schedule Controls */}
+                {inspectActiveTab === 'pacing' && (
+                  <div className="space-y-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <label className="block text-xs font-bold text-slate-900">
+                          Daily Campaign Limit
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min="10"
+                            max="500"
+                            step="10"
+                            value={editDailyLimit}
+                            onChange={e => setEditDailyLimit(Number(e.target.value))}
+                            className="flex-1 accent-indigo-600 cursor-pointer"
+                          />
+                          <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                            {editDailyLimit}/day
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Safely distributed across connected mailboxes.</p>
+                      </div>
+
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                        <label className="block text-xs font-bold text-slate-900">
+                          Gaussian Delay Pacing (Jitter)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="range"
+                            min="15"
+                            max="180"
+                            step="5"
+                            value={editDelaySeconds}
+                            onChange={e => setEditDelaySeconds(Number(e.target.value))}
+                            className="flex-1 accent-indigo-600 cursor-pointer"
+                          />
+                          <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                            {editDelaySeconds}s delay
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500">Randomized intervals between consecutive sends.</p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={handleSavePacingSettings}
+                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-xs active:scale-95"
+                    >
+                      Save Pacing Changes 💾
+                    </button>
+                  </div>
+                )}
+
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3 } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3, Copy } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
@@ -1070,6 +1070,45 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(hvFleets));
       window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
     } catch {}
+  };
+
+  const handleCloneCampaign = (camp: Campaign) => {
+    const cloned: Campaign = {
+      ...camp,
+      id: `camp_${Date.now()}`,
+      name: `${camp.name} (Copy)`,
+      status: 'draft',
+      createdAt: new Date().toISOString()
+    };
+    const updated = [cloned, ...campaigns];
+    setCampaigns(updated);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
+  };
+
+  const handleExportLeadsCSV = (camp: Campaign) => {
+    if (!camp.recipients || camp.recipients.length === 0) {
+      alert('No leads in this campaign to export.');
+      return;
+    }
+    const headers = ['Email', 'First Name', 'Company', 'Status', 'Sent At'];
+    const rows = camp.recipients.map(r => [
+      `"${r.email}"`,
+      `"${r.firstName || ''}"`,
+      `"${r.company || ''}"`,
+      `"${r.status || 'pending'}"`,
+      `"${r.sentAt || ''}"`
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `${camp.name.replace(/[^a-zA-Z0-9]/g, '_')}_leads.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
@@ -2483,12 +2522,21 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                           </button>
 
                           <button
-                            onClick={() => handleSendBatchSimulation(camp.id)}
-                            className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
-                            title="Immediately dispatch next email batch"
+                            type="button"
+                            onClick={() => handleCloneCampaign(camp)}
+                            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
+                            title="Duplicate / Clone Sequence"
                           >
-                            <Send className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>Batch ➔</span>
+                            <Copy className="w-3.5 h-3.5" />
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => handleExportLeadsCSV(camp)}
+                            className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
+                            title="Export Leads CSV Report"
+                          >
+                            <Download className="w-3.5 h-3.5" />
                           </button>
                         </>
                       )}
