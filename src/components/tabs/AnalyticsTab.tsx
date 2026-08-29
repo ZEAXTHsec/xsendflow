@@ -208,7 +208,12 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
           <button
             type="button"
-            onClick={() => onNavigateTab?.('campaigns')}
+            onClick={() => {
+              onNavigateTab?.('campaigns');
+              setTimeout(() => {
+                window.dispatchEvent(new Event('xsendflow_resume_draft'));
+              }, 100);
+            }}
             className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all shrink-0 font-mono"
           >
             <span>Resume Draft ➔</span>

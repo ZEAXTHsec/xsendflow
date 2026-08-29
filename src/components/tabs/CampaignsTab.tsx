@@ -302,6 +302,14 @@ export default function CampaignsTab({ leads }: Props) {
     } catch {}
   };
 
+  useEffect(() => {
+    const handleResumeDraftEvent = () => {
+      handleResumeDraft();
+    };
+    window.addEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
+    return () => window.removeEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
+  }, []);
+
   const handleDiscardDraft = () => {
     if (!confirm('Are you sure you want to discard this unfinished draft?')) return;
     try {
