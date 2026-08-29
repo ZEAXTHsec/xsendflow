@@ -133,7 +133,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         {/* Reply & Booking Rate */}
         <div className="p-5 rounded-2xl bg-white border border-slate-200/90 shadow-xs hover:shadow-md transition-all space-y-2">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-500">
-            <span>Response &amp; Bookings</span>
+            <span>Direct Reply Rate</span>
             <div className="p-2 rounded-xl bg-purple-50 text-purple-600">
               <MessageSquare className="w-4 h-4" />
             </div>
@@ -141,7 +141,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           <div className="text-3xl font-black text-purple-600 font-mono tnum">14.8%</div>
           <div className="text-[11px] text-purple-700 font-semibold flex items-center gap-1">
             <Sparkles className="w-3.5 h-3.5 text-purple-500" />
-            <span>Personalized pitch page boost</span>
+            <span>Spintax + Human delay boost</span>
           </div>
         </div>
       </div>
@@ -194,7 +194,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           <div className="flex items-center gap-4">
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-indigo-600" /> Outbound Sent</span>
             <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-cyan-400" /> Opens Tracked</span>
-            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Pitch Page Views</span>
+            <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-purple-500" /> Replies Received</span>
           </div>
           <span className="font-mono text-[11px] text-slate-400">Timezone: America/New_York (EST)</span>
         </div>
@@ -308,12 +308,9 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
             <div className="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:bg-slate-100/80 transition-colors">
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 mt-1 shrink-0 animate-ping" />
               <div className="flex-1">
-                <div className="font-extrabold text-slate-900">Prospect viewed personalized pitch page</div>
-                <div className="text-slate-500 text-[11px]">2 mins ago • /p/stripe-john • Stripe</div>
+                <div className="font-extrabold text-slate-900">Positive Reply Received: &quot;Let&apos;s connect Tuesday 2pm&quot;</div>
+                <div className="text-slate-500 text-[11px]">2 mins ago • robert@acmesolutions.com • Acme Solutions</div>
               </div>
-              <button onClick={() => onNavigateTab?.('pitch')} className="text-slate-400 hover:text-slate-900">
-                <ExternalLink className="w-3.5 h-3.5" />
-              </button>
             </div>
 
             <div className="flex items-start gap-3 p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 hover:bg-slate-100/80 transition-colors">
