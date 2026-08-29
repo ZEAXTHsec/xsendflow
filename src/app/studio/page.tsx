@@ -319,7 +319,7 @@ export default function StudioPage() {
             )}
           </div>
 
-          {/* Right: Quick Actions & Profile Hub */}
+          {/* Right: Quick Actions */}
           <div className="flex items-center gap-2">
             <button
               onClick={() => { setSettingsTab('senders'); setIsSettingsOpen(true); }}
@@ -335,15 +335,6 @@ export default function StudioPage() {
             >
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export CSV</span>
-            </button>
-
-            {/* Profile Avatar Hub Trigger */}
-            <button
-              onClick={() => { setSettingsTab('profile'); setIsSettingsOpen(true); }}
-              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-xs flex items-center justify-center shadow-xs hover:ring-2 hover:ring-indigo-400 transition-all active:scale-95 ml-1"
-              title="Open Profile & Settings (Ctrl+K)"
-            >
-              {userDisplayName.slice(0, 2).toUpperCase()}
             </button>
           </div>
         </div>
