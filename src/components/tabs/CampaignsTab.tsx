@@ -989,12 +989,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     } finally {
       isSendingMapRef.current[id] = false;
     }
-
-    try {
-      confetti({ particleCount: 30, spread: 40, origin: { y: 0.7 } });
-    } catch {
-      // Ignore
-    }
   };
 
   // Automated 15-second background campaign delivery ticker (paces out emails naturally)
@@ -1066,7 +1060,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     try {
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(mockFleets));
       window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
-      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
     } catch {}
   };
 
@@ -1076,7 +1069,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     try {
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(hvFleets));
       window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
-      confetti({ particleCount: 100, spread: 90, origin: { y: 0.5 } });
     } catch {}
   };
 
@@ -2384,61 +2376,75 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 const isSending = camp.status === 'in_progress' || camp.status === 'sending';
 
               return (
-                <div key={camp.id} className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition-colors">
+                <div key={camp.id} className="py-4 sm:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 hover:bg-slate-50/90 p-4 sm:p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
                   {/* Left Info */}
-                  <div className="space-y-1.5 flex-1 cursor-pointer" onClick={() => setSelectedCampaignId(camp.id)}>
-                    <div className="flex items-center gap-2.5">
-                      <h4 className="text-sm font-bold text-slate-900 hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                  <div className="space-y-2 flex-1 cursor-pointer min-w-0" onClick={() => setSelectedCampaignId(camp.id)}>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                        isSending ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-100' :
+                        camp.status === 'paused' ? 'bg-amber-400' :
+                        camp.status === 'done' ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`} />
+                      <h4 className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors flex items-center gap-1.5 truncate">
                         <span>{camp.name}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400" />
+                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                       </h4>
-                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-mono font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
                         isSending
-                          ? 'bg-blue-50 text-blue-700 border-blue-200 animate-pulse'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
                           : camp.status === 'done'
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
                           : camp.status === 'paused'
                           ? 'bg-amber-50 text-amber-800 border-amber-200'
                           : 'bg-slate-100 text-slate-700 border-slate-200'
                       }`}>
-                        {camp.status}
+                        {isSending ? 'Active Dispatch' : camp.status}
                       </span>
                     </div>
 
-                    <div className="text-xs text-slate-500 font-mono truncate max-w-md">
-                      Subject: {camp.steps[0]?.subject || 'No subject set'}
+                    <div className="text-xs text-slate-600 font-mono truncate max-w-lg">
+                      <span className="text-slate-400">Subject:</span> <strong className="text-slate-800 font-medium">{camp.steps[0]?.subject || 'No subject set'}</strong>
                     </div>
 
-                    {/* Timing Pill */}
-                    <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
+                    {/* Timing & Pacing Badges */}
+                    <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 pt-0.5">
                       {camp.is24Hours ? (
                         <span className="flex items-center gap-1 font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          <Zap className="w-3 h-3 text-emerald-600 fill-emerald-600" /> 24/7 Continuous ({extractIanaTimezone(camp.timezone)})
+                          <Zap className="w-3 h-3 text-emerald-600 fill-emerald-600" /> 24/7 Continuous
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
                           <Clock className="w-3 h-3 text-amber-600" /> {camp.windowStart}–{camp.windowEnd} ({extractIanaTimezone(camp.timezone)})
                         </span>
                       )}
-                      <span>•</span>
-                      <span className="font-mono">Delay: {camp.delaySeconds}s</span>
-                      <span>•</span>
-                      <span className="font-mono">Limit: {camp.dailyLimit}/day</span>
-                      <span>•</span>
-                      <span className="font-mono">{camp.steps.length} Steps</span>
+                      <span className="font-mono bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-bold">
+                        Pacing: {camp.delaySeconds}s delay
+                      </span>
+                      <span className="font-mono bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-bold">
+                        Limit: {camp.dailyLimit}/day
+                      </span>
+                      <span className="font-mono text-indigo-600 font-bold">
+                        {camp.steps.length} Touchpoint Steps
+                      </span>
                     </div>
                   </div>
 
-                  {/* Progress Bar & Numbers */}
-                  <div className="flex items-center gap-6">
-                    <div className="text-right min-w-[130px]" onClick={() => setSelectedCampaignId(camp.id)}>
+                  {/* Progress Bar & Performance Numbers */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center gap-5 shrink-0">
+                    <div className="text-right min-w-[140px] space-y-1" onClick={() => setSelectedCampaignId(camp.id)}>
                       <div className="flex items-center justify-end gap-2 font-mono text-xs cursor-pointer">
                         <span className="font-black text-slate-900">{sentRecips}</span>
                         <span className="text-slate-400">/ {camp.recipients.length} sent</span>
-                        <span className="text-emerald-600 font-bold">({progress}%)</span>
+                        <span className="text-indigo-600 font-extrabold font-mono">({progress}%)</span>
                       </div>
-                      <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1 overflow-hidden">
-                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 h-full rounded-full transition-all" style={{ width: `${progress}%` }} />
+                      <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden p-0.5">
+                        <div
+                          className={`h-full rounded-full transition-all duration-500 ${
+                            isSending ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
+                            camp.status === 'done' ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-slate-400'
+                          }`}
+                          style={{ width: `${Math.max(4, progress)}%` }}
+                        />
                       </div>
                     </div>
 
@@ -2446,7 +2452,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     <div className="flex items-center gap-2">
                       <button
                         onClick={() => setSelectedCampaignId(camp.id)}
-                        className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3 py-1.5 rounded-xl border border-slate-200 flex items-center gap-1 transition-all"
+                        className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 px-3 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 transition-all shadow-2xs"
                         title="Inspect Recipients"
                       >
                         <Eye className="w-3.5 h-3.5 text-slate-600" />
@@ -2466,30 +2472,30 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         <>
                           <button
                             onClick={() => handleToggleStatus(camp.id)}
-                            className={`text-xs font-bold px-4 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-xs active:scale-95 ${
+                            className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 ${
                               isSending
                                 ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600 glow-tag'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
                             }`}
                           >
                             {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                            <span>{isSending ? 'Pause Sending' : '▶ Start / Resume'}</span>
+                            <span>{isSending ? 'Pause' : 'Start'}</span>
                           </button>
 
                           <button
                             onClick={() => handleSendBatchSimulation(camp.id)}
-                            className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
-                            title="Immediately dispatch remaining contacts"
+                            className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
+                            title="Immediately dispatch next email batch"
                           >
                             <Send className="w-3.5 h-3.5 text-indigo-600" />
-                            <span>⚡ Send Batch Now</span>
+                            <span>Batch ➔</span>
                           </button>
                         </>
                       )}
 
                       <button
                         onClick={() => handleDeleteCampaign(camp.id)}
-                        className="text-rose-600 hover:text-rose-700 p-1.5 rounded-xl hover:bg-rose-50 transition-colors"
+                        className="text-slate-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors"
                         title="Delete Campaign"
                       >
                         <Trash2 className="w-4 h-4" />

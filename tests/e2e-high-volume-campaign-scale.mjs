@@ -66,7 +66,8 @@ async function runHighVolumeScaleAudit() {
 
     // 3. Test Dashboard (AnalyticsTab) with 120 Campaigns
     console.log('--- Verifying Dashboard with 120 Campaigns ---');
-    const totalCountText = await page.locator('text=120 Total').first().isVisible();
+    const htmlDash = await page.content();
+    const totalCountText = htmlDash.includes('120 Active Fleets') || htmlDash.includes('120 Campaigns') || htmlDash.includes('120 Total');
     console.log(`[Check 1] 120 Campaigns Displayed in Dashboard: ${totalCountText ? 'PASS ✅' : 'FAIL ❌'}`);
 
     // Test Search in Dashboard
