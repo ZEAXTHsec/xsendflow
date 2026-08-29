@@ -51,17 +51,24 @@ export default function LoginPage() {
     if (cleanEmail === 'free_user@xsendflow.com') {
       if (typeof window !== 'undefined') {
         localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-free-001', email: 'free_user@xsendflow.com' }));
+        localStorage.setItem('xsendflow_display_name', 'Free Founder');
+        localStorage.setItem('xsendflow_org_name', 'Starter Studio');
         localStorage.setItem('xsendflow_user_plan', 'free');
         localStorage.removeItem('xsendflow_license_v2');
+        window.dispatchEvent(new Event('xsendflow_user_updated'));
+        window.dispatchEvent(new Event('xsendflow_plan_updated'));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
       }
       document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      router.push('/studio');
+      window.location.href = '/studio';
       return;
     }
 
     if (cleanEmail === 'pro_user@xsendflow.com') {
       if (typeof window !== 'undefined') {
         localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-pro-002', email: 'pro_user@xsendflow.com' }));
+        localStorage.setItem('xsendflow_display_name', 'Pro Growth');
+        localStorage.setItem('xsendflow_org_name', 'Pro Outreach Labs');
         localStorage.setItem('xsendflow_user_plan', 'pro');
         localStorage.setItem('xsendflow_license_v2', JSON.stringify({
           key: 'XSF-PRO-STACK-2026',
@@ -69,15 +76,20 @@ export default function LoginPage() {
           activeUntil: new Date(Date.now() + 30 * 86400000).toISOString(),
           seats: 3
         }));
+        window.dispatchEvent(new Event('xsendflow_user_updated'));
+        window.dispatchEvent(new Event('xsendflow_plan_updated'));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
       }
       document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      router.push('/studio');
+      window.location.href = '/studio';
       return;
     }
 
     if (cleanEmail === 'agency_user@xsendflow.com') {
       if (typeof window !== 'undefined') {
         localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-agency-003', email: 'agency_user@xsendflow.com' }));
+        localStorage.setItem('xsendflow_display_name', 'Agency VIP');
+        localStorage.setItem('xsendflow_org_name', 'Agency Growth Scale');
         localStorage.setItem('xsendflow_user_plan', 'agency');
         localStorage.setItem('xsendflow_license_v2', JSON.stringify({
           key: 'XSF-AGENCY-VIP',
@@ -85,9 +97,12 @@ export default function LoginPage() {
           activeUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
           seats: 10
         }));
+        window.dispatchEvent(new Event('xsendflow_user_updated'));
+        window.dispatchEvent(new Event('xsendflow_plan_updated'));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
       }
       document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      router.push('/studio');
+      window.location.href = '/studio';
       return;
     }
 

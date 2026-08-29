@@ -24,7 +24,7 @@ export default function Header() {
   const isStudio = pathname?.startsWith('/studio');
 
   useEffect(() => {
-    async function checkUser() {
+    function checkUser() {
       try {
         const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
         if (mockUserStr) {
@@ -38,16 +38,20 @@ export default function Header() {
           } catch {}
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user?.email) {
-          setUserEmail(session.user.email);
-          setUserId(session.user.id);
-          const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
-          setUserPlan(savedPlan);
-        } else {
-          setUserEmail(null);
-          setUserId(null);
-        }
+        supabase.auth.getSession().then(({ data: { session } }) => {
+          if (session?.user?.email) {
+            setUserEmail(session.user.email);
+            setUserId(session.user.id);
+            const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+            setUserPlan(savedPlan);
+          } else {
+            const localMock = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
+            if (!localMock) {
+              setUserEmail(null);
+              setUserId(null);
+            }
+          }
+        });
       } catch {
         // Fallback
       }
@@ -55,21 +59,47 @@ export default function Header() {
     checkUser();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUserEmail(session?.user?.email || null);
-      setUserId(session?.user?.id || null);
+      if (session?.user?.email) {
+        setUserEmail(session.user.email);
+        setUserId(session.user.id);
+      } else {
+        const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
+        if (mockUserStr) {
+          try {
+            const parsed = JSON.parse(mockUserStr);
+            setUserEmail(parsed.email || 'founder@xsendflow.com');
+            setUserId(parsed.id || 'guest-founder');
+            return;
+          } catch {}
+        }
+        setUserEmail(null);
+        setUserId(null);
+      }
     });
 
     const handlePlanUpdate = () => {
       if (typeof window !== 'undefined') {
         const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
         setUserPlan(savedPlan);
+        const mockUserStr = localStorage.getItem('xsendflow_mock_user');
+        if (mockUserStr) {
+          try {
+            const parsed = JSON.parse(mockUserStr);
+            setUserEmail(parsed.email);
+            setUserId(parsed.id);
+          } catch {}
+        }
       }
     };
     window.addEventListener('xsendflow_plan_updated', handlePlanUpdate);
+    window.addEventListener('xsendflow_user_updated', handlePlanUpdate);
+    window.addEventListener('storage', handlePlanUpdate);
 
     return () => {
       subscription.unsubscribe();
       window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
+      window.removeEventListener('xsendflow_user_updated', handlePlanUpdate);
+      window.removeEventListener('storage', handlePlanUpdate);
     };
   }, []);
 
