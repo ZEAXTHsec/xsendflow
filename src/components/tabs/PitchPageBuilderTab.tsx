@@ -76,11 +76,11 @@ export default function PitchPageBuilderTab({ leads, pitchConfig, setPitchConfig
             <div className="flex flex-wrap items-center gap-2">
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-500/10 border border-purple-500/30 text-purple-400 text-xs font-mono font-bold">
                 <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                <span>1-to-1 Video Landing Sites (VLS)</span>
+                <span>1-to-1 Video Landing Sites • 100% Free</span>
               </span>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
                 <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Cal.com &amp; Calendly Ready</span>
+                <span>1 Master Loom ➔ 10,000 Dynamic Pages</span>
               </span>
             </div>
 
@@ -88,7 +88,7 @@ export default function PitchPageBuilderTab({ leads, pitchConfig, setPitchConfig
               Personalized Pitch Pages Studio
             </h1>
             <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
-              Every prospect receives a dedicated micro-landing page (<code className="text-purple-300 font-mono">/p/stripe-john</code>) displaying their company logo, custom Loom walkthrough, and 1-click meeting calendar.
+              Record 1 single 60-second Loom or YouTube video. XSendFlow automatically personalizes the landing site (<code className="text-purple-300 font-mono">/p/stripe-john</code>) with each prospect&apos;s company name, custom title, and Cal.com meeting booking widget for \$0.
             </p>
           </div>
 
