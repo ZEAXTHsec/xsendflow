@@ -10,6 +10,8 @@ import {
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { sanitizeFirstName, sanitizeCompanyName, sanitizeJobTitle, isRoleBasedEmail, isValidEmailFormat, generateLocalIcebreaker, createSlug } from '@/lib/sanitizer';
+import UpgradeProModal from '../modals/UpgradeProModal';
+import { canImportLeads, UserPlan } from '@/lib/planLimits';
 
 interface Props {
   leads: Lead[];
@@ -33,6 +35,8 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
   const [pastedText, setPastedText] = useState('');
   const [isPasting, setIsPasting] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'contact_limit' | 'bulk_ai'>('contact_limit');
 
   const cleanLeadItems = (items: Partial<Lead>[]): Lead[] => {
     return items.map((raw, idx) => {
@@ -428,6 +432,26 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
           </div>
 
           <div className="flex items-center gap-2">
+            {leads.length > 0 && (
+              <button
+                type="button"
+                onClick={() => {
+                  const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                  if (leads.length > 10 && userPlan === 'free') {
+                    setUpgradeReason('bulk_ai');
+                    setIsUpgradeOpen(true);
+                    return;
+                  }
+                  handleGenerateAiIcebreakers();
+                }}
+                disabled={isGeneratingAi}
+                className="text-xs font-bold px-3 py-2 rounded-xl bg-purple-50 hover:bg-purple-100 text-purple-700 border border-purple-200 flex items-center gap-1.5 transition-all active:scale-95 shrink-0"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-purple-600" />
+                <span>{isGeneratingAi ? 'Generating Hooks...' : 'Bulk AI Icebreakers'}</span>
+              </button>
+            )}
+
             <div className="relative">
               <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
               <input
@@ -533,6 +557,12 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
           </div>
         )}
       </div>
+
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason={upgradeReason}
+      />
     </div>
   );
 }

@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import { X, Server, Key, Settings, Plus, CheckCircle2, AlertCircle, Trash2, Eye, EyeOff, RefreshCw, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SenderAccount } from '../tabs/SendersTab';
+import UpgradeProModal from '../modals/UpgradeProModal';
+import { canAddMailbox, UserPlan } from '@/lib/planLimits';
 
 interface Props {
   isOpen: boolean;
@@ -68,6 +70,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
   const [defaultDelay, setDefaultDelay] = useState(45);
   const [emailSignature, setEmailSignature] = useState('Best regards,\nYour Name');
   const [savedPrefSuccess, setSavedPrefSuccess] = useState(false);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
   const handleUpdateSenders = (newSenders: SenderAccount[]) => {
     setSenders(newSenders);
@@ -265,8 +268,15 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                   </div>
                   <button
                     data-testid="add-sender-btn"
-                    onClick={() => setIsAddingSender(!isAddingSender)}
-                    className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs"
+                    onClick={() => {
+                      const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                      if (!canAddMailbox(senders.length, userPlan)) {
+                        setIsUpgradeOpen(true);
+                        return;
+                      }
+                      setIsAddingSender(!isAddingSender);
+                    }}
+                    className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs hover:opacity-90 active:scale-95 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" />
                     <span>{isAddingSender ? 'Cancel' : 'Add Account'}</span>
@@ -564,6 +574,12 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
           </div>
         </div>
       </div>
+
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason="mailbox_limit"
+      />
     </div>
   );
 }

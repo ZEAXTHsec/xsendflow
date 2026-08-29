@@ -10,6 +10,8 @@ import { DEFAULT_USER_SENDERS } from '../settings/ProfileSettingsModal';
 import { calculateSpintaxPermutations, generateSpintaxSamples } from '@/lib/engine/spintaxFSM';
 import { deSpamifyText } from '@/lib/spamWords';
 import { autoWrapSpintax } from '@/lib/spintax';
+import UpgradeProModal from '../modals/UpgradeProModal';
+import { canRotateMailboxes, UserPlan } from '@/lib/planLimits';
 
 export interface CampaignStep {
   id: number;
@@ -147,6 +149,8 @@ export default function CampaignsTab({ leads }: Props) {
   const [includeUnsubscribe, setIncludeUnsubscribe] = useState(true);
   const [unsubscribeStyle, setUnsubscribeStyle] = useState<'casual' | 'link' | 'reply' | 'custom'>('casual');
   const [customUnsubscribeText, setCustomUnsubscribeText] = useState('PS: If you would rather not hear from me, let me know and I will remove you right away.');
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'mailbox_limit' | 'contact_limit' | 'vps_daemon'>('mailbox_limit');
 
   // Step 2: CSV & Contacts
   const [uploadedRecipients, setUploadedRecipients] = useState<CampaignRecipient[]>([]);
@@ -989,7 +993,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     <div className="flex items-center gap-2 text-[11px]">
                       <button
                         type="button"
-                        onClick={() => setSelectedSenderIds(senders.map(s => s.id))}
+                        onClick={() => {
+                          const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                          if (!canRotateMailboxes(userPlan) && senders.length > 1) {
+                            setIsUpgradeOpen(true);
+                            return;
+                          }
+                          setSelectedSenderIds(senders.map(s => s.id));
+                        }}
                         className="text-indigo-600 hover:text-indigo-800 font-bold"
                       >
                         Select All
@@ -997,7 +1008,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       <span className="text-slate-300">|</span>
                       <button
                         type="button"
-                        onClick={() => setSelectedSenderIds([])}
+                        onClick={() => {
+                          const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                          if (!canRotateMailboxes(userPlan) && senders.length > 1) {
+                            setIsUpgradeOpen(true);
+                            return;
+                          }
+                          setSelectedSenderIds([]);
+                        }}
                         className="text-slate-500 hover:text-slate-700"
                       >
                         Rotate All
@@ -1019,7 +1037,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                             type="checkbox"
                             checked={isSelected}
                             onChange={(e) => {
+                              const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
                               if (e.target.checked) {
+                                if (selectedSenderIds.length >= 1 && !canRotateMailboxes(userPlan)) {
+                                  setIsUpgradeOpen(true);
+                                  return;
+                                }
                                 setSelectedSenderIds(prev => [...prev.filter(id => id !== s.id), s.id]);
                               } else {
                                 const remaining = (selectedSenderIds.length === 0 ? senders.map(snd => snd.id) : selectedSenderIds).filter(id => id !== s.id);
@@ -2117,6 +2140,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           </div>
         </div>
       )}
+
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason={upgradeReason}
+      />
     </div>
   );
 }
