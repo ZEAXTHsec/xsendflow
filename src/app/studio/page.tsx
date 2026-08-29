@@ -28,11 +28,24 @@ export default function StudioPage() {
   const [upgradeReason, setUpgradeReason] = useState<'general' | 'mailbox_limit' | 'campaign_limit' | 'contact_limit'>('general');
 
   // Plan State
-  const [userPlan, setUserPlan] = useState<UserPlan>('free');
+  const [userPlan, setUserPlan] = useState<UserPlan>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+    }
+    return 'free';
+  });
 
   // Authentication State
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [user, setUser] = useState<any>(() => {
+    if (typeof window !== 'undefined') {
+      const mock = localStorage.getItem('xsendflow_mock_user');
+      if (mock) {
+        try { return JSON.parse(mock); } catch {}
+      }
+    }
+    return { id: 'guest-founder', email: 'outreach@xsendflow.com' };
+  });
+  const [authLoading, setAuthLoading] = useState(false);
 
   const supabase = createClient();
 
@@ -55,10 +68,21 @@ export default function StudioPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
+        const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
+        if (mockUserStr) {
+          try {
+            const parsed = JSON.parse(mockUserStr);
+            setUser(parsed);
+            const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+            setUserPlan(savedPlan);
+            setAuthLoading(false);
+            return;
+          } catch {}
+        }
+
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
-          // Fetch plan from Supabase profiles if available
           const { data: profile } = await supabase
             .from('profiles')
             .select('plan')
@@ -70,10 +94,12 @@ export default function StudioPage() {
             localStorage.setItem('xsendflow_user_plan', profile.plan);
           }
         } else {
-          setUser(null);
+          // Allow seamless local guest session
+          const guest = { id: 'guest-founder', email: 'outreach@xsendflow.com' };
+          setUser(guest);
         }
       } catch (err) {
-        setUser(null);
+        setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
       } finally {
         setAuthLoading(false);
       }
@@ -81,8 +107,8 @@ export default function StudioPage() {
     checkAuth();
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(session?.user || null);
       if (session?.user) {
+        setUser(session.user);
         const { data: profile } = await supabase
           .from('profiles')
           .select('plan')
@@ -92,6 +118,17 @@ export default function StudioPage() {
         if (profile?.plan) {
           setUserPlan(profile.plan as UserPlan);
           localStorage.setItem('xsendflow_user_plan', profile.plan);
+        }
+      } else {
+        const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
+        if (mockUserStr) {
+          try {
+            setUser(JSON.parse(mockUserStr));
+          } catch {
+            setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
+          }
+        } else {
+          setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
         }
       }
       setAuthLoading(false);

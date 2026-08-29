@@ -211,6 +211,8 @@ export default function UpgradeProModal({
 
           <button
             onClick={onClose}
+            aria-label="Close Upgrade Modal"
+            id="close-upgrade-modal-btn"
             className="text-slate-400 hover:text-white p-1.5 rounded-xl hover:bg-slate-800 transition-colors"
           >
             <X className="w-5 h-5" />

@@ -212,6 +212,8 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
 
           <button
             onClick={onClose}
+            aria-label="Close Settings"
+            id="close-settings-modal-btn"
             className="text-slate-400 hover:text-slate-700 p-2 rounded-xl hover:bg-slate-100 transition-colors"
           >
             <X className="w-5 h-5" />

@@ -1,0 +1,39 @@
+=== XSENDFLOW 3-TIER END-TO-END AUTOMATED PLAYWRIGHT TEST LOGS ===
+
+[2026-08-29T06:54:30.155Z] 🚀 Launching Playwright Chromium Instance...
+[2026-08-29T06:54:30.216Z] 
+======================================================
+[2026-08-29T06:54:30.216Z] 👤 AGENT 1: Testing Free User Gating & Paywall Leaks
+[2026-08-29T06:54:30.217Z] ======================================================
+[2026-08-29T06:54:30.288Z] 1. Free User visiting /studio...
+[2026-08-29T06:54:30.735Z]   ✅ PASS: Topbar accurately shows "Free Plan (50/day) — Upgrade ➔" badge
+[2026-08-29T06:54:30.735Z] 2. Free User attempting to add a 2nd Mailbox...
+[2026-08-29T06:54:32.108Z] 3. Free User attempting to launch 2nd concurrent active campaign...
+[2026-08-29T06:54:35.753Z]   ✅ PASS: Launching 2nd active campaign blocked & triggered "Run Multiple Active Campaigns" paywall
+[2026-08-29T06:54:35.851Z] 
+======================================================
+[2026-08-29T06:54:35.851Z] 👑 AGENT 2: Testing Pro User Capabilities & Limits
+[2026-08-29T06:54:35.851Z] ======================================================
+[2026-08-29T06:54:35.900Z] 1. Pro User visiting /studio...
+[2026-08-29T06:54:36.639Z]   ✅ PASS: Topbar accurately shows "👑 Pro Unlimited" badge
+[2026-08-29T06:54:36.640Z] 2. Pro User attempting to unpause a 6th active campaign...
+[2026-08-29T06:54:37.887Z]   ✅ PASS: 6th active campaign attempt triggered "Scale to Unlimited Active Campaigns (Agency)" upgrade modal
+[2026-08-29T06:54:38.077Z] 
+======================================================
+[2026-08-29T06:54:38.077Z] 🏢 AGENT 3: Testing Agency Scale Features & Client Reports
+[2026-08-29T06:54:38.077Z] ======================================================
+[2026-08-29T06:54:38.126Z] 1. Agency User visiting /studio...
+[2026-08-29T06:54:38.797Z]   ✅ PASS: Topbar accurately shows "🏢 Agency Scale" active badge
+[2026-08-29T06:54:38.797Z] 2. Agency User opening Settings -> Plan & Billing...
+[2026-08-29T06:54:39.907Z]   ✅ PASS: Settings confirms "Agency Scale Tier Active" with unlimited quotas and 0 marketing noise
+[2026-08-29T06:54:40.089Z] 3. Visiting Live Shareable Client Report Portal (/report/token-stripe-audit-99)...
+[2026-08-29T06:54:40.820Z]   ✅ PASS: Live Client Performance Portal renders beautifully with 99.6% inboxing telemetry
+[2026-08-29T06:54:40.869Z] 
+======================================================
+[2026-08-29T06:54:40.869Z] 🏁 FINAL E2E TEST SUMMARY
+[2026-08-29T06:54:40.869Z] ======================================================
+[2026-08-29T06:54:40.869Z] 👤 Free User Tests:   Passed: 2 | Failed: 0
+[2026-08-29T06:54:40.869Z] 👑 Pro User Tests:    Passed: 2 | Failed: 0
+[2026-08-29T06:54:40.869Z] 🏢 Agency User Tests: Passed: 3 | Failed: 0
+[2026-08-29T06:54:40.869Z] ======================================================
+

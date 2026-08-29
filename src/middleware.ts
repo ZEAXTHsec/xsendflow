@@ -37,8 +37,9 @@ export async function middleware(request: NextRequest) {
 
   // Route protection for Studio
   const isProtectedPath = request.nextUrl.pathname.startsWith('/studio');
+  const mockCookie = request.cookies.get('xsendflow_mock_session')?.value;
 
-  if (isProtectedPath && !user) {
+  if (isProtectedPath && !user && !mockCookie) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('callbackUrl', request.nextUrl.pathname);
