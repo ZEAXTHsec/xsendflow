@@ -364,19 +364,19 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         </div>
       )}
 
-      {/* 4. CAMPAIGN OPERATIONS COMMAND CENTER (Beautified Cards with Sort & Search) */}
-      <div className="p-6 sm:p-7 rounded-3xl bg-white border border-slate-200/90 shadow-sm space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-5">
+      {/* 4. CAMPAIGN OPERATIONS COMMAND CENTER (High-Contrast Compact Fleet Cards) */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-slate-50/90 border border-slate-200/90 shadow-sm space-y-5">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-200/70 pb-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h3 className="text-lg font-black text-slate-900 tracking-tight">Campaign Fleet Analytics</h3>
-              <span className="text-xs font-mono font-bold bg-slate-100 text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200">
+              <h3 className="text-base font-black text-slate-900 tracking-tight">Campaign Fleet Analytics</h3>
+              <span className="text-xs font-mono font-bold bg-white text-slate-700 px-2.5 py-0.5 rounded-full border border-slate-200 shadow-2xs">
                 {campaigns.length} Active Fleets
               </span>
               <button
                 type="button"
                 onClick={handleLoad100Campaigns}
-                className="text-[11px] font-extrabold bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-950 border border-indigo-200 px-3 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs"
+                className="text-[11px] font-extrabold bg-white hover:bg-slate-100 text-indigo-950 border border-indigo-200 px-3 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs"
                 title="Populate 100+ realistic enterprise campaigns for demo"
               >
                 <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
@@ -387,7 +387,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           </div>
 
           {/* Search, Sort, and Filters */}
-          <div className="flex flex-wrap items-center gap-2.5">
+          <div className="flex flex-wrap items-center gap-2">
             {/* Search Input */}
             <div className="relative">
               <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
@@ -396,7 +396,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
                 placeholder="Search campaigns..."
-                className="pl-8 pr-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500 w-44 sm:w-52 font-medium"
+                className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500 w-44 sm:w-48 font-medium shadow-2xs"
               />
             </div>
 
@@ -405,7 +405,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               value={sortBy}
               onChange={e => setSortBy(e.target.value as any)}
               aria-label="Sort campaigns"
-              className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer"
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
             >
               <option value="default">Sort: Default</option>
               <option value="open_rate">Sort: Highest Opens %</option>
@@ -414,32 +414,32 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
             </select>
 
             {/* Filter Tabs */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+            <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 text-xs font-bold shadow-2xs">
               <button
                 type="button"
                 onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-white text-indigo-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 All ({campaigns.length})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'active' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Active ({activeCount})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('paused'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'paused' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'paused' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Paused ({pausedCount})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('done'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'done' ? 'bg-white text-purple-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'done' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Done ({doneCount})
               </button>
@@ -447,9 +447,9 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           </div>
         </div>
 
-        {/* Beautified Campaign Cards Grid */}
+        {/* High-Contrast, Compact Height Campaign Cards Grid */}
         {paginatedCampaigns.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-5">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 sm:gap-4">
             {paginatedCampaigns.map((camp) => {
               const totalRecipients = camp.recipients?.length || 0;
               const sentRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
@@ -469,99 +469,97 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 <div
                   key={camp.id}
                   onClick={() => onNavigateTab?.('campaigns')}
-                  className="p-5 sm:p-6 rounded-3xl bg-gradient-to-b from-white to-slate-50/70 hover:to-slate-100/70 border border-slate-200/90 transition-all duration-200 cursor-pointer space-y-4 group hover:shadow-xl hover:border-indigo-300 hover:-translate-y-0.5"
+                  className={`p-4 sm:p-4.5 rounded-2xl bg-white border-2 transition-all duration-150 cursor-pointer space-y-3 group hover:shadow-lg hover:-translate-y-0.5 ${
+                    isSending
+                      ? 'border-slate-200/90 hover:border-emerald-400 border-l-4 border-l-emerald-500'
+                      : isPaused
+                      ? 'border-slate-200/90 hover:border-amber-400 border-l-4 border-l-amber-400'
+                      : isDone
+                      ? 'border-slate-200/90 hover:border-indigo-400 border-l-4 border-l-indigo-500'
+                      : 'border-slate-200/90 hover:border-purple-400 border-l-4 border-l-purple-400'
+                  }`}
                 >
-                  {/* Top Row: Name, Status Pill & Quick Action */}
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="space-y-1.5 flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                          isSending ? 'bg-emerald-500 animate-pulse ring-4 ring-emerald-100' :
-                          isPaused ? 'bg-amber-400' :
-                          isDone ? 'bg-indigo-500' : 'bg-slate-300'
-                        }`} />
-                        <h4 className="text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
-                          {camp.name}
-                        </h4>
-                      </div>
-                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-mono">
-                        <span>From: <strong className="text-slate-700 font-semibold">{camp.fromName || 'Alex Turner'}</strong></span>
-                        <span>•</span>
-                        <span>{camp.steps?.length || 1} Touchpoints</span>
-                        <span>•</span>
-                        <span>{camp.is24Hours ? '24/7 Mode' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}</span>
-                      </div>
+                  {/* Row 1: Title, Status Badge & Play/Pause */}
+                  <div className="flex items-center justify-between gap-2.5">
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className={`w-2 h-2 rounded-full shrink-0 ${
+                        isSending ? 'bg-emerald-500 animate-pulse' :
+                        isPaused ? 'bg-amber-400' :
+                        isDone ? 'bg-indigo-500' : 'bg-slate-300'
+                      }`} />
+                      <h4 className="text-xs sm:text-sm font-black text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                        {camp.name}
+                      </h4>
                     </div>
 
-                    {/* Status badge & Play/Pause toggle */}
                     <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[10px] font-mono font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
+                      <span className={`text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded-md border ${
                         isSending
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
                           : isPaused
-                          ? 'bg-amber-50 text-amber-800 border-amber-200'
+                          ? 'bg-amber-50 text-amber-800 border-amber-300'
                           : isDraft
-                          ? 'bg-purple-50 text-purple-800 border-purple-200'
+                          ? 'bg-purple-50 text-purple-800 border-purple-300'
                           : 'bg-indigo-50 text-indigo-700 border-indigo-200'
                       }`}>
-                        {isSending ? 'Active' : isPaused ? 'Paused' : isDraft ? 'Draft' : 'Completed'}
+                        {isSending ? 'Active' : isPaused ? 'Paused' : isDraft ? 'Draft' : 'Done'}
                       </span>
 
                       {!isDraft && (
                         <button
                           type="button"
                           onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
-                          className={`p-1.5 rounded-xl border text-xs font-bold transition-all ${
-                            isSending 
-                              ? 'bg-white hover:bg-amber-50 border-slate-200 text-amber-700 hover:border-amber-300' 
-                              : 'bg-white hover:bg-emerald-50 border-slate-200 text-emerald-700 hover:border-emerald-300'
-                          }`}
+                          className="p-1 rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-colors"
                           title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
                         >
-                          {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                          {isSending ? <Pause className="w-3 h-3 text-amber-600" /> : <Play className="w-3 h-3 text-emerald-600 fill-current" />}
                         </button>
                       )}
                     </div>
                   </div>
 
-                  {/* Volume Progress Bar */}
-                  <div className="space-y-1.5 pt-1">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-600 font-mono">
-                      <span>Dispatch Volume: {sentRecipients} / {totalRecipients}</span>
-                      <span className="text-indigo-600 font-extrabold">{progressPct}% Complete</span>
+                  {/* Row 2: Compact Meta Subtitle */}
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-slate-500 font-mono">
+                    <span>From: <strong className="text-slate-700">{camp.fromName || 'Alex Turner'}</strong></span>
+                    <span>•</span>
+                    <span>{camp.steps?.length || 1} Steps</span>
+                    <span>•</span>
+                    <span>{camp.is24Hours ? '24/7 Continuous' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}</span>
+                  </div>
+
+                  {/* Row 3: Thin Progress Bar with Volume Counter */}
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-[11px] font-mono">
+                      <span className="text-slate-500 font-bold">Progress: <strong className="text-slate-900">{sentRecipients} / {totalRecipients}</strong> sent</span>
+                      <span className="text-indigo-600 font-extrabold">{progressPct}%</span>
                     </div>
-                    <div className="w-full bg-slate-200/80 rounded-full h-2 overflow-hidden p-0.5">
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                       <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          isSending ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
-                          isDone ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-slate-400'
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isSending ? 'bg-indigo-600' :
+                          isDone ? 'bg-emerald-500' : 'bg-slate-400'
                         }`}
-                        style={{ width: `${Math.max(4, progressPct)}%` }}
+                        style={{ width: `${Math.max(3, progressPct)}%` }}
                       />
                     </div>
                   </div>
 
-                  {/* High-End Analytics KPI Chips */}
-                  <div className="grid grid-cols-3 gap-2 pt-2 border-t border-slate-200/60 text-center">
-                    <div className="p-2 rounded-xl bg-purple-50/70 border border-purple-100">
-                      <span className="text-[10px] font-bold text-purple-600 block">Open Rate</span>
-                      <span className="text-xs font-black text-purple-900 font-mono">{openPct > 0 ? `${openPct}%` : '68%'}</span>
+                  {/* Row 4: Ultra-Compact Horizontal KPI Strip & Action */}
+                  <div className="flex items-center justify-between pt-1 border-t border-slate-100 text-[11px] font-mono">
+                    <div className="flex items-center gap-2">
+                      <span className="px-2 py-0.5 rounded-md bg-purple-50 text-purple-800 border border-purple-200/80 font-bold">
+                        {openPct > 0 ? `${openPct}%` : '68%'} Opens
+                      </span>
+                      <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 border border-emerald-200/80 font-bold">
+                        {replyPct > 0 ? `${replyPct}%` : '14.2%'} Replies
+                      </span>
+                      <span className="hidden sm:inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200 font-medium">
+                        {camp.dailyLimit || 150}/day
+                      </span>
                     </div>
-                    <div className="p-2 rounded-xl bg-emerald-50/70 border border-emerald-100">
-                      <span className="text-[10px] font-bold text-emerald-600 block">Reply Rate</span>
-                      <span className="text-xs font-black text-emerald-900 font-mono">{replyPct > 0 ? `${replyPct}%` : '14.2%'}</span>
-                    </div>
-                    <div className="p-2 rounded-xl bg-blue-50/70 border border-blue-100">
-                      <span className="text-[10px] font-bold text-blue-600 block">Daily Pacing</span>
-                      <span className="text-xs font-black text-blue-900 font-mono">{camp.dailyLimit || 150}/day</span>
-                    </div>
-                  </div>
 
-                  {/* Manage / Inspect Action Footer */}
-                  <div className="flex items-center justify-between text-xs font-bold text-slate-500 pt-1">
-                    <span className="font-mono text-[11px] text-slate-400">Timezone: {camp.timezone?.split(' ')[0] || 'UTC'}</span>
-                    <span className="text-indigo-600 font-extrabold flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-                      {isDraft ? 'Finish Setup' : 'Inspect Sequence & Leads'} ➔
+                    <span className="text-indigo-600 font-bold text-xs flex items-center gap-1 group-hover:translate-x-0.5 transition-transform">
+                      {isDraft ? 'Finish ➔' : 'Inspect ➔'}
                     </span>
                   </div>
                 </div>
