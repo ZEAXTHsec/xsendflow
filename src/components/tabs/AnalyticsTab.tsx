@@ -690,11 +690,11 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                     </div>
 
                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                      {!isDraft && (() => {
+                      {!isDraft && !isDone && (() => {
                         const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
                         const maxAllowed = currentPlan === 'free' ? 1 : currentPlan === 'pro' ? 5 : 99999;
                         const isCapReached = activeCampaignsList.length >= maxAllowed;
-                        const isLaunchBlocked = isCapReached && !isSending && !isDone;
+                        const isLaunchBlocked = isCapReached && !isSending;
 
                         if (isLaunchBlocked) {
                           return (
@@ -721,12 +721,18 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                             type="button"
                             onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
                             className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                            title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
+                            title={isSending ? 'Pause Campaign' : 'Start Campaign'}
                           >
                             {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
                           </button>
                         );
                       })()}
+
+                      {isDone && (
+                        <span className="px-2 py-1 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold font-mono flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3 text-indigo-600" /> Done
+                        </span>
+                      )}
 
                       <button
                         type="button"
@@ -1039,7 +1045,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
                 {/* Modal Competitor Header Action Buttons */}
                 <div className="flex items-center gap-2 shrink-0">
-                  {!isDraft && (
+                  {!isDraft && !isDone && (
                     <button
                       type="button"
                       onClick={(e) => {
@@ -1054,8 +1060,15 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       }`}
                     >
                       {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                      <span>{isSending ? 'Pause' : 'Resume'}</span>
+                      <span>{isSending ? 'Pause' : 'Start'}</span>
                     </button>
+                  )}
+
+                  {isDone && (
+                    <span className="px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50 text-indigo-700 text-xs font-bold font-mono flex items-center gap-1.5">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                      <span>Completed</span>
+                    </span>
                   )}
 
                   <button

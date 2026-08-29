@@ -2552,6 +2552,11 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                           <Sparkles className="w-3.5 h-3.5" />
                           <span>Finish Setup ➔</span>
                         </button>
+                      ) : camp.status === 'done' ? (
+                        <span className="text-xs font-bold px-3 py-2 rounded-xl bg-indigo-50 text-indigo-700 border border-indigo-200 flex items-center gap-1 font-mono">
+                          <CheckCircle2 className="w-3.5 h-3.5 text-indigo-600" />
+                          <span>Completed</span>
+                        </span>
                       ) : (
                         <>
                           {isLaunchDisabled ? (
