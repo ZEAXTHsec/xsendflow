@@ -222,6 +222,13 @@ export default function UserProfileMenu({
                 </button>
               )}
             </div>
+
+            {license.scheduledDowngrade && (
+              <div className="px-2.5 py-1.5 rounded-xl bg-amber-50 border border-amber-200 text-[10px] text-amber-800 flex items-center justify-between">
+                <span>Downgrade to Pro queued:</span>
+                <span className="font-bold font-mono">in {license.daysRemaining}d</span>
+              </div>
+            )}
           </div>
 
           {/* Core Settings Menu Items */}

@@ -1,5 +1,12 @@
 import { UserPlan } from './planLimits';
 
+export interface ScheduledDowngrade {
+  nextPlan: UserPlan;
+  effectiveAt: string; // ISO date when current tier expires and nextPlan activates
+  addedDays: number;
+  billingCycle: 'monthly' | 'annual' | 'lifetime';
+}
+
 export interface LicenseDetails {
   plan: UserPlan;
   licenseKey: string;
@@ -13,6 +20,7 @@ export interface LicenseDetails {
   maxCampaigns: number | string;
   cloudActive: boolean;
   vpsActive?: boolean;
+  scheduledDowngrade?: ScheduledDowngrade | null;
 }
 
 const DEFAULT_LICENSE_EXPIRY_DAYS = 30;
@@ -28,6 +36,34 @@ export function getStoredLicense(): LicenseDetails {
       const parsed: LicenseDetails = JSON.parse(raw);
       const now = new Date().getTime();
       const expiry = new Date(parsed.expiresAt).getTime();
+
+      // Check if a scheduled downgrade has now reached its effective date!
+      if (parsed.scheduledDowngrade && now >= new Date(parsed.scheduledDowngrade.effectiveAt).getTime()) {
+        const nextPlan = parsed.scheduledDowngrade.nextPlan;
+        const newExpiry = new Date(new Date(parsed.scheduledDowngrade.effectiveAt).getTime() + parsed.scheduledDowngrade.addedDays * 24 * 60 * 60 * 1000);
+        const randomHash = Math.random().toString(36).substring(2, 6).toUpperCase() + '-' + Math.random().toString(36).substring(2, 6).toUpperCase();
+        const prefix = nextPlan === 'agency' ? 'XSF-AGENCY' : nextPlan === 'pro' ? 'XSF-PRO' : 'XSF-FREE';
+        
+        parsed.plan = nextPlan;
+        parsed.licenseKey = `${prefix}-${randomHash}`;
+        parsed.expiresAt = newExpiry.toISOString();
+        parsed.billingCycle = parsed.scheduledDowngrade.billingCycle;
+        parsed.maxInboxes = nextPlan === 'free' ? 1 : 'Unlimited';
+        parsed.maxCampaigns = nextPlan === 'free' ? 1 : nextPlan === 'pro' ? 5 : 'Unlimited';
+        parsed.cloudActive = nextPlan !== 'free';
+        parsed.scheduledDowngrade = null;
+
+        const diffDays = Math.max(0, Math.ceil((newExpiry.getTime() - now) / (1000 * 60 * 60 * 24)));
+        parsed.daysRemaining = diffDays;
+        parsed.status = diffDays > 0 ? 'active' : 'expired';
+
+        localStorage.setItem('xsendflow_license', JSON.stringify(parsed));
+        localStorage.setItem('xsendflow_user_plan', nextPlan);
+        window.dispatchEvent(new Event('xsendflow_plan_updated'));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
+        return parsed;
+      }
+
       const diffDays = Math.max(0, Math.ceil((expiry - now) / (1000 * 60 * 60 * 24)));
       parsed.daysRemaining = diffDays;
       if (diffDays <= 0 && parsed.plan !== 'free') {
@@ -44,9 +80,11 @@ export function getStoredLicense(): LicenseDetails {
 }
 
 /**
- * Creates, Upgrades, or Cumulatively Extends an existing license.
- * - Upgrading tiers generates a new tier key (e.g. XSF-AGENCY-...) and stacks days.
- * - Buying another month/year on the same tier keeps the key and adds +30 / +365 days to the existing expiration date.
+ * Creates, Upgrades, Cumulatively Extends, or Gracefully Schedules Downgrades.
+ * - Upgrades (Free -> Pro, Pro -> Agency): Immediate upgrade, issues new tier key, stacks days.
+ * - Same Tier Renewals: Adds +30 / +365 days onto current expiration date and preserves key.
+ * - Downgrades (Agency -> Pro while having active Agency time): Preserves full Agency tier for remaining days,
+ *   and automatically transitions to Pro for +30 days after Agency period ends.
  */
 export function createDefaultLicense(
   plan: UserPlan, 
@@ -62,7 +100,31 @@ export function createDefaultLicense(
     } catch {}
   }
 
-  // Calculate Base Expiry: If user still has valid days, stack on top of existing expiration!
+  // Graceful Downgrade Protection: If an active Agency user purchases Pro, let them keep Agency until it expires!
+  if (
+    existingLicense && 
+    existingLicense.plan === 'agency' && 
+    plan === 'pro' && 
+    new Date(existingLicense.expiresAt).getTime() > now.getTime()
+  ) {
+    const addedDays = (cycle === 'annual') ? 365 : DEFAULT_LICENSE_EXPIRY_DAYS;
+    existingLicense.scheduledDowngrade = {
+      nextPlan: 'pro',
+      effectiveAt: existingLicense.expiresAt,
+      addedDays,
+      billingCycle: cycle
+    };
+    
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem('xsendflow_license', JSON.stringify(existingLicense));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
+      } catch {}
+    }
+    return existingLicense;
+  }
+
+  // Calculate Base Expiry: If user still has valid days on same or lower tier, stack on top of existing expiration!
   let baseDate = now;
   if (existingLicense && existingLicense.plan !== 'free' && existingLicense.expiresAt) {
     const existingExpiryDate = new Date(existingLicense.expiresAt);
@@ -106,6 +168,7 @@ export function createDefaultLicense(
     maxCampaigns: plan === 'free' ? 1 : plan === 'pro' ? 5 : 'Unlimited',
     cloudActive: plan !== 'free',
     vpsActive: plan !== 'free',
+    scheduledDowngrade: null,
   };
 
   if (typeof window !== 'undefined') {
