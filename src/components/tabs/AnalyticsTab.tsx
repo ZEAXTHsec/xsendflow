@@ -21,7 +21,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [senders, setSenders] = useState<SenderAccount[]>(() => {
-    if (typeof window === 'undefined') return AGENCY_MOCK_SENDERS;
+    if (typeof window === 'undefined') return [];
     try {
       const saved = localStorage.getItem('xsendflow_senders');
       if (saved) {
@@ -29,7 +29,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
     } catch {}
-    return AGENCY_MOCK_SENDERS;
+    return [];
   });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'draft' | 'done'>('all');
@@ -138,6 +138,16 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const loadCampaigns = () => {
     if (typeof window === 'undefined') return;
     try {
+      // Auto-purge any legacy mock test data
+      const rawCamps = localStorage.getItem('xsendflow_campaigns_v2');
+      if (rawCamps && (rawCamps.includes('Alex Turner') || rawCamps.includes('camp-fintech') || rawCamps.includes('ApexScale') || rawCamps.includes('agencygrowth.io') || rawCamps.includes('sender-agency-1') || rawCamps.includes('Synthetic'))) {
+        localStorage.removeItem('xsendflow_campaigns_v2');
+      }
+      const rawSenders = localStorage.getItem('xsendflow_senders');
+      if (rawSenders && (rawSenders.includes('alex.turner@agencygrowth.io') || rawSenders.includes('sender-agency-1') || rawSenders.includes('outboundscale.co'))) {
+        localStorage.removeItem('xsendflow_senders');
+      }
+
       const saved = localStorage.getItem('xsendflow_campaigns_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -146,6 +156,17 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         }
       } else {
         setCampaigns([]);
+      }
+      
+      // Sync senders
+      const savedS = localStorage.getItem('xsendflow_senders');
+      if (savedS) {
+        try {
+          const parsedS = JSON.parse(savedS);
+          if (Array.isArray(parsedS)) setSenders(parsedS);
+        } catch {}
+      } else {
+        setSenders([]);
       }
       
       // Check for unfinished wizard draft

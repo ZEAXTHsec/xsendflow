@@ -49,12 +49,26 @@ export default function StudioPage() {
     }
     return null;
   });
-  const [authLoading, setAuthLoading] = useState(false);
+  const [authLoading, setAuthLoading] = useState(true);
 
   const supabase = createClient();
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
+      // Auto-purge any legacy mock test data left in browser storage
+      try {
+        const rawCamps = localStorage.getItem('xsendflow_campaigns_v2');
+        if (rawCamps && (rawCamps.includes('Alex Turner') || rawCamps.includes('camp-fintech') || rawCamps.includes('ApexScale') || rawCamps.includes('agencygrowth.io') || rawCamps.includes('sender-agency-1') || rawCamps.includes('Synthetic'))) {
+          localStorage.removeItem('xsendflow_campaigns_v2');
+          window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+        }
+        const rawSenders = localStorage.getItem('xsendflow_senders');
+        if (rawSenders && (rawSenders.includes('alex.turner@agencygrowth.io') || rawSenders.includes('sender-agency-1') || rawSenders.includes('outboundscale.co'))) {
+          localStorage.removeItem('xsendflow_senders');
+          window.dispatchEvent(new Event('xsendflow_senders_updated'));
+        }
+      } catch {}
+
       const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
       setUserPlan(savedPlan);
       setLicense(getStoredLicense());
@@ -188,9 +202,9 @@ export default function StudioPage() {
   // 1. Loading State
   if (authLoading) {
     return (
-      <div className="min-h-screen bg-[#070a13] text-white flex flex-col items-center justify-center">
-        <div className="w-10 h-10 border-3 border-indigo-500 border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-xs font-mono text-slate-400">Verifying secure multi-tenant session...</p>
+      <div className="min-h-screen bg-slate-50/80 text-slate-900 flex flex-col items-center justify-center">
+        <div className="w-9 h-9 border-3 border-indigo-600 border-t-transparent rounded-full animate-spin mb-3" />
+        <p className="text-xs font-mono font-bold text-slate-600">Loading your workspace...</p>
       </div>
     );
   }
