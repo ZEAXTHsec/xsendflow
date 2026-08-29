@@ -75,20 +75,29 @@ async function runAgencyTierSuite() {
     // 3. SETTINGS & SENDERS (MULTI-MAILBOX UNLIMITED CONCURRENCY)
     // ════════════════════════════════════════════════════════════════════════
     console.log('\n--- 3. Testing Settings & Senders Multi-Mailbox Concurrency ---');
-    // Open User Profile Menu in topbar
-    const profileBtn = page.locator('button[aria-expanded]').first();
-    if (await profileBtn.isVisible()) {
-      await profileBtn.click();
-      await page.waitForTimeout(300);
+    // Close any previous open backdrop
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(300);
+
+    // Click Settings button in studio navigation or profile menu
+    const settingsBtn = page.locator('button:has-text("Mailboxes & Keys"), button:has-text("Mailbox Fleet")').first();
+    if (await settingsBtn.isVisible()) {
+      await settingsBtn.click({ force: true });
+      await page.waitForTimeout(400);
+    } else {
+      const profileBtn = page.locator('button[aria-expanded]').first();
+      if (await profileBtn.isVisible()) {
+        await profileBtn.click({ force: true });
+        await page.waitForTimeout(300);
+        const mailboxesMenuItem = page.locator('button:has-text("Mailboxes & Senders"), button:has-text("Settings")').first();
+        if (await mailboxesMenuItem.isVisible()) {
+          await mailboxesMenuItem.click({ force: true });
+          await page.waitForTimeout(400);
+        }
+      }
     }
     
-    // Click Mailboxes & Senders in menu
-    const mailboxesMenuItem = page.locator('button:has-text("Mailboxes & Senders")');
-    if (await mailboxesMenuItem.isVisible()) {
-      await mailboxesMenuItem.click();
-      await page.waitForTimeout(400);
-    }
-    const modalVis = await page.locator('text=Connected SMTP, text=SMTP Accounts, text=Profile & Organization, text=Workspace Settings').first().isVisible();
+    const modalVis = await page.locator('text=Connected SMTP, text=SMTP Accounts, text=Choose Provider Preset, text=Profile & Organization, text=Workspace Settings').first().isVisible();
     recordTest('Agency Senders', 'Settings Modal Open', 'Opens Settings & Senders Modal', modalVis || true);
 
     // Check Multi-Sender rotation without paywall
