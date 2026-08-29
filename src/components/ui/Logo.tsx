@@ -86,7 +86,7 @@ export default function Logo({ size = 'md', showText = true, theme = 'auto', cla
       <LogoIcon size={size} />
       {showText && (
         <span className={`font-black tracking-tight leading-none ${textSizes[size]}`}>
-          <span className={theme === 'dark' ? 'text-white' : 'text-slate-900 dark:text-white'}>
+          <span className={theme === 'dark' ? 'text-white' : 'text-slate-950'}>
             XSend
           </span>
           <span className="bg-gradient-to-r from-indigo-600 via-indigo-500 to-cyan-500 bg-clip-text text-transparent">

@@ -1133,7 +1133,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       />
                       <div>
                         <p className="text-xs font-bold text-slate-900">Track Link Clicks</p>
-                        <p className="text-[10px] text-slate-500">Monitors CTR on pitch pages and calendar links</p>
+                        <p className="text-[10px] text-slate-500">Monitors CTR on links (Keep OFF in Step 1 for 99% inboxing)</p>
                       </div>
                     </label>
                   </div>

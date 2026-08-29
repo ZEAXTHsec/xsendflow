@@ -14,7 +14,15 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "XSendFlow Studio — AI Cold Email Acceleration Suite",
-  description: "All-in-one AI cold email studio: multi-inbox rotation, lead sanitization, Spintax sequences, dynamic pitch pages, and delivery tracking.",
+  description: "All-in-one AI cold email studio: multi-inbox rotation, lead sanitization, Spintax sequences, and delivery tracking.",
+  icons: {
+    icon: [
+      { url: '/icon.svg', type: 'image/svg+xml' },
+      { url: '/icon', type: 'image/png' }
+    ],
+    shortcut: '/icon.svg',
+    apple: '/icon.svg',
+  }
 };
 
 export default function RootLayout({
