@@ -1,22 +1,23 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
-import CampaignsTab from '@/components/tabs/CampaignsTab';
-import LeadCleanerTab from '@/components/tabs/LeadCleanerTab';
 import AnalyticsTab from '@/components/tabs/AnalyticsTab';
+import LeadCleanerTab from '@/components/tabs/LeadCleanerTab';
+import CampaignsTab from '@/components/tabs/CampaignsTab';
 import DesktopExportModal from '@/components/export/DesktopExportModal';
 import ProfileSettingsModal from '@/components/settings/ProfileSettingsModal';
 import UpgradeProModal from '@/components/modals/UpgradeProModal';
 import OnboardingTour from '@/components/onboarding/OnboardingTour';
-import { Lead, SequenceStep } from '@/lib/types';
-import { UserPlan, PLAN_LIMITS } from '@/lib/planLimits';
 import { 
-  Mail, Sparkles, BarChart3, Download, Settings, ShieldCheck, 
-  Lock, LogIn, ArrowRight, Users, Zap, Building2, CheckCircle2 
+  BarChart3, Users, Mail, Settings, Download, Zap, Sparkles, 
+  Building2, ShieldCheck, Lock, LogIn, ArrowRight, Crown, Clock, User
 } from 'lucide-react';
+import { Lead, SequenceStep } from '@/lib/types';
+import { UserPlan } from '@/lib/planLimits';
+import { getStoredLicense, LicenseDetails } from '@/lib/licenseEngine';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 
 export default function StudioPage() {
@@ -24,16 +25,18 @@ export default function StudioPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<'profile' | 'billing' | 'senders' | 'api' | 'preferences'>('senders');
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<'general' | 'mailbox_limit' | 'campaign_limit' | 'contact_limit'>('general');
 
-  // Plan State
+  // Plan & License State
   const [userPlan, setUserPlan] = useState<UserPlan>(() => {
     if (typeof window !== 'undefined') {
       return (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
     }
     return 'free';
   });
+  const [license, setLicense] = useState<LicenseDetails>(getStoredLicense);
 
   // Authentication State
   const [user, setUser] = useState<any>(() => {
@@ -50,19 +53,37 @@ export default function StudioPage() {
   const supabase = createClient();
 
   useEffect(() => {
-    // 1. Load initial plan from localStorage / Supabase
     if (typeof window !== 'undefined') {
       const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
       setUserPlan(savedPlan);
+      setLicense(getStoredLicense());
     }
 
     const handlePlanUpdate = () => {
-      const updated = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
-      setUserPlan(updated);
+      const saved = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+      setUserPlan(saved);
+      setLicense(getStoredLicense());
     };
 
     window.addEventListener('xsendflow_plan_updated', handlePlanUpdate);
-    return () => window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
+    window.addEventListener('xsendflow_license_updated', handlePlanUpdate);
+    return () => {
+      window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
+      window.removeEventListener('xsendflow_license_updated', handlePlanUpdate);
+    };
+  }, []);
+
+  // Keyboard shortcut: Ctrl+K or Cmd+K opens Settings
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setSettingsTab('profile');
+        setIsSettingsOpen(true);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
   useEffect(() => {
@@ -94,7 +115,6 @@ export default function StudioPage() {
             localStorage.setItem('xsendflow_user_plan', profile.plan);
           }
         } else {
-          // Allow seamless local guest session
           const guest = { id: 'guest-founder', email: 'outreach@xsendflow.com' };
           setUser(guest);
         }
@@ -139,44 +159,14 @@ export default function StudioPage() {
     };
   }, []);
 
-  const [sequence, setSequence] = useState<SequenceStep[]>([
+  const [sequence] = useState<SequenceStep[]>([
     {
       id: 1,
-      day: 1,
+      day: 0,
       type: 'initial',
-      title: 'Step 1: Value Hook & Direct Inquiry',
-      subject: '{Quick question|Brief inquiry} re: {{Company}}',
-      body: 'Hey {{First_Name}},\n\n{{Icebreaker}}\n\nReached out because we help B2B teams scale outbound deliverability to 99% without hitting spam filters.\n\nCurious if optimizing your email infrastructure is a priority this quarter?\n\nBest,\nYour Name',
-      spamScore: 100,
-      spamWordsFound: []
-    },
-    {
-      id: 2,
-      day: 3,
-      type: 'followup',
-      title: 'Step 2: Case Study & Proof',
-      subject: 'Re: quick question re: {{Company}}',
-      body: 'Hi {{First_Name}},\n\nWanted to share a quick example—we recently helped a growth team boost inboxing from 45% to 99% using multi-mailbox rotation and Gaussian delay pacing.\n\nWorth a quick 5-minute chat next week?\n\nBest,\nYour Name',
-      spamScore: 100,
-      spamWordsFound: []
-    },
-    {
-      id: 3,
-      day: 7,
-      type: 'nudge',
-      title: 'Step 3: Direct 2-Line Nudge',
-      subject: 'following up on {{Company}}',
-      body: 'Hi {{First_Name}},\n\nFollowing up to see if you had any bandwidth to connect regarding {{Company}}\'s email deliverability?\n\nNo pressure either way.\n\nBest,\nYour Name',
-      spamScore: 100,
-      spamWordsFound: []
-    },
-    {
-      id: 4,
-      day: 12,
-      type: 'breakup',
-      title: 'Step 4: Graceful Breakup',
-      subject: 'closing the loop on {{Company}}',
-      body: 'Hi {{First_Name}},\n\nAssuming this isn\'t a priority right now, so I won\'t follow up again. If you ever want to tackle inbox deliverability down the road, feel free to reach back out.\n\nWishing {{Company}} continued growth.\n\nBest,\nYour Name',
+      title: 'Initial Touch',
+      subject: 'Quick question for {{First_Name}}',
+      body: 'Hi {{First_Name}},\n\nI noticed you lead {{Company}} and wanted to reach out.',
       spamScore: 100,
       spamWordsFound: []
     }
@@ -192,7 +182,7 @@ export default function StudioPage() {
     );
   }
 
-  // 2. Unauthenticated Gate (Strict Privacy Protection)
+  // 2. Unauthenticated Gate
   if (!user) {
     return (
       <div className="min-h-screen bg-[#070a13] text-slate-100 flex flex-col justify-between selection:bg-indigo-500 selection:text-white relative overflow-hidden">
@@ -233,7 +223,9 @@ export default function StudioPage() {
     );
   }
 
-  // 3. Authenticated Studio Experience (Zero-Data-Loss Core Cold Email Suite)
+  const userDisplayName = typeof window !== 'undefined' ? (localStorage.getItem('xsendflow_display_name') || (user.email ? user.email.split('@')[0] : 'Founder')) : 'Founder';
+
+  // 3. Authenticated Studio Experience
   return (
     <div className="min-h-screen flex flex-col bg-slate-50/50 text-slate-900 selection:bg-indigo-500 selection:text-white">
       <Header />
@@ -285,15 +277,15 @@ export default function StudioPage() {
             </button>
           </div>
 
-          {/* Center: Live Tier Status Badge */}
+          {/* Center: AAA Holographic Tier Status Badge */}
           <div className="flex items-center gap-2">
             {userPlan === 'free' && (
               <button
                 type="button"
                 onClick={() => { setUpgradeReason('general'); setIsUpgradeOpen(true); }}
-                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 border border-amber-400/40 text-amber-900 text-xs font-bold flex items-center gap-1.5 hover:border-indigo-400 transition-all active:scale-95 shadow-2xs"
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 border border-amber-400/40 text-amber-900 text-xs font-bold flex items-center gap-1.5 hover:border-indigo-400 transition-all active:scale-95 shadow-2xs group"
               >
-                <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500 group-hover:scale-110 transition-transform" />
                 <span>Free Plan (50/day) — Upgrade to Pro ➔</span>
               </button>
             )}
@@ -301,27 +293,36 @@ export default function StudioPage() {
             {userPlan === 'pro' && (
               <button
                 type="button"
-                onClick={() => { setUpgradeReason('general'); setIsUpgradeOpen(true); }}
-                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1.5 hover:bg-indigo-100 transition-all shadow-2xs"
+                onClick={() => { setSettingsTab('billing'); setIsSettingsOpen(true); }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-indigo-950 via-purple-950 to-slate-900 text-white border border-indigo-500/40 text-xs font-extrabold flex items-center gap-2 hover:border-indigo-400 transition-all shadow-md shadow-indigo-500/10"
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <Crown className="w-3.5 h-3.5 text-amber-400" />
                 <span>👑 Pro Unlimited</span>
+                <span className="text-[10px] font-mono font-bold text-indigo-300 bg-indigo-500/20 px-2 py-0.5 rounded-full">
+                  {license.daysRemaining}d left
+                </span>
               </button>
             )}
 
             {userPlan === 'agency' && (
-              <div className="px-3.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
-                <Building2 className="w-3.5 h-3.5 text-purple-600" />
+              <button
+                type="button"
+                onClick={() => { setSettingsTab('billing'); setIsSettingsOpen(true); }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-950 via-[#1e1505] to-slate-900 text-amber-200 border border-amber-500/40 text-xs font-black flex items-center gap-2 hover:border-amber-400 transition-all shadow-md shadow-amber-500/10"
+              >
+                <Building2 className="w-3.5 h-3.5 text-amber-400" />
                 <span>🏢 Agency Scale</span>
-                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-              </div>
+                <span className="text-[10px] font-mono font-bold text-amber-300 bg-amber-500/20 px-2 py-0.5 rounded-full">
+                  Enterprise
+                </span>
+              </button>
             )}
           </div>
 
-          {/* Quick Actions & Settings */}
+          {/* Right: Quick Actions & Profile Hub */}
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsSettingsOpen(true)}
+              onClick={() => { setSettingsTab('senders'); setIsSettingsOpen(true); }}
               className="text-xs font-bold px-3.5 py-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 flex items-center gap-1.5 transition-all shadow-2xs active:scale-95"
             >
               <Settings className="w-3.5 h-3.5 text-slate-500" />
@@ -335,6 +336,15 @@ export default function StudioPage() {
               <Download className="w-3.5 h-3.5 text-slate-500" />
               <span>Export CSV</span>
             </button>
+
+            {/* Profile Avatar Hub Trigger */}
+            <button
+              onClick={() => { setSettingsTab('profile'); setIsSettingsOpen(true); }}
+              className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 text-white font-black text-xs flex items-center justify-center shadow-xs hover:ring-2 hover:ring-indigo-400 transition-all active:scale-95 ml-1"
+              title="Open Profile & Settings (Ctrl+K)"
+            >
+              {userDisplayName.slice(0, 2).toUpperCase()}
+            </button>
           </div>
         </div>
       </div>
@@ -344,7 +354,7 @@ export default function StudioPage() {
         <div className={activeTab === 'analytics' ? 'block' : 'hidden'}>
           <AnalyticsTab
             onNavigateTab={(tab) => setActiveTab(tab === 'pitch' ? 'campaigns' : tab as any)}
-            onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenSettings={() => { setSettingsTab('senders'); setIsSettingsOpen(true); }}
           />
         </div>
 
@@ -373,6 +383,9 @@ export default function StudioPage() {
       <ProfileSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+        initialTab={settingsTab}
+        userEmail={user?.email}
+        userId={user?.id}
       />
 
       <UpgradeProModal
@@ -380,11 +393,12 @@ export default function StudioPage() {
         onClose={() => setIsUpgradeOpen(false)}
         triggerReason={upgradeReason}
         userEmail={user?.email}
+        userId={user?.id}
       />
 
       <OnboardingTour
         onNavigateTab={(tab) => setActiveTab(tab === 'sequence' || tab === 'cleaner' || tab === 'pitch' ? 'campaigns' : tab as any)}
-        onOpenSettings={() => setIsSettingsOpen(true)}
+        onOpenSettings={() => { setSettingsTab('senders'); setIsSettingsOpen(true); }}
       />
     </div>
   );

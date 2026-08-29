@@ -1,39 +1,69 @@
 === XSENDFLOW 3-TIER END-TO-END AUTOMATED PLAYWRIGHT TEST LOGS ===
 
-[2026-08-29T07:01:41.607Z] 🚀 Launching Playwright Chromium Instance...
-[2026-08-29T07:01:41.668Z] 
+[2026-08-29T07:06:41.417Z] 🚀 Launching Playwright Chromium Instance...
+[2026-08-29T07:06:41.482Z] 
 ======================================================
-[2026-08-29T07:01:41.669Z] 👤 AGENT 1: Testing Free User Gating & Paywall Leaks
-[2026-08-29T07:01:41.669Z] ======================================================
-[2026-08-29T07:01:41.738Z] 1. Free User visiting /studio...
-[2026-08-29T07:01:42.451Z]   ✅ PASS: Topbar accurately shows "Free Plan (50/day) — Upgrade ➔" badge
-[2026-08-29T07:01:42.451Z] 2. Free User attempting to add a 2nd Mailbox...
-[2026-08-29T07:01:43.804Z] 3. Free User attempting to launch 2nd concurrent active campaign...
-[2026-08-29T07:01:47.437Z]   ✅ PASS: Launching 2nd active campaign blocked & triggered "Run Multiple Active Campaigns" paywall
-[2026-08-29T07:01:47.543Z] 
+[2026-08-29T07:06:41.483Z] 👤 AGENT 1: Testing Free User Gating & Paywall Leaks
+[2026-08-29T07:06:41.483Z] ======================================================
+[2026-08-29T07:06:41.562Z] 1. Free User visiting /studio...
+[2026-08-29T07:06:42.028Z]   ✅ PASS: Topbar accurately shows "Free Plan (50/day) — Upgrade ➔" badge
+[2026-08-29T07:06:42.028Z] 2. Free User attempting to add a 2nd Mailbox...
+[2026-08-29T07:06:44.078Z]   ✅ PASS: Adding 2nd mailbox correctly halted and triggered "Unlock Multi-Mailbox Rotation" Upgrade Modal
+[2026-08-29T07:06:44.770Z] 3. Free User attempting to launch 2nd concurrent active campaign...
+[2026-08-29T07:06:45.023Z]   ⚠️ ERROR in Free User Test: locator.fill: Timeout 30000ms exceeded.
+Call log:
+[2m  - waiting for locator('input[placeholder*="outreach@company.com"], input[placeholder*="you@company.com"]').first()[22m
+
+[2026-08-29T07:06:45.024Z] 
 ======================================================
-[2026-08-29T07:01:47.543Z] 👑 AGENT 2: Testing Pro User Capabilities & Limits
-[2026-08-29T07:01:47.543Z] ======================================================
-[2026-08-29T07:01:47.591Z] 1. Pro User visiting /studio...
-[2026-08-29T07:01:48.311Z]   ✅ PASS: Topbar accurately shows "👑 Pro Unlimited" badge
-[2026-08-29T07:01:48.311Z] 2. Pro User attempting to unpause a 6th active campaign...
-[2026-08-29T07:01:49.567Z]   ✅ PASS: 6th active campaign attempt triggered "Scale to Unlimited Active Campaigns (Agency)" upgrade modal
-[2026-08-29T07:01:49.746Z] 
+[2026-08-29T07:06:45.024Z] 👑 AGENT 2: Testing Pro User Capabilities & Limits
+[2026-08-29T07:06:45.024Z] ======================================================
+[2026-08-29T07:06:45.074Z] 1. Pro User visiting /studio...
+[2026-08-29T07:06:45.814Z]   ✅ PASS: Topbar accurately shows "👑 Pro Unlimited" badge
+[2026-08-29T07:06:45.814Z] 2. Pro User attempting to unpause a 6th active campaign...
+[2026-08-29T07:06:47.207Z]   ✅ PASS: 6th active campaign attempt triggered "Scale to Unlimited Active Campaigns (Agency)" upgrade modal
+[2026-08-29T07:06:47.426Z] 
 ======================================================
-[2026-08-29T07:01:49.746Z] 🏢 AGENT 3: Testing Agency Scale Features & Client Reports
-[2026-08-29T07:01:49.746Z] ======================================================
-[2026-08-29T07:01:49.796Z] 1. Agency User visiting /studio...
-[2026-08-29T07:01:50.504Z]   ✅ PASS: Topbar accurately shows "🏢 Agency Scale" active badge
-[2026-08-29T07:01:50.505Z] 2. Agency User opening Settings -> Plan & Billing...
-[2026-08-29T07:01:51.682Z]   ✅ PASS: Settings confirms "Agency Scale Tier Active" with unlimited quotas and 0 marketing noise
-[2026-08-29T07:01:51.818Z] 3. Visiting Live Shareable Client Report Portal (/report/token-stripe-audit-99)...
-[2026-08-29T07:01:52.552Z]   ✅ PASS: Live Client Performance Portal renders beautifully with 99.6% inboxing telemetry
-[2026-08-29T07:01:52.601Z] 
+[2026-08-29T07:06:47.426Z] 🏢 AGENT 3: Testing Agency Scale Features & Client Reports
+[2026-08-29T07:06:47.427Z] ======================================================
+[2026-08-29T07:06:47.483Z] 1. Agency User visiting /studio...
+[2026-08-29T07:06:48.281Z]   ✅ PASS: Topbar accurately shows "🏢 Agency Scale" active badge
+[2026-08-29T07:06:48.282Z] 2. Agency User opening Settings -> Plan & Billing...
+[2026-08-29T07:06:48.388Z]   ✅ PASS: Launching 2nd active campaign blocked & triggered "Run Multiple Active Campaigns" paywall
+[2026-08-29T07:06:48.502Z] 
 ======================================================
-[2026-08-29T07:01:52.601Z] 🏁 FINAL E2E TEST SUMMARY
-[2026-08-29T07:01:52.601Z] ======================================================
-[2026-08-29T07:01:52.601Z] 👤 Free User Tests:   Passed: 2 | Failed: 0
-[2026-08-29T07:01:52.601Z] 👑 Pro User Tests:    Passed: 2 | Failed: 0
-[2026-08-29T07:01:52.602Z] 🏢 Agency User Tests: Passed: 3 | Failed: 0
-[2026-08-29T07:01:52.602Z] ======================================================
+[2026-08-29T07:06:48.502Z] 👑 AGENT 2: Testing Pro User Capabilities & Limits
+[2026-08-29T07:06:48.502Z] ======================================================
+[2026-08-29T07:06:48.562Z] 1. Pro User visiting /studio...
+[2026-08-29T07:06:49.336Z] 3. Visiting Live Shareable Client Report Portal (/report/token-stripe-audit-99)...
+[2026-08-29T07:06:49.422Z]   ✅ PASS: Topbar accurately shows "👑 Pro Unlimited" badge
+[2026-08-29T07:06:49.423Z] 2. Pro User attempting to unpause a 6th active campaign...
+[2026-08-29T07:06:50.101Z]   ✅ PASS: Live Client Performance Portal renders beautifully with 99.6% inboxing telemetry
+[2026-08-29T07:06:50.173Z] 
+======================================================
+[2026-08-29T07:06:50.173Z] 🏁 FINAL E2E TEST SUMMARY
+[2026-08-29T07:06:50.174Z] ======================================================
+[2026-08-29T07:06:50.174Z] 👤 Free User Tests:   Passed: 1 | Failed: 1
+[2026-08-29T07:06:50.174Z] 👑 Pro User Tests:    Passed: 2 | Failed: 0
+[2026-08-29T07:06:50.174Z] 🏢 Agency User Tests: Passed: 2 | Failed: 0
+[2026-08-29T07:06:50.174Z] ======================================================
+
+[2026-08-29T07:06:50.802Z]   ✅ PASS: 6th active campaign attempt triggered "Scale to Unlimited Active Campaigns (Agency)" upgrade modal
+[2026-08-29T07:06:50.956Z] 
+======================================================
+[2026-08-29T07:06:50.956Z] 🏢 AGENT 3: Testing Agency Scale Features & Client Reports
+[2026-08-29T07:06:50.957Z] ======================================================
+[2026-08-29T07:06:51.006Z] 1. Agency User visiting /studio...
+[2026-08-29T07:06:51.751Z]   ✅ PASS: Topbar accurately shows "🏢 Agency Scale" active badge
+[2026-08-29T07:06:51.751Z] 2. Agency User opening Settings -> Plan & Billing...
+[2026-08-29T07:06:52.474Z] 3. Visiting Live Shareable Client Report Portal (/report/token-stripe-audit-99)...
+[2026-08-29T07:06:53.166Z]   ✅ PASS: Live Client Performance Portal renders beautifully with 99.6% inboxing telemetry
+[2026-08-29T07:06:53.223Z] 
+======================================================
+[2026-08-29T07:06:53.224Z] 🏁 FINAL E2E TEST SUMMARY
+[2026-08-29T07:06:53.224Z] ======================================================
+[2026-08-29T07:06:53.224Z] 👤 Free User Tests:   Passed: 3 | Failed: 0
+[2026-08-29T07:06:53.224Z] 👑 Pro User Tests:    Passed: 2 | Failed: 0
+[2026-08-29T07:06:53.224Z] 🏢 Agency User Tests: Passed: 2 | Failed: 0
+[2026-08-29T07:06:53.224Z] ======================================================
 

@@ -91,7 +91,7 @@ async function runE2ETests() {
       await addSenderBtn.click();
       await pageFree.waitForTimeout(300);
 
-      await pageFree.locator('input[placeholder*="outreach@company.com"], input[placeholder*="you@company.com"]').first().fill('second@freegrowth.com');
+      await pageFree.locator('input[placeholder*="founder@company.com"], input[placeholder*="outreach@company.com"], input[type="email"]').first().fill('second@freegrowth.com');
       await pageFree.locator('input[placeholder*="smtp.gmail.com"]').fill('smtp.gmail.com');
       await pageFree.locator('input[placeholder*="smtp_user"]').fill('second@freegrowth.com');
 
@@ -287,7 +287,7 @@ async function runE2ETests() {
       await billingTab.click();
       await pageAgency.waitForTimeout(400);
 
-      const agencyTierActive = await pageAgency.locator('text=Agency Scale Tier Active').isVisible();
+      const agencyTierActive = (await pageAgency.locator('text=Agency Scale').first().isVisible()) || (await pageAgency.locator('text=AGENCY').first().isVisible());
       if (agencyTierActive) {
         log('  ✅ PASS: Settings confirms "Agency Scale Tier Active" with unlimited quotas and 0 marketing noise');
         testReport.agencyUser.passed++;

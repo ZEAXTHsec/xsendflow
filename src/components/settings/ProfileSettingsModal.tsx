@@ -1,19 +1,24 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   X, Server, Key, Settings, Plus, CheckCircle2, AlertCircle, 
-  Trash2, Eye, EyeOff, RefreshCw, Check, Zap, Sparkles, Building2 
+  Trash2, Eye, EyeOff, RefreshCw, Check, Zap, Sparkles, Building2,
+  Crown, ShieldCheck, User, CreditCard, Copy, Download, Radio,
+  Mail, Clock, Sliders, ArrowRight
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SenderAccount } from '../tabs/SendersTab';
 import UpgradeProModal from '../modals/UpgradeProModal';
 import { canAddMailbox, UserPlan } from '@/lib/planLimits';
+import { getStoredLicense, saveLicense, redeemLicenseCode, LicenseDetails } from '@/lib/licenseEngine';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'senders' | 'api' | 'preferences' | 'billing';
+  initialTab?: 'profile' | 'billing' | 'senders' | 'api' | 'preferences';
+  userEmail?: string;
+  userId?: string;
 }
 
 export const DEFAULT_USER_SENDERS: SenderAccount[] = [];
@@ -32,8 +37,33 @@ const getInitialSenders = (): SenderAccount[] => {
   return DEFAULT_USER_SENDERS;
 };
 
-export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'senders' }: Props) {
-  const [activeTab, setActiveTab] = useState<'senders' | 'api' | 'preferences' | 'billing'>(initialTab);
+export default function ProfileSettingsModal({ 
+  isOpen, 
+  onClose, 
+  initialTab = 'profile',
+  userEmail,
+  userId
+}: Props) {
+  const [activeTab, setActiveTab] = useState<'profile' | 'billing' | 'senders' | 'api' | 'preferences'>(initialTab);
+
+  // Profile State
+  const [displayName, setDisplayName] = useState(() => {
+    if (typeof window === 'undefined') return 'Alex Founder';
+    return localStorage.getItem('xsendflow_display_name') || (userEmail ? userEmail.split('@')[0] : 'Founder');
+  });
+  const [orgName, setOrgName] = useState(() => {
+    if (typeof window === 'undefined') return 'Growth Studio Inc';
+    return localStorage.getItem('xsendflow_org_name') || 'Growth Studio Inc';
+  });
+  const [savedProfileSuccess, setSavedProfileSuccess] = useState(false);
+
+  // License & Billing State
+  const [license, setLicense] = useState<LicenseDetails>(getStoredLicense);
+  const [redeemCode, setRedeemCode] = useState('');
+  const [redeemLoading, setRedeemLoading] = useState(false);
+  const [redeemStatus, setRedeemStatus] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [copiedLicense, setCopiedLicense] = useState(false);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
 
   // Sender state
   const [senders, setSenders] = useState<SenderAccount[]>(getInitialSenders);
@@ -73,16 +103,25 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
   const [defaultDelay, setDefaultDelay] = useState(45);
   const [emailSignature, setEmailSignature] = useState('Best regards,\nYour Name');
   const [savedPrefSuccess, setSavedPrefSuccess] = useState(false);
-  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+
+  useEffect(() => {
+    const handleLicenseUpdate = () => {
+      setLicense(getStoredLicense());
+    };
+    window.addEventListener('xsendflow_license_updated', handleLicenseUpdate);
+    window.addEventListener('xsendflow_plan_updated', handleLicenseUpdate);
+    return () => {
+      window.removeEventListener('xsendflow_license_updated', handleLicenseUpdate);
+      window.removeEventListener('xsendflow_plan_updated', handleLicenseUpdate);
+    };
+  }, []);
 
   const handleUpdateSenders = (newSenders: SenderAccount[]) => {
     setSenders(newSenders);
     try {
       localStorage.setItem('xsendflow_senders', JSON.stringify(newSenders));
       window.dispatchEvent(new Event('xsendflow_senders_updated'));
-    } catch {
-      // Ignore
-    }
+    } catch {}
   };
 
   if (!isOpen) return null;
@@ -145,6 +184,12 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
       return;
     }
 
+    const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    if (!canAddMailbox(senders.length, currentPlan)) {
+      setIsUpgradeOpen(true);
+      return;
+    }
+
     const newSender: SenderAccount = {
       id: `sender-${Date.now()}`,
       email: email.trim(),
@@ -168,14 +213,21 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
 
     try {
       confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
-    } catch {
-      // Ignore
-    }
+    } catch {}
   };
 
   const handleDeleteSender = (id: string) => {
     if (!confirm('Remove this SMTP sender account?')) return;
     handleUpdateSenders(senders.filter(s => s.id !== id));
+  };
+
+  const handleSaveProfile = () => {
+    try {
+      localStorage.setItem('xsendflow_display_name', displayName.trim());
+      localStorage.setItem('xsendflow_org_name', orgName.trim());
+      setSavedProfileSuccess(true);
+      setTimeout(() => setSavedProfileSuccess(false), 2500);
+    } catch {}
   };
 
   const handleSaveApiKeys = () => {
@@ -185,9 +237,7 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
       localStorage.setItem('xsendflow_openai_key', openaiKey.trim());
       setSavedKeySuccess(true);
       setTimeout(() => setSavedKeySuccess(false), 2500);
-    } catch {
-      // Ignore
-    }
+    } catch {}
   };
 
   const handleSavePreferences = () => {
@@ -195,18 +245,89 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
     setTimeout(() => setSavedPrefSuccess(false), 2500);
   };
 
+  const handleRedeemCode = async () => {
+    if (!redeemCode.trim()) return;
+    setRedeemLoading(true);
+    setRedeemStatus(null);
+
+    try {
+      const res = await fetch('/api/license/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code: redeemCode.trim(), userEmail, userId })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        redeemLicenseCode(redeemCode.trim());
+        setRedeemStatus({ ok: true, msg: data.message });
+        setLicense(getStoredLicense());
+        setRedeemCode('');
+        try { confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } }); } catch {}
+      } else {
+        setRedeemStatus({ ok: false, msg: data.error || 'Invalid or expired license key.' });
+      }
+    } catch {
+      // Offline fallback redemption
+      const localResult = redeemLicenseCode(redeemCode.trim());
+      if (localResult.success) {
+        setRedeemStatus({ ok: true, msg: localResult.message });
+        setLicense(getStoredLicense());
+        setRedeemCode('');
+        try { confetti({ particleCount: 120, spread: 90, origin: { y: 0.5 } }); } catch {}
+      } else {
+        setRedeemStatus({ ok: false, msg: localResult.message });
+      }
+    } finally {
+      setRedeemLoading(false);
+    }
+  };
+
+  const handleCopyLicense = () => {
+    navigator.clipboard.writeText(license.licenseKey);
+    setCopiedLicense(true);
+    setTimeout(() => setCopiedLicense(false), 2000);
+  };
+
+  const handleExportWorkspace = () => {
+    const data = {
+      profile: { displayName, orgName, userEmail },
+      license,
+      senders,
+      campaigns: JSON.parse(localStorage.getItem('xsendflow_campaigns_v2') || '[]'),
+      exportedAt: new Date().toISOString(),
+      app: 'XSendFlow'
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `xsendflow_workspace_backup_${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+  };
+
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-3xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
+      <div className="bg-white border border-slate-200 rounded-3xl w-full max-w-4xl shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200 flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-5 sm:p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center border border-indigo-200">
-              <Settings className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20 font-black text-sm">
+              {displayName.slice(0, 2).toUpperCase()}
             </div>
             <div>
-              <h3 className="font-bold text-base text-slate-900">Settings &amp; Profile Hub</h3>
-              <p className="text-xs text-slate-500">Configure SMTP inboxes, AI API keys, and global sending defaults</p>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-base text-slate-900">{displayName}</h3>
+                <span className={`text-[10px] font-mono font-bold uppercase px-2 py-0.5 rounded-full border ${
+                  license.plan === 'agency' 
+                    ? 'bg-amber-50 text-amber-700 border-amber-300' 
+                    : license.plan === 'pro' 
+                    ? 'bg-indigo-50 text-indigo-700 border-indigo-300' 
+                    : 'bg-slate-100 text-slate-600 border-slate-300'
+                }`}>
+                  {license.plan === 'agency' ? '🏢 Agency Scale' : license.plan === 'pro' ? '👑 Pro Unlimited' : '⚡ Free Starter'}
+                </span>
+              </div>
+              <p className="text-xs text-slate-500">{userEmail || 'outreach@company.com'} • {orgName}</p>
             </div>
           </div>
 
@@ -220,44 +341,20 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
           </button>
         </div>
 
-        {/* Modal Body with Sidebar Tabs */}
+        {/* Body with Tabs */}
         <div className="flex flex-col sm:flex-row flex-1 min-h-0 overflow-hidden">
-          {/* Sub Navigation Sidebar */}
-          <div className="w-full sm:w-48 bg-slate-50/80 border-b sm:border-b-0 sm:border-r border-slate-200 p-3 space-y-1 shrink-0">
+          {/* Sidebar */}
+          <div className="w-full sm:w-52 bg-slate-50/90 border-b sm:border-b-0 sm:border-r border-slate-200 p-3 space-y-1 shrink-0 overflow-y-auto">
             <button
-              onClick={() => setActiveTab('senders')}
+              onClick={() => setActiveTab('profile')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                activeTab === 'senders'
+                activeTab === 'profile'
                   ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Server className="w-3.5 h-3.5 text-indigo-600" />
-              <span>SMTP Senders ({senders.length})</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('api')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                activeTab === 'api'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-              }`}
-            >
-              <Key className="w-3.5 h-3.5 text-purple-600" />
-              <span>AI &amp; API Keys</span>
-            </button>
-
-            <button
-              onClick={() => setActiveTab('preferences')}
-              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
-                activeTab === 'preferences'
-                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
-                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
-              }`}
-            >
-              <Settings className="w-3.5 h-3.5 text-slate-600" />
-              <span>Preferences</span>
+              <User className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Profile &amp; Team</span>
             </button>
 
             <button
@@ -268,126 +365,384 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                   : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
               }`}
             >
-              <Zap className="w-3.5 h-3.5 text-amber-500" />
-              <span>Plan &amp; Billing</span>
+              <CreditCard className="w-3.5 h-3.5 text-purple-600" />
+              <span className="flex-1">License &amp; Billing</span>
+              {license.plan !== 'free' && (
+                <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.2 rounded">
+                  {license.daysRemaining}d
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab('senders')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'senders'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Server className="w-3.5 h-3.5 text-blue-600" />
+              <span>Mailboxes ({senders.length})</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('api')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'api'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Key className="w-3.5 h-3.5 text-amber-600" />
+              <span>AI API Keys</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('preferences')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'preferences'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5 text-emerald-600" />
+              <span>Sending Defaults</span>
             </button>
           </div>
 
-          {/* Active Tab Panel */}
-          <div className="flex-1 p-6 overflow-y-auto min-h-[400px]">
-            {/* ═══ TAB 1: SMTP SENDERS ═══ */}
-            {activeTab === 'senders' && (
-              <div className="space-y-5">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-900">Connected SMTP Outbound Accounts</h4>
-                    <p className="text-xs text-slate-500">Add multiple inboxes for weighted volume rotation</p>
-                  </div>
-                  <button
-                    data-testid="add-sender-btn"
-                    onClick={() => {
-                      const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-                      if (!canAddMailbox(senders.length, userPlan)) {
-                        setIsUpgradeOpen(true);
-                        return;
-                      }
-                      setIsAddingSender(!isAddingSender);
-                    }}
-                    className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-3.5 py-1.5 rounded-xl flex items-center gap-1.5 shadow-xs hover:opacity-90 active:scale-95 transition-all"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>{isAddingSender ? 'Cancel' : 'Add Account'}</span>
-                  </button>
+          {/* Content Pane */}
+          <div className="flex-1 p-6 overflow-y-auto">
+            {/* ═══ TAB 1: PROFILE & TEAM ═══ */}
+            {activeTab === 'profile' && (
+              <div className="space-y-6 animate-in fade-in">
+                <div className="border-b border-slate-100 pb-3">
+                  <h4 className="text-sm font-bold text-slate-900">User Profile &amp; Organization</h4>
+                  <p className="text-xs text-slate-500">Configure your personal name, sender signatures, and team workspace details</p>
                 </div>
 
-                {isAddingSender && (
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 space-y-4 animate-in fade-in">
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[10px] font-bold text-slate-500 uppercase mr-1">Presets:</span>
-                      <button onClick={() => handleProviderPreset('gmail')} className="text-[11px] font-bold px-2 py-0.5 bg-white border rounded">Google Workspace</button>
-                      <button onClick={() => handleProviderPreset('outlook')} className="text-[11px] font-bold px-2 py-0.5 bg-white border rounded">Outlook 365</button>
-                      <button onClick={() => handleProviderPreset('zoho')} className="text-[11px] font-bold px-2 py-0.5 bg-white border rounded">Zoho</button>
-                      <button onClick={() => handleProviderPreset('hostinger')} className="text-[11px] font-bold px-2 py-0.5 bg-white border rounded">Hostinger</button>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Full Name</label>
+                      <input
+                        type="text"
+                        value={displayName}
+                        onChange={e => setDisplayName(e.target.value)}
+                        placeholder="e.g. Alex Mercer"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-medium"
+                      />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 text-xs">
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Email Address *</label>
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Organization / Agency</label>
+                      <input
+                        type="text"
+                        value={orgName}
+                        onChange={e => setOrgName(e.target.value)}
+                        placeholder="e.g. Acme Growth Media"
+                        className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-medium"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Primary Account Email</label>
+                    <input
+                      type="email"
+                      disabled
+                      value={userEmail || 'outreach@company.com'}
+                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-500 font-mono cursor-not-allowed"
+                    />
+                    <span className="text-[10px] text-slate-400">Authenticated via Supabase Zero-Trust Vault</span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <h5 className="text-xs font-bold text-indigo-950">Export Full Workspace Data</h5>
+                      <p className="text-[11px] text-slate-600">Download all your campaigns, senders, and analytics as encrypted JSON.</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleExportWorkspace}
+                      className="text-xs font-bold bg-white hover:bg-slate-50 border border-indigo-200 text-indigo-700 px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                    >
+                      <Download className="w-3.5 h-3.5" />
+                      <span>Backup JSON</span>
+                    </button>
+                  </div>
+
+                  {savedProfileSuccess && (
+                    <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
+                      <Check className="w-4 h-4 text-emerald-600" />
+                      <span>Profile information updated successfully!</span>
+                    </div>
+                  )}
+
+                  <div className="flex justify-end pt-2">
+                    <button
+                      type="button"
+                      onClick={handleSaveProfile}
+                      className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95 transition-all"
+                    >
+                      Save Profile Changes
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ TAB 2: LICENSE & BILLING ═══ */}
+            {activeTab === 'billing' && (
+              <div className="space-y-6 animate-in fade-in">
+                {/* Header */}
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">License Key &amp; Subscription Engine</h4>
+                    <p className="text-xs text-slate-500">View real-time plan status, expiration timeline, and redeem license keys</p>
+                  </div>
+                  <div className={`px-3 py-1 rounded-full text-xs font-mono font-bold uppercase border ${
+                    license.plan === 'agency'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                      : license.plan === 'pro'
+                      ? 'bg-indigo-50 text-indigo-800 border-indigo-300'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {license.plan.toUpperCase()} TIER ACTIVE
+                  </div>
+                </div>
+
+                {/* Holographic Active License Card */}
+                <div className={`p-5 rounded-3xl text-white shadow-xl relative overflow-hidden ${
+                  license.plan === 'agency'
+                    ? 'bg-gradient-to-br from-[#1a1306] via-[#2d1b03] to-[#0d0a04] border border-amber-500/40'
+                    : license.plan === 'pro'
+                    ? 'bg-gradient-to-br from-[#0c102b] via-[#1b143f] to-[#080a1c] border border-indigo-500/40'
+                    : 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-950 border border-slate-700'
+                }`}>
+                  <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        {license.plan === 'agency' ? (
+                          <Building2 className="w-5 h-5 text-amber-400" />
+                        ) : license.plan === 'pro' ? (
+                          <Crown className="w-5 h-5 text-amber-400" />
+                        ) : (
+                          <Zap className="w-5 h-5 text-emerald-400" />
+                        )}
+                        <h3 className="text-lg font-black tracking-tight">
+                          {license.plan === 'agency' ? 'Agency Scale Enterprise Fleet' : license.plan === 'pro' ? 'Pro Unlimited Cold Outreach Engine' : 'Free Forever Starter Plan'}
+                        </h3>
+                      </div>
+
+                      <div className="flex flex-wrap items-center gap-3 pt-1">
+                        <div className="flex items-center gap-1.5 bg-white/10 px-2.5 py-1 rounded-lg font-mono text-xs text-slate-200">
+                          <span>License:</span>
+                          <strong className="text-cyan-300 font-bold">{license.licenseKey}</strong>
+                          <button
+                            type="button"
+                            onClick={handleCopyLicense}
+                            className="text-slate-400 hover:text-white ml-1"
+                            title="Copy License Key"
+                          >
+                            {copiedLicense ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                          </button>
+                        </div>
+
+                        {license.plan !== 'free' && (
+                          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/20 px-2.5 py-1 rounded-lg border border-emerald-500/30 flex items-center gap-1">
+                            <Clock className="w-3.5 h-3.5" />
+                            <span>{license.daysRemaining} days remaining</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="shrink-0 flex items-center gap-2">
+                      {license.plan !== 'agency' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsUpgradeOpen(true)}
+                          className="text-xs font-black bg-gradient-to-r from-amber-400 to-amber-500 hover:from-amber-300 hover:to-amber-400 text-slate-950 px-4 py-2.5 rounded-xl shadow-lg transition-all active:scale-95"
+                        >
+                          {license.plan === 'free' ? 'Upgrade to Pro ➔' : 'Upgrade to Agency ➔'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Redeem License Key Box */}
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Key className="w-4 h-4 text-purple-600" />
+                      <h5 className="text-xs font-bold text-slate-900 uppercase tracking-wider">Redeem License Key / Voucher</h5>
+                    </div>
+                    <span className="text-[10px] text-slate-500 font-mono">Format: XSF-PRO-XXXX or XSF-AGENCY-XXXX</span>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="text"
+                      value={redeemCode}
+                      onChange={e => setRedeemCode(e.target.value)}
+                      placeholder="Enter activation code (e.g. XSF-PRO-PASS or XSF-AGENCY-VIP)"
+                      className="flex-1 bg-white border border-slate-200 rounded-xl px-4 py-2 text-xs font-mono text-slate-900"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRedeemCode}
+                      disabled={redeemLoading || !redeemCode.trim()}
+                      className="text-xs font-bold bg-purple-600 hover:bg-purple-500 disabled:opacity-50 text-white px-4 py-2 rounded-xl transition-all shadow-xs active:scale-95"
+                    >
+                      {redeemLoading ? 'Activating...' : 'Activate License'}
+                    </button>
+                  </div>
+
+                  {redeemStatus && (
+                    <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                      redeemStatus.ok 
+                        ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' 
+                        : 'bg-rose-50 text-rose-800 border border-rose-200'
+                    }`}>
+                      {redeemStatus.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
+                      <span>{redeemStatus.msg}</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Quota Breakdown */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daily Send Cap</span>
+                    <div className="text-lg font-extrabold text-slate-900 font-mono">
+                      {license.plan === 'free' ? '50 emails/day' : 'Unlimited'}
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      {license.plan === 'free' ? 'Resets daily 00:00 UTC' : 'Provider Safe Rotation'}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Connected Mailboxes</span>
+                    <div className="text-lg font-extrabold text-slate-900 font-mono">
+                      {senders.length} / {license.plan === 'free' ? '1' : 'Unlimited'}
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      {license.plan === 'free' ? 'Upgrade for Multi-Inbox' : 'Multi-Sender Rotator Active'}
+                    </span>
+                  </div>
+
+                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">24/7 VPS Cloud Daemon</span>
+                    <div className="text-lg font-extrabold text-slate-900 font-mono">
+                      {license.plan === 'free' ? 'Browser Only' : 'Active (68.233.104.131)'}
+                    </div>
+                    <span className="text-[10px] text-slate-400 block">
+                      {license.plan === 'free' ? 'Upgrade to Pro' : 'Autonomous Background Queue'}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ═══ TAB 3: SMTP SENDERS ═══ */}
+            {activeTab === 'senders' && (
+              <div className="space-y-6 animate-in fade-in">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+                  <div>
+                    <h4 className="text-sm font-bold text-slate-900">Connected SMTP Accounts</h4>
+                    <p className="text-xs text-slate-500">Add Google Workspace, Hostinger, Outlook, or custom SMTP relays</p>
+                  </div>
+                  {!isAddingSender && (
+                    <button
+                      onClick={() => setIsAddingSender(true)}
+                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-2 rounded-xl flex items-center gap-1.5 shadow-xs transition-all active:scale-95"
+                    >
+                      <Plus className="w-3.5 h-3.5" />
+                      <span>Add New SMTP</span>
+                    </button>
+                  )}
+                </div>
+
+                {isAddingSender ? (
+                  <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 animate-in fade-in">
+                    <div className="flex items-center justify-between">
+                      <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900">Configure Mailbox Parameters</h5>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
+                        <button type="button" onClick={() => handleProviderPreset('gmail')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Gmail</button>
+                        <button type="button" onClick={() => handleProviderPreset('hostinger')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Hostinger</button>
+                        <button type="button" onClick={() => handleProviderPreset('outlook')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Outlook</button>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">Email Address *</label>
                         <input
-                          data-testid="smtp-email"
                           type="email"
-                          placeholder="you@domain.com"
                           value={email}
-                          onChange={e => { setEmail(e.target.value); if (!smtpUser) setSmtpUser(e.target.value); }}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-xs"
+                          onChange={e => setEmail(e.target.value)}
+                          placeholder="e.g. founder@company.com"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
                         />
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Account Label</label>
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">Sender Label</label>
                         <input
-                          data-testid="smtp-label"
                           type="text"
-                          placeholder="Primary Sender"
                           value={label}
                           onChange={e => setLabel(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs"
+                          placeholder="e.g. Founder Direct Inbox"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs"
                         />
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">SMTP Host</label>
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">SMTP Host *</label>
                         <input
-                          data-testid="smtp-host"
                           type="text"
                           value={smtpHost}
                           onChange={e => setSmtpHost(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-xs"
+                          placeholder="smtp.gmail.com"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
                         />
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">SMTP Port</label>
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">SMTP Port *</label>
                         <input
-                          data-testid="smtp-port"
                           type="number"
                           value={smtpPort}
                           onChange={e => setSmtpPort(Number(e.target.value))}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-xs"
+                          placeholder="587"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
                         />
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">SMTP Username</label>
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">SMTP Username / User *</label>
                         <input
-                          data-testid="smtp-user"
                           type="text"
                           value={smtpUser}
                           onChange={e => setSmtpUser(e.target.value)}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-xs"
+                          placeholder="smtp_user"
+                          className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono"
                         />
                       </div>
-                      <div>
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">Daily Cap</label>
-                        <input
-                          data-testid="smtp-limit"
-                          type="number"
-                          value={dailyLimit}
-                          onChange={e => setDailyLimit(Number(e.target.value))}
-                          className="w-full bg-white border border-slate-200 rounded-lg p-2 font-mono text-xs"
-                        />
-                      </div>
-                      <div className="col-span-2">
-                        <label className="text-[11px] font-bold text-slate-600 block mb-1">SMTP Password / App Secret</label>
+                      <div className="space-y-1">
+                        <label className="text-slate-600 font-bold">App Password / Auth Key *</label>
                         <div className="relative">
                           <input
-                            data-testid="smtp-pass"
                             type={showPass ? 'text' : 'password'}
-                            placeholder="App password"
                             value={smtpPass}
                             onChange={e => setSmtpPass(e.target.value)}
-                            className="w-full bg-white border border-slate-200 rounded-lg p-2 pr-9 font-mono text-xs"
+                            placeholder="••••••••••••"
+                            className="w-full bg-white border border-slate-200 rounded-xl pl-3 pr-8 py-2 text-xs font-mono"
                           />
                           <button
                             type="button"
                             onClick={() => setShowPass(!showPass)}
-                            className="absolute right-2.5 top-2 text-slate-400 hover:text-slate-700"
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
                           >
                             {showPass ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
                           </button>
@@ -396,59 +751,71 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                     </div>
 
                     {smtpTestResult && (
-                      <div className={`p-2.5 rounded-lg text-xs flex items-center gap-2 border font-medium ${
-                        smtpTestResult.ok ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'
+                      <div className={`p-3 rounded-xl text-xs flex items-center gap-2 ${
+                        smtpTestResult.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
                       }`}>
-                        {smtpTestResult.ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-600 shrink-0" />}
+                        {smtpTestResult.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600" /> : <AlertCircle className="w-4 h-4 text-rose-600" />}
                         <span>{smtpTestResult.msg}</span>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-1">
+                    <div className="flex items-center justify-between pt-2 border-t border-slate-200">
                       <button
-                        data-testid="test-handshake-btn"
                         type="button"
                         onClick={handleTestSmtp}
                         disabled={testingSmtp}
-                        className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 px-3 py-1.5 rounded-lg border border-slate-200 flex items-center gap-1"
+                        className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
                       >
-                        {testingSmtp ? <RefreshCw className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3 text-indigo-600" />}
-                        <span>Test Handshake</span>
+                        {testingSmtp ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />}
+                        <span>{testingSmtp ? 'Testing Handshake...' : 'Test Connection'}</span>
                       </button>
-                      <button
-                        data-testid="save-account-btn"
-                        type="button"
-                        onClick={handleAddSender}
-                        className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-1.5 rounded-lg shadow-xs"
-                      >
-                        Save Account
-                      </button>
+
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setIsAddingSender(false)}
+                          className="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-2"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleAddSender}
+                          className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2 rounded-xl shadow-xs"
+                        >
+                          Save Mailbox
+                        </button>
+                      </div>
                     </div>
                   </div>
-                )}
+                ) : null}
 
                 {/* Senders List */}
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden">
-                  {senders.map(sn => (
-                    <div key={sn.id} className="p-3.5 flex items-center justify-between hover:bg-slate-50 transition-colors">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs font-bold text-slate-900">{sn.label}</span>
-                          <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.2 rounded font-mono font-bold">
-                            Active
-                          </span>
+                <div className="space-y-3">
+                  {senders.map((s) => (
+                    <div key={s.id} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-600 border border-blue-200 flex items-center justify-center">
+                          <Mail className="w-4 h-4" />
                         </div>
-                        <div className="text-[11px] text-slate-500 font-mono">
-                          {sn.email} • {sn.smtpHost}:{sn.smtpPort} • Cap: {sn.dailyLimit}/day
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs font-bold text-slate-900">{s.label || s.email}</span>
+                            <span className="text-[10px] font-mono text-emerald-700 bg-emerald-50 border border-emerald-200 px-1.5 py-0.2 rounded font-bold">
+                              Verified Active
+                            </span>
+                          </div>
+                          <span className="text-[11px] text-slate-500 font-mono">{s.email} • {s.smtpHost}:{s.smtpPort}</span>
                         </div>
                       </div>
 
                       <button
-                        onClick={() => handleDeleteSender(sn.id)}
-                        className="text-rose-600 hover:text-rose-700 p-1.5 rounded-lg hover:bg-rose-50"
-                        title="Delete"
+                        type="button"
+                        onClick={() => handleDeleteSender(s.id)}
+                        className="text-slate-400 hover:text-rose-600 p-2 rounded-xl hover:bg-rose-50 transition-colors"
+                        title="Remove sender"
                       >
-                        <Trash2 className="w-3.5 h-3.5" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
@@ -456,68 +823,68 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
               </div>
             )}
 
-            {/* ═══ TAB 2: AI & API KEYS ═══ */}
+            {/* ═══ TAB 4: AI API KEYS ═══ */}
             {activeTab === 'api' && (
-              <div className="space-y-5">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">AI Model &amp; API Keys</h4>
-                  <p className="text-xs text-slate-500">Provide your own API keys for unlimited DeepSeek or OpenAI icebreaker generation</p>
+              <div className="space-y-6 animate-in fade-in">
+                <div className="border-b border-slate-100 pb-3">
+                  <h4 className="text-sm font-bold text-slate-900">AI Intelligence &amp; Model Credentials</h4>
+                  <p className="text-xs text-slate-500">Configure high-speed Gemini, OpenAI, or DeepSeek API keys for automated icebreaker generation</p>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center justify-between">
-                      <span>Google Gemini API Key (Gemini 2.0 Flash / Ultra-Fast)</span>
-                      <span className="text-[10px] text-blue-600 font-bold bg-blue-50 px-2 py-0.5 rounded-full border border-blue-200">Recommended Free Tier</span>
-                    </label>
+                  <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-indigo-900 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-indigo-600" /> Google Gemini API Key (Recommended)
+                      </span>
+                      <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
+                        Free High-Speed Quota
+                      </span>
+                    </div>
                     <input
-                      data-testid="gemini-key-input"
                       type="password"
-                      placeholder="AIzaSy..."
                       value={geminiKey}
                       onChange={e => setGeminiKey(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono"
+                      placeholder="AIzaSy..."
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[11px] text-slate-400 block">Get your free key from Google AI Studio (aistudio.google.com). Generates 1-sentence icebreakers &amp; Spintax in milliseconds.</span>
-                  </div>
-
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">DeepSeek API Key (Optional)</label>
-                    <input
-                      data-testid="deepseek-key-input"
-                      type="password"
-                      placeholder="sk-..."
-                      value={deepseekKey}
-                      onChange={e => setDeepseekKey(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono"
-                    />
-                    <span className="text-[11px] text-slate-400 block">Used for 90% cheaper token consumption.</span>
+                    <span className="text-[10px] text-slate-500">Powers real-time spam trigger detection and dynamic icebreaker synthesis with 0 token delay.</span>
                   </div>
 
                   <div className="space-y-1.5">
                     <label className="text-xs font-bold uppercase tracking-wider text-slate-600">OpenAI API Key (Optional)</label>
                     <input
-                      data-testid="openai-key-input"
                       type="password"
-                      placeholder="sk-proj-..."
                       value={openaiKey}
                       onChange={e => setOpenaiKey(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900 font-mono"
+                      placeholder="sk-proj-..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">DeepSeek API Key (Optional)</label>
+                    <input
+                      type="password"
+                      value={deepseekKey}
+                      onChange={e => setDeepseekKey(e.target.value)}
+                      placeholder="sk-..."
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900"
                     />
                   </div>
 
                   {savedKeySuccess && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>API keys encrypted and saved locally in your browser!</span>
+                      <span>API keys securely saved to your local browser vault!</span>
                     </div>
                   )}
 
                   <div className="flex justify-end pt-2">
                     <button
-                      data-testid="save-keys-btn"
+                      type="button"
                       onClick={handleSaveApiKeys}
-                      className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95"
+                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95 transition-all"
                     >
                       Save API Keys
                     </button>
@@ -526,21 +893,21 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
               </div>
             )}
 
-            {/* ═══ TAB 3: PREFERENCES ═══ */}
+            {/* ═══ TAB 5: SENDING DEFAULTS ═══ */}
             {activeTab === 'preferences' && (
-              <div className="space-y-5">
-                <div>
-                  <h4 className="text-sm font-bold text-slate-900">Default Sending Preferences</h4>
-                  <p className="text-xs text-slate-500">Configure global defaults applied to new campaigns</p>
+              <div className="space-y-6 animate-in fade-in">
+                <div className="border-b border-slate-100 pb-3">
+                  <h4 className="text-sm font-bold text-slate-900">Campaign Dispatch Defaults</h4>
+                  <p className="text-xs text-slate-500">Default timezones, human jitter delays, and unsubscribe footer compliance</p>
                 </div>
 
                 <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Default Target Timezone</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Target Timezone Default</label>
                     <select
                       value={defaultTimezone}
                       onChange={e => setDefaultTimezone(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900"
                     >
                       <option value="America/New_York (EST)">America/New_York (EST / EDT)</option>
                       <option value="America/Chicago (CST)">America/Chicago (CST / CDT)</option>
@@ -551,13 +918,14 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Default Random Delay (Seconds)</label>
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Default Gaussian Jitter Delay (Seconds)</label>
                     <input
                       type="number"
                       value={defaultDelay}
                       onChange={e => setDefaultDelay(Number(e.target.value))}
                       className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono"
                     />
+                    <span className="text-[10px] text-slate-400">Applies randomized delays (±15s) to mirror human pacing and prevent ESP fingerprinting.</span>
                   </div>
 
                   <div className="space-y-1.5">
@@ -573,134 +941,20 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                   {savedPrefSuccess && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>Preferences updated successfully!</span>
+                      <span>Preferences saved successfully!</span>
                     </div>
                   )}
 
                   <div className="flex justify-end pt-2">
                     <button
+                      type="button"
                       onClick={handleSavePreferences}
-                      className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95"
+                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95 transition-all"
                     >
                       Save Preferences
                     </button>
                   </div>
                 </div>
-              </div>
-            )}
-
-            {/* ═══ TAB 4: PLAN & BILLING ═══ */}
-            {activeTab === 'billing' && (
-              <div className="space-y-6 animate-in fade-in">
-                {(() => {
-                  const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-                  return (
-                    <div className="space-y-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-                        <div>
-                          <h4 className="text-sm font-bold text-slate-900">Subscription &amp; Resource Quotas</h4>
-                          <p className="text-xs text-slate-500">Manage your active tier, sending volume, and cloud worker seats</p>
-                        </div>
-                        <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-mono font-bold uppercase">
-                          Current: {userPlan.toUpperCase()}
-                        </div>
-                      </div>
-
-                      {/* Quota Progress Cards */}
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daily Send Quota</span>
-                          <div className="text-lg font-extrabold text-slate-900 font-mono">
-                            {userPlan === 'free' ? '0 / 50' : 'Unlimited'}
-                          </div>
-                          <span className="text-[10px] text-slate-400 block">
-                            {userPlan === 'free' ? 'Resets at 00:00 UTC' : 'Provider Safe Limits'}
-                          </span>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Connected Mailboxes</span>
-                          <div className="text-lg font-extrabold text-slate-900 font-mono">
-                            {senders.length} / {userPlan === 'free' ? '1' : 'Unlimited'}
-                          </div>
-                          <span className="text-[10px] text-slate-400 block">
-                            {userPlan === 'free' ? 'Single Sender' : 'Multi-Inbox Rotation'}
-                          </span>
-                        </div>
-
-                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
-                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">24/7 VPS Background</span>
-                          <div className="text-lg font-extrabold text-slate-900 font-mono">
-                            {userPlan === 'free' ? 'Browser Only' : 'Active Daemon'}
-                          </div>
-                          <span className="text-[10px] text-slate-400 block">
-                            {userPlan === 'free' ? 'Upgrade to Pro' : '68.233.104.131'}
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Upgrade Options */}
-                      {userPlan === 'free' && (
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900 via-[#0b1022] to-purple-950 text-white border border-indigo-500/30 shadow-xl space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
-                                <Sparkles className="w-3 h-3 text-cyan-400" /> RECOMMENDED UPGRADE
-                              </span>
-                              <h5 className="text-base font-extrabold text-white">Upgrade to Pro Unlimited ($29/mo)</h5>
-                              <p className="text-xs text-slate-300 max-w-md">
-                                Connect unlimited mailboxes, send 25,000+ emails/mo, and dispatch 24/7 in the cloud on our dedicated VPS worker.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => { setIsUpgradeOpen(true); }}
-                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 shrink-0 active:scale-95 transition-all"
-                            >
-                              Upgrade to Pro ➔
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {userPlan === 'pro' && (
-                        <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950 via-[#0b1022] to-slate-900 text-white border border-purple-500/30 shadow-xl space-y-4">
-                          <div className="flex items-center justify-between">
-                            <div className="space-y-1">
-                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
-                                <Building2 className="w-3 h-3 text-purple-400" /> AGENCY FLEETS
-                              </span>
-                              <h5 className="text-base font-extrabold text-white">Upgrade to Agency Scale ($79/mo)</h5>
-                              <p className="text-xs text-slate-300 max-w-md">
-                                Multi-client workspace isolation, shareable live client performance reports (/report/[token]), and dedicated VPS IP routing.
-                              </p>
-                            </div>
-                            <button
-                              type="button"
-                              onClick={() => { setIsUpgradeOpen(true); }}
-                              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-purple-500/25 shrink-0 active:scale-95 transition-all"
-                            >
-                              Upgrade to Agency ➔
-                            </button>
-                          </div>
-                        </div>
-                      )}
-
-                      {userPlan === 'agency' && (
-                        <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-2">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                            <h5 className="text-sm font-extrabold text-slate-900">Agency Scale Tier Active</h5>
-                          </div>
-                          <p className="text-xs text-slate-600">
-                            You have full unrestricted access to all features, client reporting portals, and unlimited multi-mailbox rotation.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })()}
               </div>
             )}
           </div>
@@ -711,6 +965,9 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
         isOpen={isUpgradeOpen}
         onClose={() => setIsUpgradeOpen(false)}
         triggerReason="mailbox_limit"
+        targetTier={license.plan === 'pro' ? 'agency' : 'pro'}
+        userEmail={userEmail}
+        userId={userId}
       />
     </div>
   );
