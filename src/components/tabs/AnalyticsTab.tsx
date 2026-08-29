@@ -1274,7 +1274,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                                 Daily Send Limit
                               </label>
                               <span className="text-[11px] text-slate-500 font-mono">
-                                {senders.length} Connected Inbox{senders.length > 1 ? 'es' : ''}
+                                {senders.length} Inbox{senders.length > 1 ? 'es' : ''} (Max ~{senders.reduce((acc, s) => acc + (s.dailyLimit || 100), 0)}/d configured)
                               </span>
                             </div>
 
@@ -1282,35 +1282,39 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                               <input
                                 type="range"
                                 min="10"
-                                max="500"
+                                max="1500"
                                 step="10"
                                 value={editDailyLimit}
                                 onChange={e => setEditDailyLimit(Number(e.target.value))}
                                 className="flex-1 accent-indigo-600 cursor-pointer"
                               />
-                              <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
-                                {editDailyLimit}/day
-                              </span>
+                              <input
+                                type="number"
+                                min="1"
+                                max="5000"
+                                value={editDailyLimit}
+                                onChange={e => setEditDailyLimit(Math.max(1, Number(e.target.value)))}
+                                className="w-24 font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200 text-right focus:outline-none focus:border-indigo-500"
+                              />
                             </div>
 
-                            {/* Smart Mailbox Deliverability Guard */}
+                            {/* Dynamic Inbox Deliverability Recommendation */}
                             {(() => {
                               const inboxesCount = senders.length || 1;
-                              const safeCap = inboxesCount * 50;
-                              const isOverCap = editDailyLimit > safeCap;
                               const perInbox = Math.round(editDailyLimit / inboxesCount);
+                              const totalConfigured = senders.reduce((acc, s) => acc + (s.dailyLimit || 100), 0);
 
-                              return isOverCap ? (
-                                <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[11px] leading-relaxed flex items-start gap-2">
-                                  <AlertCircle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                                  <div>
-                                    <strong>High Volume Warning:</strong> {editDailyLimit}/day across {inboxesCount} inbox{inboxesCount > 1 ? 'es' : ''} = ~{perInbox}/inbox/day. Safe limit is 40–50/day per inbox to avoid spam filters. Connect {Math.ceil(editDailyLimit / 40)}+ inboxes or reduce to {safeCap}/day.
+                              return (
+                                <div className="p-2.5 rounded-xl bg-indigo-50/70 border border-indigo-100 text-indigo-950 text-[11px] leading-relaxed space-y-1">
+                                  <div className="flex items-center justify-between font-bold text-indigo-900">
+                                    <span>~{perInbox} emails/day per mailbox</span>
+                                    <span className="text-[10px] text-indigo-600 font-mono">{inboxesCount} inboxes rotating</span>
                                   </div>
-                                </div>
-                              ) : (
-                                <div className="text-[11px] text-emerald-700 font-medium flex items-center gap-1.5 pt-0.5">
-                                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                                  <span>Safe inbox health: ~{perInbox} emails/day per connected mailbox.</span>
+                                  <p className="text-slate-600 text-[10.5px]">
+                                    {perInbox <= 50 
+                                      ? '🟢 Optimal for fresh/warming inboxes (safe 30–50/day standard).' 
+                                      : '⚡ High throughput mode. Ideal for aged Google Workspace, M365, or dedicated relays.'}
+                                  </p>
                                 </div>
                               );
                             })()}

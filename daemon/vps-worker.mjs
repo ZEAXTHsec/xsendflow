@@ -158,12 +158,13 @@ async function runWorkerLoop() {
           continue;
         }
 
-        // D. Calculate Max Inbox Capacity
-        const maxCapacity = senders.length * DEFAULT_INBOX_DAILY_CAP;
-        const effectiveDailyLimit = Math.min(daily_limit || 150, maxCapacity);
+        // D. Calculate User-Configured Inbox Capacity (Dynamic, not hardcoded!)
+        // User might bring fresh inboxes (30-50/day) or aged Google Workspace/SES (500-1000/day)
+        const totalConfiguredCapacity = senders.reduce((acc, s) => acc + Number(s.daily_limit || s.dailyLimit || 100), 0);
+        const targetDailyLimit = Number(daily_limit) || totalConfiguredCapacity || 150;
 
-        if (currentDailySent >= effectiveDailyLimit) {
-          console.log(`🛑 [${campaignName}] Daily limit reached (${currentDailySent}/${effectiveDailyLimit}). Will resume tomorrow.`);
+        if (currentDailySent >= targetDailyLimit) {
+          console.log(`🛑 [${campaignName}] Campaign daily limit reached (${currentDailySent}/${targetDailyLimit}). Will resume tomorrow.`);
           continue;
         }
 
@@ -209,7 +210,7 @@ async function runWorkerLoop() {
           .replace(/\{\{Pitch_Page_URL\}\}/gi, pitchUrl)
           .replace(/\{\{Unsubscribe_Link\}\}/gi, unsubUrl);
 
-        // G. Dispatch via Real SMTP (or sandbox simulated)
+        // G. Dispatch via Real SMTP (or sandbox simulated) with Bounce & Error Isolation
         try {
           if (sender.smtp_host && sender.smtp_user && sender.smtp_pass && !sender.smtp_pass.includes('•••')) {
             const transporter = nodemailer.createTransport({
@@ -248,20 +249,35 @@ async function runWorkerLoop() {
             })
             .eq('id', campaignId);
 
-          console.log(`✉️ [SENT] [${campaignName}] To: ${recipient.email} | Sender: ${sender.email} | Daily: ${currentDailySent + 1}/${effectiveDailyLimit}`);
+          console.log(`✉️ [SENT] [${campaignName}] To: ${recipient.email} | Sender: ${sender.email} | Daily: ${currentDailySent + 1}/${targetDailyLimit}`);
 
-          // I. Pacing Jitter Delay between consecutive emails (e.g. 35s - 50s)
+          // I. Pacing Jitter Delay between consecutive successful sends
           const baseDelay = delay_seconds || 40;
           const jitterDelayMs = (baseDelay + Math.floor(Math.random() * 15 - 7)) * 1000;
-          console.log(`⏳ [Pacing] Sleeping ${Math.round(jitterDelayMs / 1000)}s before next send to protect domain reputation...`);
-          await sleep(Math.max(5000, jitterDelayMs));
+          await sleep(Math.max(3000, jitterDelayMs));
 
         } catch (sendErr) {
-          console.error(`❌ [Send Error] [${campaignName}] To: ${recipient.email}:`, sendErr.message);
+          const errMsg = sendErr.message || 'SMTP Error';
+          const isBounce = sendErr.responseCode >= 500 || errMsg.includes('550') || errMsg.includes('recipient') || errMsg.includes('invalid');
+
+          console.error(`❌ [${isBounce ? 'BOUNCE' : 'SENDER_ERROR'}] [${campaignName}] Lead: ${recipient.email}:`, errMsg);
+
+          // Mark lead as bounced / failed immediately so it NEVER locks or blocks subsequent leads!
           await supabase
             .from('recipients')
-            .update({ status: 'failed', error_message: sendErr.message })
+            .update({
+              status: isBounce ? 'bounced' : 'failed',
+              error_message: errMsg
+            })
             .eq('id', recipient.id);
+
+          // If it was just a bad recipient email, do NOT sleep full delay; advance immediately to next lead!
+          if (isBounce) {
+            console.log(`⏩ [Fast-Skip] Bounced lead recorded. Advancing to next prospect in queue without stalling.`);
+          } else {
+            // Sender auth/rate-limit issue -> Cool down briefly before retrying next sender
+            await sleep(5000);
+          }
         }
       }
 

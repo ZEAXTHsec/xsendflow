@@ -141,13 +141,22 @@ export async function POST(req: NextRequest) {
         });
       } catch (err: unknown) {
         const errorMsg = err instanceof Error ? err.message : 'Send failed';
-        // Mark sender as failed so subsequent leads failover to healthy inboxes
-        failedSenderIds.add(sender.id);
+        const isLeadBounce = errorMsg.includes('550') || 
+                             errorMsg.includes('553') || 
+                             errorMsg.includes('recipient') || 
+                             errorMsg.includes('User unknown') || 
+                             errorMsg.includes('mailbox unavailable');
+
+        // Only mark sender as failed if it's an SMTP auth/connection/rate-limit issue, NOT a bad lead address!
+        if (!isLeadBounce) {
+          failedSenderIds.add(sender.id);
+        }
 
         results.push({
           recipientId: recipient.id,
           email: recipient.email,
           success: false,
+          isBounce: isLeadBounce,
           error: errorMsg,
           sentBy: sender.email
         });
