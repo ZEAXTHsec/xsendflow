@@ -2422,13 +2422,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 const progress = camp.recipients.length > 0 ? Math.round((sentRecips / camp.recipients.length) * 100) : 0;
                 const isSending = camp.status === 'in_progress' || camp.status === 'sending';
                 const activeRunningCampaigns = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending');
-                const hasRunningCampaign = activeRunningCampaigns.length >= 1;
-                const isLaunchDisabled = userPlan === 'free' && hasRunningCampaign && !isSending && camp.status !== 'done';
+                const maxAllowedActive = userPlan === 'free' ? 1 : userPlan === 'pro' ? 5 : 99999;
+                const isCapReached = activeRunningCampaigns.length >= maxAllowedActive;
+                const isLaunchDisabled = isCapReached && !isSending && camp.status !== 'done';
 
                 return (
                   <div key={camp.id} className={`py-4 sm:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 p-4 sm:p-5 rounded-3xl border transition-all duration-200 ${
                     isLaunchDisabled 
-                      ? 'bg-slate-50/60 border-slate-200/70 opacity-90' 
+                      ? 'bg-slate-50/70 border-slate-200/70 opacity-90' 
                       : 'bg-white hover:bg-slate-50/90 border-slate-200/80 hover:border-indigo-300 hover:shadow-md'
                   }`}>
                   {/* Left Info */}
@@ -2439,24 +2440,21 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         camp.status === 'paused' ? 'bg-amber-400' :
                         camp.status === 'done' ? 'bg-indigo-500' : 'bg-slate-300'
                       }`} />
-                      <h4 className="text-sm font-black text-slate-900 hover:text-indigo-600 transition-colors flex items-center gap-1.5 truncate">
-                        <span>{camp.name}</span>
-                        <ChevronRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                      <h4 className="text-base font-black text-slate-900 truncate hover:text-indigo-600 transition-colors">
+                        {camp.name}
                       </h4>
-                      <span className={`text-[10px] font-mono font-extrabold uppercase px-2.5 py-0.5 rounded-full border ${
-                        isSending
-                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
-                          : camp.status === 'done'
-                          ? 'bg-indigo-50 text-indigo-700 border-indigo-200'
-                          : camp.status === 'paused'
-                          ? 'bg-amber-50 text-amber-800 border-amber-200'
-                          : 'bg-slate-100 text-slate-700 border-slate-200'
+                      <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
+                        isSending ? 'bg-emerald-50 text-emerald-700 border border-emerald-200 font-mono' :
+                        camp.status === 'paused' ? 'bg-amber-50 text-amber-700 border border-amber-200 font-mono' :
+                        camp.status === 'scheduled' ? 'bg-blue-50 text-blue-700 border border-blue-200 font-mono' :
+                        camp.status === 'done' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200 font-mono' :
+                        'bg-slate-100 text-slate-600 font-mono'
                       }`}>
-                        {isSending ? 'Active Dispatch' : camp.status}
+                        {camp.status}
                       </span>
                       {isLaunchDisabled && (
-                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full">
-                          🔒 1 Active Limit
+                        <span className="text-[10px] font-bold bg-amber-50 text-amber-900 border border-amber-200 px-2 py-0.5 rounded-full flex items-center gap-1 font-mono">
+                          🔒 {userPlan === 'free' ? '1 Active Limit' : '5 Active Limit (Pro)'}
                         </span>
                       )}
                     </div>
@@ -2532,12 +2530,23 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                           {isLaunchDisabled ? (
                             <button
                               type="button"
-                              disabled
-                              className="text-xs font-bold px-3 py-2 rounded-xl border bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed flex items-center gap-1.5 opacity-60 shadow-2xs"
-                              title={`Free plan limit: Only 1 active campaign can run at a time. Pause "${activeRunningCampaigns[0]?.name}" to start this campaign.`}
+                              onClick={() => {
+                                if (userPlan === 'free') {
+                                  setUpgradeReason('campaign_limit');
+                                } else {
+                                  setUpgradeReason('pro_campaign_limit');
+                                }
+                                setIsUpgradeOpen(true);
+                              }}
+                              className="text-xs font-bold px-3 py-2 rounded-xl border bg-amber-50/80 text-amber-900 border-amber-300 hover:bg-amber-100 flex items-center gap-1.5 shadow-2xs transition-all"
+                              title={
+                                userPlan === 'free'
+                                  ? `Free plan limit: Only 1 active campaign can run at a time. Pause "${activeRunningCampaigns[0]?.name}" or upgrade to Pro.`
+                                  : `Pro plan limit: 5 active campaigns running. Pause a running campaign or upgrade to Agency Scale for unlimited fleets.`
+                              }
                             >
-                              <Play className="w-3.5 h-3.5 fill-current opacity-40" />
-                              <span>Locked (1 Active Limit)</span>
+                              <Play className="w-3.5 h-3.5 fill-current text-amber-700" />
+                              <span>{userPlan === 'free' ? '🔒 1 Active (Pro ➔)' : '🔒 5 Active (Agency ➔)'}</span>
                             </button>
                           ) : (
                             <button

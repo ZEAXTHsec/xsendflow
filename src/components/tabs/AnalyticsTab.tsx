@@ -12,6 +12,9 @@ import confetti from 'canvas-confetti';
 import { Campaign, CampaignRecipient } from './CampaignsTab';
 import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns, getHighVolumeMockCampaigns, SenderAccount } from '@/lib/mockData/agencyMockData';
 
+import UpgradeProModal from '../modals/UpgradeProModal';
+import { UserPlan } from '@/lib/planLimits';
+
 interface Props {
   onNavigateTab?: (tab: 'campaigns' | 'leads' | 'pitch') => void;
   onOpenSettings?: () => void;
@@ -20,6 +23,8 @@ interface Props {
 export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'campaign_limit' | 'pro_campaign_limit' | 'mailbox_limit'>('campaign_limit');
   const [senders, setSenders] = useState<SenderAccount[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -669,17 +674,33 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                     </div>
 
                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
-                      {!isDraft && (
-                        isFreePlan && hasActiveCampaign && !isSending && !isDone ? (
-                          <button
-                            type="button"
-                            disabled
-                            className="p-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-2xs opacity-60 flex items-center"
-                            title={`Free plan limit: Only 1 active campaign can run at a time. Pause "${activeCampaignsList[0]?.name}" to start or resume this campaign.`}
-                          >
-                            <Play className="w-3.5 h-3.5 fill-current opacity-40" />
-                          </button>
-                        ) : (
+                      {!isDraft && (() => {
+                        const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                        const maxAllowed = currentPlan === 'free' ? 1 : currentPlan === 'pro' ? 5 : 99999;
+                        const isCapReached = activeCampaignsList.length >= maxAllowed;
+                        const isLaunchBlocked = isCapReached && !isSending && !isDone;
+
+                        if (isLaunchBlocked) {
+                          return (
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setUpgradeReason(currentPlan === 'free' ? 'campaign_limit' : 'pro_campaign_limit');
+                                setIsUpgradeOpen(true);
+                              }}
+                              className="p-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 hover:bg-amber-100 shadow-2xs flex items-center transition-colors"
+                              title={
+                                currentPlan === 'free'
+                                  ? `Free plan limit: Only 1 active campaign can run at a time. Pause "${activeCampaignsList[0]?.name}" or upgrade to Pro.`
+                                  : `Pro plan limit: 5 active campaigns running. Pause a running campaign or upgrade to Agency Scale for unlimited fleets.`
+                              }
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current text-amber-700" />
+                            </button>
+                          );
+                        }
+
+                        return (
                           <button
                             type="button"
                             onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
@@ -688,8 +709,8 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                           >
                             {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
                           </button>
-                        )
-                      )}
+                        );
+                      })()}
 
                       <button
                         type="button"
@@ -1397,6 +1418,11 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         );
       })()}
 
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason={upgradeReason}
+      />
     </div>
   );
 }
