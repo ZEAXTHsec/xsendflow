@@ -582,6 +582,50 @@ export default function CampaignsTab({ leads }: Props) {
     }
   };
 
+  const handleGenerateSyntheticTestLeads = (count = 1000) => {
+    const firstNames = ['Alex', 'Sarah', 'David', 'Elena', 'Michael', 'Priya', 'James', 'Aiko', 'Marcus', 'Chloe', 'Liam', 'Ananya', 'Lucas', 'Maya', 'Noah', 'Benjamin', 'Sophia', 'Ethan', 'Olivia', 'Daniel'];
+    const lastNames = ['Vance', 'Chen', 'Miller', 'Rao', 'Dubois', 'Patel', 'Kowalski', 'Tanaka', 'Smith', 'Johansson', 'Taylor', 'Kapoor', 'O\'Connor', 'Kim', 'Garcia', 'Anderson', 'Wright', 'Martinez'];
+    const companies = ['ApexScale', 'HyperGrowth AI', 'CloudSphere', 'VentureForge', 'NextEra Tech', 'InboundPulse', 'CyberShield', 'DataWave', 'OmniFlow', 'Acuity SaaS', 'FinScale', 'Starlight Labs', 'QuantumByte', 'Zenith Logistics', 'BluePeak AI'];
+    const titles = ['Founder & CEO', 'VP of Growth', 'Head of Sales', 'Chief Revenue Officer', 'Director of Marketing', 'Operations Lead', 'Partner', 'Product Lead'];
+    const domains = ['tech', 'io', 'ai', 'co', 'app', 'solutions', 'labs', 'dev'];
+
+    const syntheticLeads: CampaignRecipient[] = [];
+    for (let i = 1; i <= count; i++) {
+      const fn = firstNames[i % firstNames.length];
+      const ln = lastNames[(i * 3) % lastNames.length];
+      const comp = companies[(i * 7) % companies.length];
+      const title = titles[(i * 5) % titles.length];
+      const domain = domains[(i * 2) % domains.length];
+      const cleanComp = comp.toLowerCase().replace(/[^a-z0-9]/g, '');
+      const email = `${fn.toLowerCase()}.${ln.toLowerCase()}${i > 100 ? i : ''}@${cleanComp}.${domain}`;
+
+      syntheticLeads.push({
+        id: `synth-${i}`,
+        email,
+        firstName: fn,
+        company: comp,
+        title,
+        website: `https://${cleanComp}.${domain}`,
+        icebreaker: `Noticed ${comp}'s rapid expansion in the ${domain.toUpperCase()} space this quarter.`,
+        pitchUrl: typeof window !== 'undefined' ? `${window.location.origin}/p/${cleanComp}-${fn.toLowerCase()}` : `/p/${cleanComp}-${fn.toLowerCase()}`,
+        status: 'pending'
+      });
+    }
+
+    setRawHeaders(['email', 'first_name', 'company', 'title', 'website', 'icebreaker', 'pitch_url']);
+    setColumnMapping({
+      emailCol: 'email',
+      nameCol: 'first_name',
+      companyCol: 'company',
+      titleCol: 'title',
+      siteCol: 'website'
+    });
+    setUploadedRecipients(syntheticLeads);
+    try {
+      confetti({ particleCount: 60, spread: 70, origin: { y: 0.6 } });
+    } catch {}
+  };
+
   const handleAddSequenceStep = () => {
     const nextStepNum = steps.length + 1;
     const newStep: CampaignStep = {
@@ -816,6 +860,52 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       const activeSenders = (targetCamp.selectedSenderIds && targetCamp.selectedSenderIds.length > 0)
         ? allSenders.filter(s => targetCamp.selectedSenderIds!.includes(s.id))
         : allSenders;
+
+      if (targetCamp.isSandbox) {
+        // Virtual Sandbox Simulation Mode: Renders real spintax, merge tags, and jitter in memory without contacting external SMTP
+        const simulatedItems = batchToSend.map((r, idx) => {
+          const sender = activeSenders[idx % activeSenders.length] || activeSenders[0];
+          const rawSub = targetCamp.steps[0]?.subject || 'Quick question re: {{Company}}';
+          const rawBody = targetCamp.steps[0]?.body || 'Hey {{First_Name}}, checking in.';
+          const resolvedSub = rawSub.replace(/\{\{First_Name\}\}/gi, r.firstName || 'there').replace(/\{\{Company\}\}/gi, r.company || 'your team');
+          const resolvedBody = rawBody.replace(/\{\{First_Name\}\}/gi, r.firstName || 'there').replace(/\{\{Company\}\}/gi, r.company || 'your team').replace(/\{\{Pitch_Page_URL\}\}/gi, r.pitchUrl || 'https://xsendflow.com');
+          return {
+            id: `sim-${Date.now()}-${r.id}`,
+            campaignId: id,
+            campaignName: targetCamp.name,
+            senderEmail: sender.email,
+            senderLabel: sender.label,
+            recipientEmail: r.email,
+            recipientName: r.firstName || 'Prospect',
+            company: r.company || 'Company',
+            subject: resolvedSub,
+            body: resolvedBody,
+            sentAt: new Date().toLocaleTimeString()
+          };
+        });
+
+        setSimulatedLogs(prev => {
+          const updated = [...simulatedItems, ...prev].slice(0, 100);
+          try { localStorage.setItem('xsendflow_simulated_logs', JSON.stringify(updated)); } catch {}
+          return updated;
+        });
+
+        const sentIds = new Set(batchToSend.map(r => r.id));
+        setCampaigns(prev =>
+          prev.map(c => {
+            if (c.id !== id) return c;
+            const updatedRecips = c.recipients.map(r => {
+              if (sentIds.has(r.id)) {
+                return { ...r, status: 'sent' as const, sentAt: new Date().toLocaleTimeString() };
+              }
+              return r;
+            });
+            const pendingLeft = updatedRecips.filter(r => r.status === 'pending').length;
+            return { ...c, recipients: updatedRecips, status: pendingLeft === 0 ? 'done' : 'in_progress' };
+          })
+        );
+        return;
+      }
 
       const res = await fetch('/api/campaigns/send-batch', {
         method: 'POST',
@@ -1483,24 +1573,34 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleGenerateSyntheticTestLeads(1000)}
+                    className="text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 glow-tag"
+                    title="Generate 1,000 realistic synthetic B2B test leads with names, companies, and icebreakers"
+                  >
+                    <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
+                    <span>Generate 1,000 Test Leads</span>
+                  </button>
+
                   <a
                     href="/catchall_test_leads.csv"
                     download="catchall_test_leads.csv"
-                    className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3.5 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
+                    className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
                     title="Download pre-formatted CSV template"
                   >
                     <Download className="w-3.5 h-3.5 text-slate-500" />
-                    <span>Download CSV Template</span>
+                    <span>CSV Template</span>
                   </a>
 
                   <button
                     type="button"
                     onClick={handleLoadCatchallSample}
-                    className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 glow-tag"
+                    className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 px-3 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95"
                   >
-                    <Sparkles className="w-3.5 h-3.5 text-purple-200" />
-                    <span>Load 8 Catchall Test Leads</span>
+                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    <span>Load 8 Catchall Leads</span>
                   </button>
                 </div>
               </div>
