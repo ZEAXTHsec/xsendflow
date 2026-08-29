@@ -20,6 +20,15 @@ export default function LoginPage() {
 
   const supabase = createClient();
 
+  // Auto-redirect if already logged in
+  React.useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        router.replace('/studio');
+      }
+    });
+  }, [router, supabase]);
+
   const handleInstantQuickLogin = (tier: 'agency' | 'pro' | 'free') => {
     setLoading(true);
     setErrorMsg('');

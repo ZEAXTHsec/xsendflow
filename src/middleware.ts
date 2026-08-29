@@ -30,16 +30,22 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh auth session
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  // Route protection for Studio
-  const isProtectedPath = request.nextUrl.pathname.startsWith('/studio');
+  // Check if any auth cookies exist
+  const allCookies = request.cookies.getAll();
+  const hasAuthCookie = allCookies.some(c => c.name.startsWith('sb-') && c.name.includes('auth-token'));
   const mockCookie = request.cookies.get('xsendflow_mock_session')?.value;
 
-  if (isProtectedPath && !user && !mockCookie) {
+  // Refresh auth session
+  let user = null;
+  try {
+    const { data } = await supabase.auth.getUser();
+    user = data?.user;
+  } catch {}
+
+  const isProtectedPath = request.nextUrl.pathname.startsWith('/studio');
+
+  // If user is unauthenticated and tries to access /studio, redirect to login
+  if (isProtectedPath && !user && !hasAuthCookie && !mockCookie) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     url.searchParams.set('callbackUrl', request.nextUrl.pathname);
