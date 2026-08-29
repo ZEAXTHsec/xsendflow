@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3 } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
@@ -131,7 +131,12 @@ export default function CampaignsTab({ leads }: Props) {
     };
   }, []);
 
+  const isInitialMount = React.useRef(true);
   useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
     try {
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(campaigns));
     } catch {
@@ -204,7 +209,10 @@ export default function CampaignsTab({ leads }: Props) {
   // Inspector & Virtual Sandbox state
   const [selectedCampaignId, setSelectedCampaignId] = useState<string | null>(null);
   const [recipientSearch, setRecipientSearch] = useState('');
-  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'scheduled' | 'done'>('all');
+  const [activeFilter, setActiveFilter] = useState<'all' | 'active' | 'scheduled' | 'paused' | 'done'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6);
   const [isVirtualInspectorOpen, setIsVirtualInspectorOpen] = useState(false);
   const [simulatedLogs, setSimulatedLogs] = useState<Array<{
     id: string;
@@ -1063,11 +1071,20 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);
 
   const filteredCampaigns = campaigns.filter(c => {
-    if (activeFilter === 'active') return c.status === 'in_progress' || c.status === 'sending';
-    if (activeFilter === 'scheduled') return c.status === 'scheduled';
-    if (activeFilter === 'done') return c.status === 'done';
-    return true;
+    const matchesFilter = 
+      activeFilter === 'all' ? true :
+      activeFilter === 'active' ? (c.status === 'in_progress' || c.status === 'sending') :
+      activeFilter === 'scheduled' ? c.status === 'scheduled' :
+      activeFilter === 'done' ? c.status === 'done' :
+      activeFilter === 'paused' ? c.status === 'paused' : true;
+
+    const q = searchQuery.toLowerCase().trim();
+    const matchesSearch = !q || c.name.toLowerCase().includes(q) || (c.steps[0]?.subject || '').toLowerCase().includes(q) || c.fromName.toLowerCase().includes(q);
+    return matchesFilter && matchesSearch;
   });
+
+  const totalPages = Math.ceil(filteredCampaigns.length / pageSize) || 1;
+  const paginatedCampaigns = filteredCampaigns.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const totalSentAll = campaigns.reduce((acc, c) => acc + c.recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length, 0);
   const totalLeadsAll = campaigns.reduce((acc, c) => acc + c.recipients.length, 0);
@@ -2249,37 +2266,77 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       {/* ═══ CAMPAIGNS LIST ═══ */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-5 space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-1">
-          <div className="flex items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
+          {/* Status Filter Tabs */}
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs">
             <span className="text-slate-500 px-2 flex items-center gap-1"><Filter className="w-3 h-3" /> Filter:</span>
             <button
-              onClick={() => setActiveFilter('all')}
+              onClick={() => { setActiveFilter('all'); setCurrentPage(1); }}
               className={`px-3 py-1 rounded-lg font-bold transition-all ${activeFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
             >
               All ({campaigns.length})
             </button>
             <button
-              onClick={() => setActiveFilter('active')}
+              onClick={() => { setActiveFilter('active'); setCurrentPage(1); }}
               className={`px-3 py-1 rounded-lg font-bold transition-all ${activeFilter === 'active' ? 'bg-white text-blue-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
             >
               Active ({activeCount})
             </button>
             <button
-              onClick={() => setActiveFilter('scheduled')}
+              onClick={() => { setActiveFilter('scheduled'); setCurrentPage(1); }}
               className={`px-3 py-1 rounded-lg font-bold transition-all ${activeFilter === 'scheduled' ? 'bg-white text-amber-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
             >
               Scheduled
             </button>
+            <button
+              onClick={() => { setActiveFilter('paused'); setCurrentPage(1); }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${activeFilter === 'paused' ? 'bg-white text-slate-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Paused
+            </button>
+            <button
+              onClick={() => { setActiveFilter('done'); setCurrentPage(1); }}
+              className={`px-3 py-1 rounded-lg font-bold transition-all ${activeFilter === 'done' ? 'bg-white text-emerald-800 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+            >
+              Done
+            </button>
+          </div>
+
+          {/* Search Input for 100+ Campaigns */}
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                placeholder="Search across campaigns..."
+                value={searchQuery}
+                onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
+                className="bg-slate-50 border border-slate-200 rounded-xl pl-9 pr-3 py-1.5 text-xs w-48 sm:w-60 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery('')}
+                className="text-[11px] font-bold text-slate-400 hover:text-slate-700"
+              >
+                Clear
+              </button>
+            )}
           </div>
         </div>
 
-        {campaigns.length === 0 ? (
+        {filteredCampaigns.length === 0 ? (
           <div className="py-16 text-center space-y-3">
             <div className="w-14 h-14 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center mx-auto border border-blue-200">
               <Mail className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-slate-900">No campaigns created yet</h3>
+            <h3 className="text-base font-bold text-slate-900">
+              {searchQuery || activeFilter !== 'all' ? 'No campaigns match your filter' : 'No campaigns created yet'}
+            </h3>
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Launch your first campaign with our 4-step wizard or load sample data to test scheduling and delivery.
+              {searchQuery || activeFilter !== 'all'
+                ? 'Try adjusting your search query or switching to All filter.'
+                : 'Launch your first campaign with our 4-step wizard or load sample data to test scheduling and delivery.'}
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
@@ -2297,11 +2354,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             </div>
           </div>
         ) : (
-          <div className="divide-y divide-slate-100" suppressHydrationWarning>
-            {filteredCampaigns.map(camp => {
-              const sentRecips = camp.recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
-              const progress = camp.recipients.length > 0 ? Math.round((sentRecips / camp.recipients.length) * 100) : 0;
-              const isSending = camp.status === 'in_progress' || camp.status === 'sending';
+          <div className="space-y-4">
+            <div className="divide-y divide-slate-100" suppressHydrationWarning>
+              {paginatedCampaigns.map(camp => {
+                const sentRecips = camp.recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
+                const progress = camp.recipients.length > 0 ? Math.round((sentRecips / camp.recipients.length) * 100) : 0;
+                const isSending = camp.status === 'in_progress' || camp.status === 'sending';
 
               return (
                 <div key={camp.id} className="py-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition-colors">
@@ -2419,6 +2477,41 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 </div>
               );
             })}
+          </div>
+
+          {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between border-t border-slate-100 pt-4 gap-3 text-xs font-bold text-slate-600">
+                <div className="flex items-center gap-2">
+                  <span>
+                    Showing {((currentPage - 1) * pageSize) + 1}–{Math.min(filteredCampaigns.length, currentPage * pageSize)} of {filteredCampaigns.length} campaigns
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={currentPage === 1}
+                    onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-2xs"
+                  >
+                    <ChevronLeft className="w-3.5 h-3.5" />
+                    <span>Previous</span>
+                  </button>
+                  <span className="px-3 py-1.5 rounded-xl bg-slate-100 font-mono text-[11px]">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                  <button
+                    type="button"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                    className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 disabled:opacity-40 transition-colors flex items-center gap-1 shadow-2xs"
+                  >
+                    <span>Next</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
