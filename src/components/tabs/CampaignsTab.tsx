@@ -14,6 +14,7 @@ import UpgradeProModal from '../modals/UpgradeProModal';
 import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
 import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone } from '@/lib/engine/timeZoneScheduler';
+import { getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
 
 export interface CampaignStep {
   id: number;
@@ -1045,40 +1046,11 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
   };
 
   const loadSampleCampaignData = () => {
-    const sampleCamp: Campaign = {
-      id: `camp-sample-${Date.now()}`,
-      name: 'High-Growth Tech Founders Q4',
-      fromName: 'Alex Turner',
-      senderId: senders[0]?.id || 'sender-1',
-      delaySeconds: 45,
-      dailyLimit: 120,
-      windowStart: '09:00',
-      windowEnd: '17:30',
-      timezone: 'America/New_York (EST)',
-      status: 'in_progress',
-      steps: [
-        {
-          id: 1,
-          dayDelay: 0,
-          subject: '{Quick question|Brief intro} re: {{Company}} pipeline',
-          body: 'Hey {{First_Name}},\n\n{{Icebreaker}}\n\nPut together a custom deliverability roadmap for {{Company}} here: {{Pitch_Page_URL}}\n\nWorth a quick 5-minute sync?\n\nBest,\nAlex'
-        },
-        {
-          id: 2,
-          dayDelay: 3,
-          subject: 'Re: quick question re: {{Company}}',
-          body: 'Hi {{First_Name}},\n\nWanted to float this back to the top of your inbox. Did you get a chance to review {{Company}}\'s pitch page ({{Pitch_Page_URL}})?\n\nBest,\nAlex'
-        }
-      ],
-      recipients: [
-        { id: '1', email: 'john@stripe.com', firstName: 'John', company: 'Stripe', title: 'VP of Growth', icebreaker: 'Love how Stripe is expanding into global orchestration.', pitchUrl: typeof window !== 'undefined' ? `${window.location.origin}/p/stripe-john` : '/p/stripe-john', status: 'sent', sentAt: '10:14 AM' },
-        { id: '2', email: 'sarah@datadog.com', firstName: 'Sarah', company: 'DataDog', title: 'Director of Marketing', icebreaker: 'Impressive observability dashboard announcements last week.', pitchUrl: typeof window !== 'undefined' ? `${window.location.origin}/p/datadog-sarah` : '/p/datadog-sarah', status: 'sent', sentAt: '10:16 AM' },
-        { id: '3', email: 'michael@acme.io', firstName: 'Michael', company: 'Acme', title: 'Head of Outbound', icebreaker: 'Saw your recent post on scaling sales teams.', pitchUrl: typeof window !== 'undefined' ? `${window.location.origin}/p/acme-michael` : '/p/acme-michael', status: 'pending' },
-        { id: '4', email: 'elena@cloudscale.ai', firstName: 'Elena', company: 'CloudScale', title: 'CEO', icebreaker: 'Great momentum with the Series A announcement.', pitchUrl: typeof window !== 'undefined' ? `${window.location.origin}/p/cloudscale-elena` : '/p/cloudscale-elena', status: 'pending' }
-      ],
-      createdAt: new Date().toISOString()
-    };
-    setCampaigns([sampleCamp, ...campaigns]);
+    const mockFleets = getAgencyMockCampaigns(typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000');
+    setCampaigns(mockFleets);
+    try {
+      confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+    } catch {}
   };
 
   const selectedCampaign = campaigns.find(c => c.id === selectedCampaignId);

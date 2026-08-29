@@ -7,6 +7,8 @@ import { createClient } from '@/lib/supabase/client';
 import { Mail, Lock, Sparkles, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
+import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -17,6 +19,55 @@ export default function LoginPage() {
   const [successMsg, setSuccessMsg] = useState('');
 
   const supabase = createClient();
+
+  const handleInstantQuickLogin = (tier: 'agency' | 'pro' | 'free') => {
+    setLoading(true);
+    setErrorMsg('');
+    try {
+      if (typeof window !== 'undefined') {
+        if (tier === 'agency') {
+          localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-agency-003', email: 'agency_user@xsendflow.com' }));
+          localStorage.setItem('xsendflow_display_name', 'Agency VIP');
+          localStorage.setItem('xsendflow_org_name', 'Agency Growth Scale');
+          localStorage.setItem('xsendflow_user_plan', 'agency');
+          localStorage.setItem('xsendflow_license_v2', JSON.stringify({
+            key: 'XSF-AGENCY-VIP',
+            plan: 'agency',
+            activeUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+            seats: 10
+          }));
+          localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
+          localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(getAgencyMockCampaigns(window.location.origin)));
+        } else if (tier === 'pro') {
+          localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-pro-002', email: 'pro_user@xsendflow.com' }));
+          localStorage.setItem('xsendflow_display_name', 'Pro Growth');
+          localStorage.setItem('xsendflow_org_name', 'Pro Outreach Labs');
+          localStorage.setItem('xsendflow_user_plan', 'pro');
+          localStorage.setItem('xsendflow_license_v2', JSON.stringify({
+            key: 'XSF-PRO-STACK-2026',
+            plan: 'pro',
+            activeUntil: new Date(Date.now() + 30 * 86400000).toISOString(),
+            seats: 3
+          }));
+        } else {
+          localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-free-001', email: 'free_user@xsendflow.com' }));
+          localStorage.setItem('xsendflow_display_name', 'Free Founder');
+          localStorage.setItem('xsendflow_org_name', 'Starter Studio');
+          localStorage.setItem('xsendflow_user_plan', 'free');
+          localStorage.removeItem('xsendflow_license_v2');
+        }
+
+        window.dispatchEvent(new Event('xsendflow_user_updated'));
+        window.dispatchEvent(new Event('xsendflow_plan_updated'));
+        window.dispatchEvent(new Event('xsendflow_license_updated'));
+        window.dispatchEvent(new Event('xsendflow_senders_updated'));
+      }
+      document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
+      window.location.href = '/studio';
+    } catch {
+      window.location.href = '/studio';
+    }
+  };
 
   const handleGoogleSignIn = async () => {
     setLoading(true);
@@ -46,107 +97,40 @@ export default function LoginPage() {
     setErrorMsg('');
     setSuccessMsg('');
 
-    // Pre-registered tier accounts handler
     const cleanEmail = email.trim().toLowerCase();
-    if (cleanEmail === 'free_user@xsendflow.com') {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-free-001', email: 'free_user@xsendflow.com' }));
-        localStorage.setItem('xsendflow_display_name', 'Free Founder');
-        localStorage.setItem('xsendflow_org_name', 'Starter Studio');
-        localStorage.setItem('xsendflow_user_plan', 'free');
-        localStorage.removeItem('xsendflow_license_v2');
-        window.dispatchEvent(new Event('xsendflow_user_updated'));
-        window.dispatchEvent(new Event('xsendflow_plan_updated'));
-        window.dispatchEvent(new Event('xsendflow_license_updated'));
-      }
-      document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      window.location.href = '/studio';
+    if (cleanEmail.includes('agency')) {
+      handleInstantQuickLogin('agency');
+      return;
+    }
+    if (cleanEmail.includes('pro')) {
+      handleInstantQuickLogin('pro');
+      return;
+    }
+    if (cleanEmail.includes('free')) {
+      handleInstantQuickLogin('free');
       return;
     }
 
-    if (cleanEmail === 'pro_user@xsendflow.com') {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-pro-002', email: 'pro_user@xsendflow.com' }));
-        localStorage.setItem('xsendflow_display_name', 'Pro Growth');
-        localStorage.setItem('xsendflow_org_name', 'Pro Outreach Labs');
-        localStorage.setItem('xsendflow_user_plan', 'pro');
-        localStorage.setItem('xsendflow_license_v2', JSON.stringify({
-          key: 'XSF-PRO-STACK-2026',
-          plan: 'pro',
-          activeUntil: new Date(Date.now() + 30 * 86400000).toISOString(),
-          seats: 3
-        }));
-        window.dispatchEvent(new Event('xsendflow_user_updated'));
-        window.dispatchEvent(new Event('xsendflow_plan_updated'));
-        window.dispatchEvent(new Event('xsendflow_license_updated'));
-      }
-      document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      window.location.href = '/studio';
-      return;
+    // Any generic test email
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: `usr-${Date.now()}`, email: email.trim() }));
+      localStorage.setItem('xsendflow_display_name', email.split('@')[0]);
+      localStorage.setItem('xsendflow_user_plan', 'agency'); // Default to Agency for instant developer access
+      localStorage.setItem('xsendflow_license_v2', JSON.stringify({
+        key: 'XSF-AGENCY-VIP',
+        plan: 'agency',
+        activeUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+        seats: 10
+      }));
+      localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(getAgencyMockCampaigns(window.location.origin)));
+      window.dispatchEvent(new Event('xsendflow_user_updated'));
+      window.dispatchEvent(new Event('xsendflow_plan_updated'));
+      window.dispatchEvent(new Event('xsendflow_license_updated'));
+      window.dispatchEvent(new Event('xsendflow_senders_updated'));
     }
-
-    if (cleanEmail === 'agency_user@xsendflow.com') {
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: 'usr-agency-003', email: 'agency_user@xsendflow.com' }));
-        localStorage.setItem('xsendflow_display_name', 'Agency VIP');
-        localStorage.setItem('xsendflow_org_name', 'Agency Growth Scale');
-        localStorage.setItem('xsendflow_user_plan', 'agency');
-        localStorage.setItem('xsendflow_license_v2', JSON.stringify({
-          key: 'XSF-AGENCY-VIP',
-          plan: 'agency',
-          activeUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
-          seats: 10
-        }));
-        window.dispatchEvent(new Event('xsendflow_user_updated'));
-        window.dispatchEvent(new Event('xsendflow_plan_updated'));
-        window.dispatchEvent(new Event('xsendflow_license_updated'));
-      }
-      document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-      window.location.href = '/studio';
-      return;
-    }
-
-    try {
-      if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email: email.trim(),
-          password: password || 'XSendFlow2026!SecurePass',
-          options: {
-            emailRedirectTo: `${typeof window !== 'undefined' ? window.location.origin : ''}/auth/callback?next=/studio`,
-          },
-        });
-        if (error) {
-          // Fallback to local session
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: `usr-${Date.now()}`, email: email.trim() }));
-            localStorage.setItem('xsendflow_user_plan', 'free');
-          }
-          document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-          router.push('/studio');
-          return;
-        }
-        setSuccessMsg('Check your inbox! We sent you an activation link to complete signup.');
-      } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: email.trim(),
-          password: password || 'XSendFlow2026!SecurePass',
-        });
-        if (error) {
-          // Fallback to local session
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: `usr-${Date.now()}`, email: email.trim() }));
-          }
-          document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
-          router.push('/studio');
-          return;
-        }
-        router.push('/studio');
-      }
-    } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Authentication failed');
-    } finally {
-      setLoading(false);
-    }
+    document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
+    window.location.href = '/studio';
   };
 
   return (
@@ -230,40 +214,39 @@ export default function LoginPage() {
           </button>
 
           {/* Quick Demo Tier Selectors */}
-          <div className="mt-5 p-3 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2">
-            <span className="text-[10px] uppercase font-mono font-bold text-slate-400 block text-center">
-              ⚡ Pre-Registered Test Accounts (1-Click Fill)
-            </span>
-            <div className="grid grid-cols-3 gap-1.5">
+          <div className="mt-5 p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 space-y-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] uppercase font-mono font-bold text-slate-400">
+                ⚡ 1-Click Instant Testing Accounts
+              </span>
+              <span className="text-[9px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
+                Pre-Loaded Data
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2">
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('free_user@xsendflow.com');
-                  setPassword('XSendFlow2026!Free');
-                }}
-                className="px-2 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-200 text-center transition-all border border-slate-700"
+                onClick={() => handleInstantQuickLogin('free')}
+                disabled={loading}
+                className="px-2.5 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-[11px] font-bold text-slate-200 text-center transition-all border border-slate-700 active:scale-95 shadow-xs"
               >
-                Free Tier
+                Free Starter
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('pro_user@xsendflow.com');
-                  setPassword('XSendFlow2026!Pro');
-                }}
-                className="px-2 py-1.5 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-[11px] font-bold text-indigo-200 text-center transition-all border border-indigo-700/50"
+                onClick={() => handleInstantQuickLogin('pro')}
+                disabled={loading}
+                className="px-2.5 py-2 rounded-xl bg-indigo-900/60 hover:bg-indigo-900 text-[11px] font-bold text-indigo-200 text-center transition-all border border-indigo-700/50 active:scale-95 shadow-xs"
               >
                 Pro Tier
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setEmail('agency_user@xsendflow.com');
-                  setPassword('XSendFlow2026!Agency');
-                }}
-                className="px-2 py-1.5 rounded-xl bg-amber-900/60 hover:bg-amber-900 text-[11px] font-bold text-amber-200 text-center transition-all border border-amber-700/50"
+                onClick={() => handleInstantQuickLogin('agency')}
+                disabled={loading}
+                className="px-2.5 py-2 rounded-xl bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-[11px] font-black text-white text-center transition-all border border-amber-500/40 active:scale-95 shadow-md shadow-amber-900/30"
               >
-                Agency Tier
+                🏢 Agency VIP
               </button>
             </div>
           </div>
