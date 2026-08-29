@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3 } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
@@ -47,6 +47,10 @@ export interface Campaign {
   steps: CampaignStep[];
   recipients: CampaignRecipient[];
   isSandbox?: boolean;
+  trackOpens?: boolean;
+  trackClicks?: boolean;
+  includeUnsubscribe?: boolean;
+  unsubscribeText?: string;
   createdAt: string;
 }
 
@@ -136,6 +140,13 @@ export default function CampaignsTab({ leads }: Props) {
   const [windowEnd, setWindowEnd] = useState('17:00');
   const [timezone, setTimezone] = useState('America/New_York (EST)');
   const [isSandboxMode, setIsSandboxMode] = useState(false);
+
+  // Tracking & Unsubscribe Preferences
+  const [trackOpens, setTrackOpens] = useState(true);
+  const [trackClicks, setTrackClicks] = useState(true);
+  const [includeUnsubscribe, setIncludeUnsubscribe] = useState(true);
+  const [unsubscribeStyle, setUnsubscribeStyle] = useState<'casual' | 'link' | 'reply' | 'custom'>('casual');
+  const [customUnsubscribeText, setCustomUnsubscribeText] = useState('PS: If you would rather not hear from me, let me know and I will remove you right away.');
 
   // Step 2: CSV & Contacts
   const [uploadedRecipients, setUploadedRecipients] = useState<CampaignRecipient[]>([]);
@@ -509,6 +520,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     const inWindow = isInsideScheduleWindow(windowStart, windowEnd, timezone);
     const effectiveSenderIds = selectedSenderIds.length > 0 ? selectedSenderIds : senders.map(s => s.id);
 
+    let resolvedUnsubscribeText = '';
+    if (includeUnsubscribe) {
+      if (unsubscribeStyle === 'casual') resolvedUnsubscribeText = 'PS: If you would rather not hear from me, let me know and I will remove you right away.';
+      else if (unsubscribeStyle === 'reply') resolvedUnsubscribeText = "Reply 'stop' to opt out.";
+      else if (unsubscribeStyle === 'link') resolvedUnsubscribeText = 'Click here to unsubscribe: {{Unsubscribe_Link}}';
+      else resolvedUnsubscribeText = customUnsubscribeText;
+    }
+
     const newCampaign: Campaign = {
       id: createId('camp'),
       name: name.trim(),
@@ -524,6 +543,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       steps,
       recipients: uploadedRecipients,
       isSandbox: isSandboxMode,
+      trackOpens,
+      trackClicks,
+      includeUnsubscribe,
+      unsubscribeText: resolvedUnsubscribeText,
       createdAt: new Date().toISOString()
     };
 
@@ -655,7 +678,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           recipients: batchToSend,
           subject: targetCamp.steps[0]?.subject || 'Re: {{Company}}',
           body: targetCamp.steps[0]?.body || 'Hey {{First_Name}}',
-          fromName: targetCamp.fromName
+          fromName: targetCamp.fromName,
+          trackOpens: targetCamp.trackOpens ?? true,
+          trackClicks: targetCamp.trackClicks ?? true,
+          unsubscribeText: targetCamp.unsubscribeText
         })
       });
 
@@ -1061,6 +1087,105 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono w-full"
                     />
                   </div>
+                </div>
+
+                {/* Tracking & Open Rate Options */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-indigo-50/50 border border-indigo-100 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-extrabold text-indigo-900 flex items-center gap-1.5">
+                      <BarChart3 className="w-4 h-4 text-indigo-600" /> Deliverability &amp; Tracking Options
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
+                      VPS Engine
+                    </span>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={trackOpens}
+                        onChange={e => setTrackOpens(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Track Email Opens</p>
+                        <p className="text-[10px] text-slate-500">Injects 1x1 transparent tracking pixel (Default: ON)</p>
+                      </div>
+                    </label>
+
+                    <label className="flex items-center gap-2.5 p-2.5 rounded-xl bg-white border border-indigo-100 cursor-pointer hover:border-indigo-300 transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={trackClicks}
+                        onChange={e => setTrackClicks(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <div>
+                        <p className="text-xs font-bold text-slate-900">Track Link Clicks</p>
+                        <p className="text-[10px] text-slate-500">Monitors CTR on pitch pages and calendar links</p>
+                      </div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Customizable Opt-Out & Unsubscribe Mechanism */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-100/70 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeUnsubscribe}
+                        onChange={e => setIncludeUnsubscribe(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-extrabold text-slate-900">Include Opt-Out / Unsubscribe Mechanism</span>
+                    </label>
+                    <span className="text-[10px] font-mono text-slate-500">CAN-SPAM Friendly</span>
+                  </div>
+
+                  {includeUnsubscribe && (
+                    <div className="space-y-3 pt-2 border-t border-slate-200">
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          { key: 'casual', label: 'Casual Founder PS' },
+                          { key: 'reply', label: "Reply 'STOP'" },
+                          { key: 'link', label: 'Minimal Link' },
+                          { key: 'custom', label: 'Custom Phrasing' }
+                        ].map(st => (
+                          <button
+                            key={st.key}
+                            type="button"
+                            onClick={() => setUnsubscribeStyle(st.key as any)}
+                            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                              unsubscribeStyle === st.key
+                                ? 'bg-indigo-600 text-white shadow-xs'
+                                : 'bg-white text-slate-700 hover:bg-slate-50 border border-slate-200'
+                            }`}
+                          >
+                            {st.label}
+                          </button>
+                        ))}
+                      </div>
+
+                      {unsubscribeStyle === 'custom' ? (
+                        <textarea
+                          rows={2}
+                          value={customUnsubscribeText}
+                          onChange={e => setCustomUnsubscribeText(e.target.value)}
+                          placeholder="Type your custom unsubscribe note..."
+                          className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs text-slate-900 focus:border-indigo-500"
+                        />
+                      ) : (
+                        <div className="p-3 rounded-xl bg-white border border-slate-200 text-xs text-slate-600 italic">
+                          Preview: &quot;
+                          {unsubscribeStyle === 'casual' && 'PS: If you would rather not hear from me, let me know and I will remove you right away.'}
+                          {unsubscribeStyle === 'reply' && "Reply 'stop' to opt out."}
+                          {unsubscribeStyle === 'link' && 'Click here to unsubscribe: {{Unsubscribe_Link}}'}
+                          &quot;
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 

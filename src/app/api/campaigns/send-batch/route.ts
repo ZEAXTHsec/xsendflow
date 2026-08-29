@@ -6,7 +6,16 @@ import { SenderAccount } from '@/components/tabs/SendersTab';
 
 export async function POST(req: NextRequest) {
   try {
-    const { senders, recipients, subject, body, fromName } = await req.json();
+    const { 
+      senders, 
+      recipients, 
+      subject, 
+      body, 
+      fromName,
+      trackOpens = true,
+      trackClicks = true,
+      unsubscribeText
+    } = await req.json();
 
     if (!Array.isArray(senders) || !senders.length) {
       return NextResponse.json({ success: false, error: 'No sender accounts available' }, { status: 400 });
@@ -55,21 +64,36 @@ export async function POST(req: NextRequest) {
         const company = recipient.company || 'your company';
         const website = recipient.website || '';
         const icebreaker = recipient.icebreaker || '';
-        const pitchUrl = recipient.pitchUrl || `http://localhost:3000/p/${encodeURIComponent(company.toLowerCase().replace(/\s+/g, '-'))}`;
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://xsendflow.com';
+        const pitchUrl = recipient.pitchUrl || `${appUrl}/p/${encodeURIComponent(company.toLowerCase().replace(/\s+/g, '-'))}`;
+        const unsubUrl = `${appUrl}/unsub?email=${encodeURIComponent(recipient.email)}`;
 
         renderedSubject = replaceTag(renderedSubject, 'First_Name', firstName);
         renderedSubject = replaceTag(renderedSubject, 'Company', company);
         renderedSubject = replaceTag(renderedSubject, 'Website', website);
         renderedSubject = replaceTag(renderedSubject, 'Icebreaker', icebreaker);
         renderedSubject = replaceTag(renderedSubject, 'Pitch_Page_URL', pitchUrl);
+        renderedSubject = replaceTag(renderedSubject, 'Unsubscribe_Link', unsubUrl);
 
         renderedBody = replaceTag(renderedBody, 'First_Name', firstName);
         renderedBody = replaceTag(renderedBody, 'Company', company);
         renderedBody = replaceTag(renderedBody, 'Website', website);
         renderedBody = replaceTag(renderedBody, 'Icebreaker', icebreaker);
         renderedBody = replaceTag(renderedBody, 'Pitch_Page_URL', pitchUrl);
+        renderedBody = replaceTag(renderedBody, 'Unsubscribe_Link', unsubUrl);
 
-        // Cross-client clean HTML email wrapper (leemunroe standard)
+        // Append custom opt-out / unsubscribe text if configured
+        if (unsubscribeText) {
+          const resolvedUnsub = replaceTag(unsubscribeText, 'Unsubscribe_Link', unsubUrl);
+          renderedBody += `\n\n${resolvedUnsub}`;
+        }
+
+        // Optional Tracking Pixel
+        const trackingPixel = trackOpens 
+          ? `<img src="${appUrl}/api/track/open/${encodeURIComponent(recipient.id || recipient.email)}" width="1" height="1" style="display:none;" alt="" />`
+          : '';
+
+        // Cross-client clean HTML email wrapper
         const htmlBody = `
 <!doctype html>
 <html>
@@ -83,6 +107,7 @@ export async function POST(req: NextRequest) {
         <td style="font-family: sans-serif; font-size: 14px; vertical-align: top;">
           <div style="max-width: 580px; padding: 10px; margin: 0 auto;">
             ${renderedBody.replace(/\n/g, '<br/>')}
+            ${trackingPixel}
           </div>
         </td>
       </tr>
@@ -101,7 +126,7 @@ export async function POST(req: NextRequest) {
           text: renderedBody,
           html: htmlBody,
           headers: {
-            'List-Unsubscribe': `<mailto:${unsubEmail}?subject=unsubscribe>`,
+            'List-Unsubscribe': `<mailto:${unsubEmail}?subject=unsubscribe>, <${unsubUrl}>`,
             'Precedence': 'bulk',
             'X-Mailer': 'XSendFlow Deliverability Engine 2.0'
           }
