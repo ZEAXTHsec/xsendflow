@@ -8,7 +8,8 @@ import {
   Search, Play, Pause, FileText, ChevronRight, ChevronLeft, ArrowRight, Cloud
 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-import { Campaign } from './CampaignsTab';
+import { Campaign, CampaignRecipient } from './CampaignsTab';
+import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns, SenderAccount } from '@/lib/mockData/agencyMockData';
 
 interface Props {
   onNavigateTab?: (tab: 'campaigns' | 'leads' | 'pitch') => void;
@@ -18,6 +19,17 @@ interface Props {
 export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [senders, setSenders] = useState<SenderAccount[]>(() => {
+    if (typeof window === 'undefined') return AGENCY_MOCK_SENDERS;
+    try {
+      const saved = localStorage.getItem('xsendflow_senders');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      }
+    } catch {}
+    return AGENCY_MOCK_SENDERS;
+  });
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'paused' | 'draft' | 'done'>('all');
   const [currentPage, setCurrentPage] = useState(1);
@@ -31,34 +43,19 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
       const saved = localStorage.getItem('xsendflow_campaigns_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed)) setCampaigns(parsed);
-      } else {
-        // Default sample campaign if empty
-        const defaultCamp: Campaign = {
-          id: 'camp-sample-1',
-          name: 'Q3 Enterprise Outbound Pilot',
-          fromName: 'Alex Mercer',
-          senderId: 'sender-primary',
-          delaySeconds: 45,
-          dailyLimit: 100,
-          windowStart: '09:00',
-          windowEnd: '17:00',
-          timezone: 'America/New_York (EST)',
-          status: 'sending',
-          steps: [
-            { id: 1, dayDelay: 0, subject: 'Quick question for {{First_Name}}', body: 'Hey {{First_Name}}...' },
-            { id: 2, dayDelay: 3, subject: 'Re: quick question', body: 'Checking back...' }
-          ],
-          recipients: [
-            { id: 'rec-1', email: 'sarah@datadog.com', firstName: 'Sarah', company: 'Datadog', status: 'sent' },
-            { id: 'rec-2', email: 'robert@acmesolutions.com', firstName: 'Robert', company: 'Acme Solutions', status: 'opened' },
-            { id: 'rec-3', email: 'david@stripe.com', firstName: 'David', company: 'Stripe', status: 'pending' }
-          ],
-          createdAt: new Date().toISOString()
-        };
-        setCampaigns([defaultCamp]);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setCampaigns(parsed);
+          return;
+        }
       }
-
+      
+      // Auto-populate realistic multi-campaign fleet
+      const defaultAgency = getAgencyMockCampaigns(window.location.origin);
+      setCampaigns(defaultAgency);
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(defaultAgency));
+      if (!localStorage.getItem('xsendflow_senders')) {
+        localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
+      }
       // Check for unfinished wizard draft
       const savedDraft = localStorage.getItem('xsendflow_wizard_draft');
       if (savedDraft) {
@@ -287,8 +284,8 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {paginatedCampaigns.map((camp) => {
               const totalRecipients = camp.recipients?.length || 0;
-              const sentRecipients = camp.recipients?.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
-              const openRecipients = camp.recipients?.filter(r => r.status === 'opened' || r.status === 'replied').length || 0;
+              const sentRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
+              const openRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'opened' || r.status === 'replied').length || 0;
               const progressPct = totalRecipients > 0 ? Math.round((sentRecipients / totalRecipients) * 100) : 0;
               const openPct = sentRecipients > 0 ? Math.round((openRecipients / sentRecipients) * 100) : 0;
 
@@ -439,71 +436,34 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           </div>
 
           <div className="space-y-3.5">
-            {/* Sender 1 */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-extrabold text-slate-900">Google Workspace (Primary)</div>
-                  <div className="text-[11px] font-mono text-slate-500">outreach@xsendflow.com</div>
+            {senders.slice(0, 4).map((sender) => {
+              const pct = Math.min(100, Math.round(((sender.dailySentCount || 0) / (sender.dailyLimit || 100)) * 100));
+              return (
+                <div key={sender.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-xs font-extrabold text-slate-900">{sender.label || 'SMTP Mailbox'}</div>
+                      <div className="text-[11px] font-mono text-slate-500">{sender.email}</div>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
+                      100% HEALTH
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                      <span>Daily Sending Limit</span>
+                      <span>{sender.dailySentCount || 0} / {sender.dailyLimit || 100} sent today</span>
+                    </div>
+                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                        style={{ width: `${Math.max(5, pct)}%` }}
+                      />
+                    </div>
+                  </div>
                 </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                  100% HEALTH
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                  <span>Daily Sending Limit</span>
-                  <span>42 / 50 sent today</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-indigo-600 h-full rounded-full w-[84%]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Sender 2 */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-extrabold text-slate-900">Hostinger TLS Mailbox 1</div>
-                  <div className="text-[11px] font-mono text-slate-500">growth@xsendflow.com</div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                  99% HEALTH
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                  <span>Daily Sending Limit</span>
-                  <span>28 / 50 sent today</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-emerald-600 h-full rounded-full w-[56%]" />
-                </div>
-              </div>
-            </div>
-
-            {/* Sender 3 */}
-            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <div className="text-xs font-extrabold text-slate-900">Hostinger TLS Mailbox 2</div>
-                  <div className="text-[11px] font-mono text-slate-500">team@xsendflow.com</div>
-                </div>
-                <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                  WARMING UP
-                </span>
-              </div>
-              <div className="space-y-1">
-                <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                  <span>Daily Sending Limit</span>
-                  <span>15 / 30 sent today</span>
-                </div>
-                <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                  <div className="bg-amber-500 h-full rounded-full w-[50%]" />
-                </div>
-              </div>
-            </div>
+              );
+            })}
           </div>
         </div>
 

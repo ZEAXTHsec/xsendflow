@@ -71,8 +71,11 @@ const getInitialCampaigns = (): Campaign[] => {
     const savedCamps = localStorage.getItem('xsendflow_campaigns_v2');
     if (savedCamps) {
       const parsed = JSON.parse(savedCamps);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
     }
+    const defaultAgency = getAgencyMockCampaigns(window.location.origin);
+    localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(defaultAgency));
+    return defaultAgency;
   } catch {
     // Ignore
   }
@@ -88,9 +91,6 @@ const getInitialSenders = (): SenderAccount[] => {
     if (savedSenders) {
       const parsed = JSON.parse(savedSenders);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        if (parsed.length === 1 && parsed[0].email === 'outreach@xsendflow.com') {
-          return DEFAULT_USER_SENDERS;
-        }
         return parsed;
       }
     }
@@ -112,14 +112,21 @@ export default function CampaignsTab({ leads }: Props) {
           const parsed = JSON.parse(savedSenders);
           if (Array.isArray(parsed)) setSenders(parsed);
         }
+        const savedCamps = localStorage.getItem('xsendflow_campaigns_v2');
+        if (savedCamps) {
+          const parsedC = JSON.parse(savedCamps);
+          if (Array.isArray(parsedC) && parsedC.length > 0) setCampaigns(parsedC);
+        }
       } catch {
         // Ignore
       }
     };
     window.addEventListener('xsendflow_senders_updated', handleSync);
+    window.addEventListener('xsendflow_campaigns_updated', handleSync);
     window.addEventListener('storage', handleSync);
     return () => {
       window.removeEventListener('xsendflow_senders_updated', handleSync);
+      window.removeEventListener('xsendflow_campaigns_updated', handleSync);
       window.removeEventListener('storage', handleSync);
     };
   }, []);

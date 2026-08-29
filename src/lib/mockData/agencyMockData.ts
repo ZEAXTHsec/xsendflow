@@ -1,6 +1,8 @@
 import { Campaign } from '@/components/tabs/CampaignsTab';
 import { SenderAccount } from '@/components/tabs/SendersTab';
 
+export type { SenderAccount };
+
 export const AGENCY_MOCK_SENDERS: SenderAccount[] = [
   {
     id: 'sender-agency-1',

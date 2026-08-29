@@ -19,6 +19,7 @@ import { UserPlan } from '@/lib/planLimits';
 import { getStoredLicense, LicenseDetails } from '@/lib/licenseEngine';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
 
 export default function StudioPage() {
   const [activeTab, setActiveTab] = useState<'analytics' | 'campaigns' | 'leads'>('analytics');
@@ -46,7 +47,7 @@ export default function StudioPage() {
         try { return JSON.parse(mock); } catch {}
       }
     }
-    return { id: 'guest-founder', email: 'outreach@xsendflow.com' };
+    return { id: 'usr-agency-003', email: 'agency_user@xsendflow.com' };
   });
   const [authLoading, setAuthLoading] = useState(false);
 
@@ -57,6 +58,16 @@ export default function StudioPage() {
       const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
       setUserPlan(savedPlan);
       setLicense(getStoredLicense());
+
+      const savedCamps = localStorage.getItem('xsendflow_campaigns_v2');
+      if (!savedCamps || savedCamps === '[]') {
+        const defaultCamps = getAgencyMockCampaigns(window.location.origin);
+        localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(defaultCamps));
+      }
+      const savedSenders = localStorage.getItem('xsendflow_senders');
+      if (!savedSenders || savedSenders === '[]') {
+        localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
+      }
     }
 
     const handlePlanUpdate = () => {
