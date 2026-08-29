@@ -8,6 +8,7 @@ import {
 import confetti from 'canvas-confetti';
 import { LogoIcon } from '../ui/Logo';
 import { UserPlan } from '@/lib/planLimits';
+import { createDefaultLicense } from '@/lib/licenseEngine';
 
 interface Props {
   isOpen: boolean;
@@ -175,7 +176,9 @@ export default function UpgradeProModal({
               try { confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } }); } catch {}
               if (typeof window !== 'undefined') {
                 localStorage.setItem('xsendflow_user_plan', selectedPlan);
+                createDefaultLicense(selectedPlan as UserPlan, billingCycle);
                 window.dispatchEvent(new Event('xsendflow_plan_updated'));
+                window.dispatchEvent(new Event('xsendflow_license_updated'));
               }
               onSuccess?.();
               onClose();

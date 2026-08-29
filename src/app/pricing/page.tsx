@@ -7,6 +7,8 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import { Check, Sparkles, Zap, ShieldCheck, CreditCard, ArrowRight } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { createDefaultLicense } from '@/lib/licenseEngine';
+import { UserPlan } from '@/lib/planLimits';
 
 declare global {
   interface Window {
@@ -63,6 +65,13 @@ export default function PricingPage() {
           const verifyData = await verifyRes.json();
           if (verifyData.success) {
             setSubscribedPlan(planId);
+            const targetPlan: UserPlan = planId.toLowerCase().includes('agency') ? 'agency' : 'pro';
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('xsendflow_user_plan', targetPlan);
+              createDefaultLicense(targetPlan, 'monthly');
+              window.dispatchEvent(new Event('xsendflow_plan_updated'));
+              window.dispatchEvent(new Event('xsendflow_license_updated'));
+            }
             try { confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } }); } catch {}
           } else {
             alert('Payment verification failed.');
