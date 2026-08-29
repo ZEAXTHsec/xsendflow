@@ -124,21 +124,22 @@ export default function ProfileSettingsModal({
     } catch {}
   };
 
-  if (!isOpen) return null;
+  const [selectedPreset, setSelectedPreset] = useState<'gmail' | 'hostinger' | 'outlook' | 'custom'>('gmail');
 
-  const handleProviderPreset = (provider: string) => {
+  const handleProviderPreset = (provider: 'gmail' | 'hostinger' | 'outlook' | 'custom') => {
+    setSelectedPreset(provider);
     if (provider === 'gmail') {
       setSmtpHost('smtp.gmail.com');
       setSmtpPort(587);
-    } else if (provider === 'outlook') {
-      setSmtpHost('smtp.office365.com');
-      setSmtpPort(587);
-    } else if (provider === 'zoho') {
-      setSmtpHost('smtp.zoho.com');
-      setSmtpPort(465);
     } else if (provider === 'hostinger') {
       setSmtpHost('smtp.hostinger.com');
       setSmtpPort(465);
+    } else if (provider === 'outlook') {
+      setSmtpHost('smtp.office365.com');
+      setSmtpPort(587);
+    } else if (provider === 'custom') {
+      setSmtpHost('');
+      setSmtpPort(587);
     }
   };
 
@@ -671,13 +672,100 @@ export default function ProfileSettingsModal({
 
                 {isAddingSender ? (
                   <div className="p-5 bg-slate-50 border border-slate-200 rounded-2xl space-y-4 animate-in fade-in">
-                    <div className="flex items-center justify-between">
-                      <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900">Configure Mailbox Parameters</h5>
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[10px] text-slate-500 font-bold">Presets:</span>
-                        <button type="button" onClick={() => handleProviderPreset('gmail')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Gmail</button>
-                        <button type="button" onClick={() => handleProviderPreset('hostinger')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Hostinger</button>
-                        <button type="button" onClick={() => handleProviderPreset('outlook')} className="text-[10px] bg-white border border-slate-200 px-2 py-0.5 rounded font-bold hover:bg-slate-100">Outlook</button>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <h5 className="text-xs font-bold uppercase tracking-wider text-slate-900">Choose Provider Preset</h5>
+                        <span className="text-[10px] text-slate-500 font-mono">Select to auto-configure ports &amp; hostnames</span>
+                      </div>
+                      
+                      {/* 4 Provider Preset Buttons */}
+                      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                        {/* Gmail */}
+                        <button
+                          type="button"
+                          onClick={() => handleProviderPreset('gmail')}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left ${
+                            selectedPreset === 'gmail'
+                              ? 'bg-rose-50/90 border-rose-300 ring-1 ring-rose-400 text-rose-950 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-rose-100 text-rose-600 flex items-center justify-center font-black text-xs shrink-0">
+                            G
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate">Gmail / GSuite</div>
+                            <div className="text-[10px] text-slate-500 font-mono truncate">smtp.gmail.com</div>
+                          </div>
+                        </button>
+
+                        {/* Hostinger */}
+                        <button
+                          type="button"
+                          onClick={() => handleProviderPreset('hostinger')}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left ${
+                            selectedPreset === 'hostinger'
+                              ? 'bg-purple-50/90 border-purple-300 ring-1 ring-purple-400 text-purple-950 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center font-black text-xs shrink-0">
+                            H
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate">Hostinger</div>
+                            <div className="text-[10px] text-slate-500 font-mono truncate">smtp.hostinger.com</div>
+                          </div>
+                        </button>
+
+                        {/* Outlook */}
+                        <button
+                          type="button"
+                          onClick={() => handleProviderPreset('outlook')}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left ${
+                            selectedPreset === 'outlook'
+                              ? 'bg-blue-50/90 border-blue-300 ring-1 ring-blue-400 text-blue-950 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center font-black text-xs shrink-0">
+                            O
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate">Outlook / M365</div>
+                            <div className="text-[10px] text-slate-500 font-mono truncate">smtp.office365.com</div>
+                          </div>
+                        </button>
+
+                        {/* Custom Preset */}
+                        <button
+                          type="button"
+                          onClick={() => handleProviderPreset('custom')}
+                          className={`p-2.5 rounded-xl border flex items-center gap-2 transition-all text-left ${
+                            selectedPreset === 'custom'
+                              ? 'bg-indigo-50/90 border-indigo-300 ring-1 ring-indigo-400 text-indigo-950 shadow-2xs'
+                              : 'bg-white border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300'
+                          }`}
+                        >
+                          <div className="w-6 h-6 rounded-lg bg-slate-100 text-slate-800 flex items-center justify-center font-bold text-xs shrink-0">
+                            ⚡
+                          </div>
+                          <div className="min-w-0">
+                            <div className="text-xs font-bold truncate">Custom Preset</div>
+                            <div className="text-[10px] text-slate-500 font-mono truncate">Any SMTP Relay</div>
+                          </div>
+                        </button>
+                      </div>
+
+                      {/* Contextual Provider Guidance Alert */}
+                      <div className="p-2.5 bg-indigo-50/60 border border-indigo-100 rounded-xl text-[11px] text-indigo-900 flex items-center gap-2">
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                        <span>
+                          {selectedPreset === 'gmail' && 'Google Workspace / Gmail requires a 16-character App Password (Google Account ➔ Security ➔ 2-Step Verification ➔ App Passwords).'}
+                          {selectedPreset === 'hostinger' && 'Hostinger Business Email uses port 465 (SSL) with your full Hostinger email and mailbox password.'}
+                          {selectedPreset === 'outlook' && 'Outlook / Microsoft 365 uses port 587 (STARTTLS) with your Microsoft credentials or App Password if 2FA is active.'}
+                          {selectedPreset === 'custom' && 'Custom Preset supports any SMTP relay (AWS SES, Brevo, SendGrid, Mailgun, Postmark, or private VPS).'}
+                        </span>
                       </div>
                     </div>
 
