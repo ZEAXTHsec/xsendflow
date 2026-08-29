@@ -130,25 +130,24 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
   const ITEMS_PER_PAGE = 8;
 
+  const userPlan = (typeof window !== 'undefined' ? (localStorage.getItem('xsendflow_user_plan') as string) : 'free') || 'free';
+  const isFreePlan = userPlan === 'free';
+  const activeCampaignsList = campaigns.filter(c => c.status === 'sending' || c.status === 'in_progress' || c.status === 'scheduled');
+  const hasActiveCampaign = activeCampaignsList.length >= 1;
+
   const loadCampaigns = () => {
     if (typeof window === 'undefined') return;
     try {
       const saved = localStorage.getItem('xsendflow_campaigns_v2');
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (Array.isArray(parsed) && parsed.length > 0) {
+        if (Array.isArray(parsed)) {
           setCampaigns(parsed);
-          return;
         }
+      } else {
+        setCampaigns([]);
       }
       
-      // Auto-populate realistic multi-campaign fleet
-      const defaultAgency = getAgencyMockCampaigns(window.location.origin);
-      setCampaigns(defaultAgency);
-      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(defaultAgency));
-      if (!localStorage.getItem('xsendflow_senders')) {
-        localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
-      }
       // Check for unfinished wizard draft
       const savedDraft = localStorage.getItem('xsendflow_wizard_draft');
       if (savedDraft) {
@@ -179,9 +178,18 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
   const handleToggleCampaignStatus = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
+    const target = campaigns.find(c => c.id === id);
+    if (!target) return;
+
+    const isCurrentlyActive = target.status === 'sending' || target.status === 'in_progress' || target.status === 'scheduled';
+    if (!isCurrentlyActive && isFreePlan && hasActiveCampaign) {
+      alert(`🔒 Free Plan Limit: You can only run 1 active campaign at a time. Please pause "${activeCampaignsList[0]?.name}" before starting this campaign.`);
+      return;
+    }
+
     const updated = campaigns.map(c => {
       if (c.id === id) {
-        const nextStatus = (c.status === 'sending' || c.status === 'in_progress' || c.status === 'scheduled') ? 'paused' : 'sending';
+        const nextStatus = isCurrentlyActive ? 'paused' : 'sending';
         return { ...c, status: nextStatus as any };
       }
       return c;
@@ -459,15 +467,6 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               <span className="text-xs font-mono font-bold bg-white text-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 shadow-2xs">
                 {campaigns.length} Total Fleets
               </span>
-              <button
-                type="button"
-                onClick={handleLoad100Campaigns}
-                className="text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 px-3 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
-                title="Populate 100+ realistic enterprise campaigns for demo"
-              >
-                <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
-                <span>Load 100+ Fleet</span>
-              </button>
             </div>
             <p className="text-xs text-slate-500">Live multi-mailbox sequence queues, deliverability pacing, and engagement telemetry</p>
           </div>
@@ -648,14 +647,25 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
                     <div className="flex items-center gap-1" onClick={e => e.stopPropagation()}>
                       {!isDraft && (
-                        <button
-                          type="button"
-                          onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
-                          className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                          title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
-                        >
-                          {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
-                        </button>
+                        isFreePlan && hasActiveCampaign && !isSending && !isDone ? (
+                          <button
+                            type="button"
+                            disabled
+                            className="p-1.5 rounded-xl border border-slate-200 bg-slate-100 text-slate-400 cursor-not-allowed shadow-2xs opacity-60 flex items-center"
+                            title={`Free plan limit: Only 1 active campaign can run at a time. Pause "${activeCampaignsList[0]?.name}" to start or resume this campaign.`}
+                          >
+                            <Play className="w-3.5 h-3.5 fill-current opacity-40" />
+                          </button>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
+                            className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
+                            title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
+                          >
+                            {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
+                          </button>
+                        )
                       )}
 
                       <button
@@ -696,17 +706,21 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               <Mail className="w-6 h-6" />
             </div>
             <div className="space-y-1">
-              <h4 className="text-sm font-bold text-slate-900">No campaigns match your filter</h4>
+              <h4 className="text-sm font-bold text-slate-900">
+                {searchQuery || statusFilter !== 'all' ? 'No campaigns match your filter' : 'No campaigns created yet'}
+              </h4>
               <p className="text-xs text-slate-500 max-w-sm mx-auto">
-                Create a high-converting cold email sequence with multi-inbox rotation and AI icebreakers.
+                {searchQuery || statusFilter !== 'all'
+                  ? 'Try clearing your search or switching to All filter.'
+                  : 'Create your first campaign with our sequence builder and smart pacing.'}
               </p>
             </div>
             <button
               type="button"
               onClick={() => onNavigateTab?.('campaigns')}
-              className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-all shadow-xs"
+              className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2.5 rounded-xl transition-all shadow-xs"
             >
-              Create New Campaign 🚀
+              + Create First Campaign
             </button>
           </div>
         )}

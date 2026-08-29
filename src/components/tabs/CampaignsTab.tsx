@@ -71,11 +71,8 @@ const getInitialCampaigns = (): Campaign[] => {
     const savedCamps = localStorage.getItem('xsendflow_campaigns_v2');
     if (savedCamps) {
       const parsed = JSON.parse(savedCamps);
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      if (Array.isArray(parsed)) return parsed;
     }
-    const defaultAgency = getAgencyMockCampaigns(window.location.origin);
-    localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(defaultAgency));
-    return defaultAgency;
   } catch {
     // Ignore
   }
@@ -85,24 +82,30 @@ const getInitialCampaigns = (): Campaign[] => {
 const createId = (prefix: string) => `${prefix}-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
 
 const getInitialSenders = (): SenderAccount[] => {
-  if (typeof window === 'undefined') return DEFAULT_USER_SENDERS;
+  if (typeof window === 'undefined') return [];
   try {
     const savedSenders = localStorage.getItem('xsendflow_senders');
     if (savedSenders) {
       const parsed = JSON.parse(savedSenders);
-      if (Array.isArray(parsed) && parsed.length > 0) {
+      if (Array.isArray(parsed)) {
         return parsed;
       }
     }
   } catch {
     // Ignore
   }
-  return DEFAULT_USER_SENDERS;
+  return [];
 };
 
 export default function CampaignsTab({ leads }: Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(getInitialCampaigns);
   const [senders, setSenders] = useState<SenderAccount[]>(getInitialSenders);
+  const [userPlan, setUserPlan] = useState<UserPlan>(() => {
+    if (typeof window !== 'undefined') {
+      return (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+    }
+    return 'free';
+  });
 
   useEffect(() => {
     const handleSync = () => {
@@ -114,20 +117,24 @@ export default function CampaignsTab({ leads }: Props) {
         }
         const savedCamps = localStorage.getItem('xsendflow_campaigns_v2');
         if (savedCamps) {
-          const parsedC = JSON.parse(savedCamps);
-          if (Array.isArray(parsedC) && parsedC.length > 0) setCampaigns(parsedC);
+          const parsed = JSON.parse(savedCamps);
+          if (Array.isArray(parsed)) setCampaigns(parsed);
         }
+        const plan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+        setUserPlan(plan);
       } catch {
         // Ignore
       }
     };
-    window.addEventListener('xsendflow_senders_updated', handleSync);
-    window.addEventListener('xsendflow_campaigns_updated', handleSync);
     window.addEventListener('storage', handleSync);
+    window.addEventListener('xsendflow_campaigns_updated', handleSync);
+    window.addEventListener('xsendflow_senders_updated', handleSync);
+    window.addEventListener('xsendflow_plan_updated', handleSync);
     return () => {
-      window.removeEventListener('xsendflow_senders_updated', handleSync);
-      window.removeEventListener('xsendflow_campaigns_updated', handleSync);
       window.removeEventListener('storage', handleSync);
+      window.removeEventListener('xsendflow_campaigns_updated', handleSync);
+      window.removeEventListener('xsendflow_senders_updated', handleSync);
+      window.removeEventListener('xsendflow_plan_updated', handleSync);
     };
   }, []);
 
@@ -2366,15 +2373,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
               </button>
             )}
 
-            <button
-              type="button"
-              onClick={load100CampaignData}
-              className="text-xs font-bold bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 hover:from-amber-500/20 hover:to-indigo-500/20 text-indigo-900 border border-indigo-200 px-3 py-1.5 rounded-xl transition-all active:scale-95 flex items-center gap-1.5 shadow-2xs whitespace-nowrap"
-              title="Populate 100+ realistic enterprise campaigns for high-volume scale testing"
-            >
-              <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
-              <span>Load 100+ Fleet</span>
-            </button>
           </div>
         </div>
 
@@ -2389,20 +2387,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             <p className="text-xs text-slate-500 max-w-sm mx-auto">
               {searchQuery || activeFilter !== 'all'
                 ? 'Try adjusting your search query or switching to All filter.'
-                : 'Launch your first campaign with our 4-step wizard or load sample data to test scheduling and delivery.'}
+                : 'Launch your first campaign with our 4-step wizard to start sending.'}
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
                 onClick={() => { setIsCreating(true); setWizardStep(1); }}
-                className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20"
+                className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
               >
-                Create First Campaign
-              </button>
-              <button
-                onClick={loadSampleCampaignData}
-                className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-4 py-2.5 rounded-xl border border-slate-200"
-              >
-                Load Sample Campaign
+                + Create First Campaign
               </button>
             </div>
           </div>
@@ -2413,9 +2405,16 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 const sentRecips = camp.recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
                 const progress = camp.recipients.length > 0 ? Math.round((sentRecips / camp.recipients.length) * 100) : 0;
                 const isSending = camp.status === 'in_progress' || camp.status === 'sending';
+                const activeRunningCampaigns = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending');
+                const hasRunningCampaign = activeRunningCampaigns.length >= 1;
+                const isLaunchDisabled = userPlan === 'free' && hasRunningCampaign && !isSending && camp.status !== 'done';
 
-              return (
-                <div key={camp.id} className="py-4 sm:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 hover:bg-slate-50/90 p-4 sm:p-5 rounded-3xl border border-slate-200/80 hover:border-indigo-300 hover:shadow-md transition-all duration-200">
+                return (
+                  <div key={camp.id} className={`py-4 sm:py-5 flex flex-col lg:flex-row lg:items-center justify-between gap-5 p-4 sm:p-5 rounded-3xl border transition-all duration-200 ${
+                    isLaunchDisabled 
+                      ? 'bg-slate-50/60 border-slate-200/70 opacity-90' 
+                      : 'bg-white hover:bg-slate-50/90 border-slate-200/80 hover:border-indigo-300 hover:shadow-md'
+                  }`}>
                   {/* Left Info */}
                   <div className="space-y-2 flex-1 cursor-pointer min-w-0" onClick={() => setSelectedCampaignId(camp.id)}>
                     <div className="flex flex-wrap items-center gap-2.5">
@@ -2439,6 +2438,11 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       }`}>
                         {isSending ? 'Active Dispatch' : camp.status}
                       </span>
+                      {isLaunchDisabled && (
+                        <span className="text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200 px-2 py-0.5 rounded-full">
+                          🔒 1 Active Limit
+                        </span>
+                      )}
                     </div>
 
                     <div className="text-xs text-slate-600 font-mono truncate max-w-lg">
@@ -2448,12 +2452,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     {/* Timing & Pacing Badges */}
                     <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 pt-0.5">
                       {camp.is24Hours ? (
-                        <span className="flex items-center gap-1 font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
-                          <Zap className="w-3 h-3 text-emerald-600 fill-emerald-600" /> 24/7 Continuous
+                        <span className="font-mono bg-indigo-50 text-indigo-700 px-2 py-0.5 rounded-md border border-indigo-200 font-bold">
+                          ⚡ 24/7 Continuous Mode
                         </span>
                       ) : (
-                        <span className="flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
-                          <Clock className="w-3 h-3 text-amber-600" /> {camp.windowStart}–{camp.windowEnd} ({extractIanaTimezone(camp.timezone)})
+                        <span className="font-mono bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 text-slate-600">
+                          {camp.windowStart} - {camp.windowEnd} ({camp.timezone.split('/')[1] || 'UTC'})
                         </span>
                       )}
                       <span className="font-mono bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200 text-slate-600 font-bold">
@@ -2509,17 +2513,29 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         </button>
                       ) : (
                         <>
-                          <button
-                            onClick={() => handleToggleStatus(camp.id)}
-                            className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 ${
-                              isSending
-                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
-                            }`}
-                          >
-                            {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                            <span>{isSending ? 'Pause' : 'Start'}</span>
-                          </button>
+                          {isLaunchDisabled ? (
+                            <button
+                              type="button"
+                              disabled
+                              className="text-xs font-bold px-3 py-2 rounded-xl border bg-slate-100 text-slate-400 border-slate-200 cursor-not-allowed flex items-center gap-1.5 opacity-60 shadow-2xs"
+                              title={`Free plan limit: Only 1 active campaign can run at a time. Pause "${activeRunningCampaigns[0]?.name}" to start this campaign.`}
+                            >
+                              <Play className="w-3.5 h-3.5 fill-current opacity-40" />
+                              <span>Locked (1 Active Limit)</span>
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleToggleStatus(camp.id)}
+                              className={`text-xs font-bold px-3.5 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-2xs active:scale-95 ${
+                                isSending
+                                  ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                  : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600'
+                              }`}
+                            >
+                              {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                              <span>{isSending ? 'Pause' : 'Start'}</span>
+                            </button>
+                          )}
 
                           <button
                             type="button"
