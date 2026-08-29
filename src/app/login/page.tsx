@@ -81,7 +81,12 @@ export default function LoginPage() {
       });
       if (error) throw error;
     } catch (err: unknown) {
-      setErrorMsg(err instanceof Error ? err.message : 'Google authentication failed');
+      const rawMsg = err instanceof Error ? err.message : String(err);
+      if (rawMsg.includes('Unsupported provider') || rawMsg.includes('provider is not enabled') || rawMsg.includes('validation_failed')) {
+        setErrorMsg('Google OAuth is not enabled in this Supabase project yet (requires Client ID & Secret in Supabase Dashboard > Authentication > Providers > Google). Use the 1-Click login buttons or type any email below.');
+      } else {
+        setErrorMsg(rawMsg || 'Google authentication failed');
+      }
       setLoading(false);
     }
   };
