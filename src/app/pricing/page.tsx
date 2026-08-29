@@ -109,78 +109,105 @@ export default function PricingPage() {
       </section>
 
       <section className="py-8 px-4 sm:px-6">
-        <div className="max-w-4xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Tier 1: Free AI Deliverability Studio */}
-          <div className="bg-white p-8 rounded-3xl border-2 border-indigo-600 shadow-xl space-y-6 flex flex-col justify-between relative">
-            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-md">
-              Free Forever
-            </div>
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Tier 1: Free Forever */}
+          <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6 flex flex-col justify-between hover:shadow-md transition-all relative">
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200">
-                AI Studio
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
+                Starter Tier
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900">Deliverability Suite</h3>
-                <div className="text-3xl font-black text-indigo-600">$0 <span className="text-xs font-normal text-slate-500">/ web browser</span></div>
+                <h3 className="text-xl font-extrabold text-slate-900">Free Forever</h3>
+                <div className="text-3xl font-black text-slate-900">$0 <span className="text-xs font-normal text-slate-500">/ month</span></div>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Full access to lead sanitization, spam keyword detection, Spintax generator, 1-to-1 dynamic pitch pages, and DNS health shield.
+                Everything you need to verify deliverability and book your first 2–3 sales calls for $0.
               </p>
               <ul className="space-y-2.5 text-xs text-slate-700 pt-2 font-medium">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> AI Lead Cleaner &amp; Icebreakers</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Real-time 300+ Spam Word Scanner</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> 1-Click &quot;De-Spamify&quot; Rewriter</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Dynamic 1-to-1 Pitch Pages (/p/slug)</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Live DNS Shield (SPF/DKIM/DMARC)</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> 1 Connected Mailbox (Google / Hostinger)</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Up to 50 Outbound Emails / Day</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> 250 Contacts in Lead Database</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> FSM Nested Spintax Generator</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Real-time 300+ Spam Word Scanner</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-emerald-600 shrink-0" /> Direct Excel / Sheets Paste Box</li>
               </ul>
             </div>
             <Link
               href="/studio"
-              className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-95 glow-tag flex items-center justify-center gap-1.5"
+              className="w-full text-center bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-xs py-3.5 rounded-xl transition-all active:scale-95 flex items-center justify-center gap-1.5"
             >
-              <Sparkles className="w-4 h-4 text-purple-200" />
-              <span>Launch Free Studio in Browser →</span>
+              <span>Launch Free Studio →</span>
             </Link>
           </div>
 
-          {/* Tier 2: 24/7 Cloud Worker Add-On */}
-          <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-sm space-y-6 flex flex-col justify-between hover:shadow-lg transition-all relative">
+          {/* Tier 2: Pro Unlimited (Most Popular) */}
+          <div className="bg-white p-7 rounded-3xl border-2 border-indigo-600 shadow-xl space-y-6 flex flex-col justify-between relative">
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-[10px] font-black uppercase px-3.5 py-0.5 rounded-full shadow-md">
+              Most Popular
+            </div>
             <div className="space-y-4">
-              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 text-slate-700 text-xs font-bold border border-slate-200">
-                <Zap className="w-3.5 h-3.5 text-amber-500" />
-                <span>Cloud Sending Server</span>
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-200">
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Unlimited Outbound Scale</span>
               </div>
               <div className="space-y-1">
-                <h3 className="text-xl font-bold text-slate-900">24/7 Headless Worker</h3>
-                <div className="text-3xl font-black text-slate-900">$14 <span className="text-xs font-normal text-slate-500">/ month</span></div>
+                <h3 className="text-xl font-extrabold text-slate-900">Pro Unlimited</h3>
+                <div className="text-3xl font-black text-indigo-600">$29 <span className="text-xs font-normal text-slate-500">/ month</span></div>
               </div>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Sends campaigns continuously in the cloud even when your laptop is closed. Includes open/click tracking and warmup pools.
+                Scale your pipeline without burning domains. Rotate unlimited mailboxes with 24/7 cloud sending.
               </p>
               <ul className="space-y-2.5 text-xs text-slate-700 pt-2 font-medium">
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-slate-800 shrink-0" /> 24/7 background sending VPS daemon</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-slate-800 shrink-0" /> Open &amp; link click tracking pixels</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-slate-800 shrink-0" /> Multi-mailbox sender rotation pool</li>
-                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-slate-800 shrink-0" /> Unified Supabase multi-tenant isolation</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> <strong>Unlimited Connected Mailboxes</strong></li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> <strong>24/7 VPS Cloud Queue Daemon</strong></li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Unlimited Contacts &amp; Campaigns</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Multi-Mailbox Weighted Rotation</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Bulk AI Icebreaker Enrichment</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-indigo-600 shrink-0" /> Open &amp; Link Click Tracking</li>
               </ul>
             </div>
+            <button
+              type="button"
+              onClick={() => handleCheckout('pro_monthly_29', 29, 'XSendFlow Pro')}
+              disabled={loadingPlan === 'pro_monthly_29'}
+              className="w-full text-center bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md shadow-indigo-500/20 active:scale-95 flex items-center justify-center gap-1.5"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>{loadingPlan === 'pro_monthly_29' ? 'Initiating Checkout...' : 'Upgrade to Pro ($29/mo) →'}</span>
+            </button>
+          </div>
 
-            {subscribedPlan === 'cloud_worker_14' ? (
-              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold text-center flex items-center justify-center gap-2">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Subscribed &amp; Active!</span>
+          {/* Tier 3: Agency Scale */}
+          <div className="bg-white p-7 rounded-3xl border border-slate-200 shadow-sm space-y-6 flex flex-col justify-between hover:shadow-lg transition-all relative">
+            <div className="space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-purple-50 text-purple-700 text-xs font-bold border border-purple-200">
+                <Zap className="w-3.5 h-3.5 text-purple-600" />
+                <span>Agencies &amp; Growth Teams</span>
               </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => handleCheckout('cloud_worker_14', 14, '24/7 Cloud Worker')}
-                disabled={loadingPlan === 'cloud_worker_14'}
-                className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
-              >
-                <CreditCard className="w-4 h-4" />
-                <span>{loadingPlan === 'cloud_worker_14' ? 'Initiating Checkout...' : 'Upgrade with 1-Click Razorpay →'}</span>
-              </button>
-            )}
+              <div className="space-y-1">
+                <h3 className="text-xl font-extrabold text-slate-900">Agency Scale</h3>
+                <div className="text-3xl font-black text-slate-900">$79 <span className="text-xs font-normal text-slate-500">/ month</span></div>
+              </div>
+              <p className="text-xs text-slate-600 leading-relaxed">
+                For agencies managing cold outreach across 10+ clients and high-volume sending fleets.
+              </p>
+              <ul className="space-y-2.5 text-xs text-slate-700 pt-2 font-medium">
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Everything in Pro Unlimited</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Multi-Client Workspace Isolation</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Dedicated Cloud VPS Outbound IP</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Team Seats &amp; Granular Roles</li>
+                <li className="flex items-center gap-2"><Check className="w-4 h-4 text-purple-600 shrink-0" /> Priority 1-on-1 Deliverability Audit</li>
+              </ul>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCheckout('agency_monthly_79', 79, 'XSendFlow Agency')}
+              disabled={loadingPlan === 'agency_monthly_79'}
+              className="w-full text-center bg-slate-900 hover:bg-slate-800 text-white font-bold text-xs py-3.5 rounded-xl transition-all shadow-md active:scale-95 flex items-center justify-center gap-2"
+            >
+              <CreditCard className="w-4 h-4" />
+              <span>{loadingPlan === 'agency_monthly_79' ? 'Initiating Checkout...' : 'Upgrade to Agency ($79/mo) →'}</span>
+            </button>
           </div>
         </div>
       </section>

@@ -23,7 +23,7 @@ declare global {
 }
 
 export default function UpgradeProModal({ isOpen, onClose, triggerReason = 'general', userEmail, onSuccess }: Props) {
-  const [billingCycle, setBillingCycle] = useState<'monthly' | 'lifetime'>('monthly');
+  const [billingCycle, setBillingCycle] = useState<'monthly' | 'annual'>('monthly');
   const [loading, setLoading] = useState(false);
 
   if (!isOpen) return null;
@@ -63,8 +63,8 @@ export default function UpgradeProModal({ isOpen, onClose, triggerReason = 'gene
         await new Promise((resolve) => { script.onload = resolve; });
       }
 
-      const amount = billingCycle === 'monthly' ? 29 : 199;
-      const planName = billingCycle === 'monthly' ? 'XSendFlow Pro (Monthly)' : 'XSendFlow Pro (Lifetime Deal)';
+      const amount = billingCycle === 'monthly' ? 29 : 290;
+      const planName = billingCycle === 'monthly' ? 'XSendFlow Pro (Monthly)' : 'XSendFlow Pro (Annual)';
 
       // 2. Create Order
       const res = await fetch('/api/razorpay/create-order', {
@@ -202,24 +202,24 @@ export default function UpgradeProModal({ isOpen, onClose, triggerReason = 'gene
                 : 'text-slate-400 hover:text-white'
             }`}
           >
-            <span>Monthly Subscription</span>
+            <span>Monthly Plan</span>
             <span className="text-sm font-black">$29 <span className="text-[10px] font-normal text-slate-200">/ month</span></span>
           </button>
 
           <button
             type="button"
-            onClick={() => setBillingCycle('lifetime')}
+            onClick={() => setBillingCycle('annual')}
             className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center gap-0.5 relative ${
-              billingCycle === 'lifetime'
+              billingCycle === 'annual'
                 ? 'bg-gradient-to-r from-indigo-600 to-purple-600 text-white shadow-lg shadow-purple-500/25'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
             <span className="absolute -top-2.5 right-2 px-2 py-0.2 rounded-full bg-emerald-500 text-slate-950 font-black text-[9px] uppercase tracking-wider">
-              Best Value
+              2 Months Free
             </span>
-            <span>Lifetime Deal (LTD)</span>
-            <span className="text-sm font-black">$199 <span className="text-[10px] font-normal text-slate-200">pay once</span></span>
+            <span>Annual Plan</span>
+            <span className="text-sm font-black">$24 <span className="text-[10px] font-normal text-slate-200">/ mo ($290/yr)</span></span>
           </button>
         </div>
 
@@ -231,7 +231,7 @@ export default function UpgradeProModal({ isOpen, onClose, triggerReason = 'gene
           className="w-full bg-gradient-to-r from-blue-600 via-indigo-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-extrabold text-xs py-4 px-6 rounded-2xl flex items-center justify-center gap-2 shadow-xl shadow-indigo-500/30 active:scale-95 transition-all relative z-10"
         >
           <Zap className="w-4 h-4 text-cyan-300" />
-          <span>{loading ? 'Initiating Razorpay...' : `Upgrade to Pro — ${billingCycle === 'monthly' ? '$29 / mo' : '$199 Lifetime'}`}</span>
+          <span>{loading ? 'Initiating Razorpay...' : `Upgrade to Pro — ${billingCycle === 'monthly' ? '$29 / month' : '$290 / year'}`}</span>
           <ArrowRight className="w-4 h-4" />
         </button>
 
