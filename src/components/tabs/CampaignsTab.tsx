@@ -11,7 +11,7 @@ import { calculateSpintaxPermutations, generateSpintaxSamples } from '@/lib/engi
 import { deSpamifyText } from '@/lib/spamWords';
 import { autoWrapSpintax } from '@/lib/spintax';
 import UpgradeProModal from '../modals/UpgradeProModal';
-import { canRotateMailboxes, UserPlan } from '@/lib/planLimits';
+import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
 export interface CampaignStep {
   id: number;
@@ -150,7 +150,7 @@ export default function CampaignsTab({ leads }: Props) {
   const [unsubscribeStyle, setUnsubscribeStyle] = useState<'casual' | 'link' | 'reply' | 'custom'>('casual');
   const [customUnsubscribeText, setCustomUnsubscribeText] = useState('PS: If you would rather not hear from me, let me know and I will remove you right away.');
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
-  const [upgradeReason, setUpgradeReason] = useState<'mailbox_limit' | 'contact_limit' | 'vps_daemon'>('mailbox_limit');
+  const [upgradeReason, setUpgradeReason] = useState<'mailbox_limit' | 'campaign_limit' | 'pro_campaign_limit' | 'contact_limit' | 'vps_daemon'>('mailbox_limit');
 
   // Step 2: CSV & Contacts
   const [uploadedRecipients, setUploadedRecipients] = useState<CampaignRecipient[]>([]);
@@ -521,6 +521,18 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       return;
     }
 
+    const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    const activeCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
+    if (!canLaunchCampaign(activeCount, userPlan)) {
+      if (userPlan === 'free') {
+        setUpgradeReason('campaign_limit');
+      } else {
+        setUpgradeReason('pro_campaign_limit');
+      }
+      setIsUpgradeOpen(true);
+      return;
+    }
+
     const inWindow = isInsideScheduleWindow(windowStart, windowEnd, timezone);
     const effectiveSenderIds = selectedSenderIds.length > 0 ? selectedSenderIds : senders.map(s => s.id);
 
@@ -635,6 +647,24 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
   };
 
   const handleToggleStatus = (id: string) => {
+    const target = campaigns.find(c => c.id === id);
+    if (!target) return;
+
+    const isActivating = target.status === 'paused' || target.status === 'scheduled';
+    if (isActivating) {
+      const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+      const activeCount = campaigns.filter(c => (c.status === 'in_progress' || c.status === 'sending') && c.id !== id).length;
+      if (!canLaunchCampaign(activeCount, userPlan)) {
+        if (userPlan === 'free') {
+          setUpgradeReason('campaign_limit');
+        } else {
+          setUpgradeReason('pro_campaign_limit');
+        }
+        setIsUpgradeOpen(true);
+        return;
+      }
+    }
+
     setCampaigns(prev =>
       prev.map(c => {
         if (c.id !== id) return c;

@@ -9,9 +9,14 @@ import LeadCleanerTab from '@/components/tabs/LeadCleanerTab';
 import AnalyticsTab from '@/components/tabs/AnalyticsTab';
 import DesktopExportModal from '@/components/export/DesktopExportModal';
 import ProfileSettingsModal from '@/components/settings/ProfileSettingsModal';
+import UpgradeProModal from '@/components/modals/UpgradeProModal';
 import OnboardingTour from '@/components/onboarding/OnboardingTour';
 import { Lead, SequenceStep } from '@/lib/types';
-import { Mail, Sparkles, BarChart3, Download, Settings, ShieldCheck, Lock, LogIn, ArrowRight, Users } from 'lucide-react';
+import { UserPlan, PLAN_LIMITS } from '@/lib/planLimits';
+import { 
+  Mail, Sparkles, BarChart3, Download, Settings, ShieldCheck, 
+  Lock, LogIn, ArrowRight, Users, Zap, Building2, CheckCircle2 
+} from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 
 export default function StudioPage() {
@@ -19,6 +24,11 @@ export default function StudioPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
+  const [upgradeReason, setUpgradeReason] = useState<'general' | 'mailbox_limit' | 'campaign_limit' | 'contact_limit'>('general');
+
+  // Plan State
+  const [userPlan, setUserPlan] = useState<UserPlan>('free');
 
   // Authentication State
   const [user, setUser] = useState<any>(null);
@@ -27,11 +37,38 @@ export default function StudioPage() {
   const supabase = createClient();
 
   useEffect(() => {
+    // 1. Load initial plan from localStorage / Supabase
+    if (typeof window !== 'undefined') {
+      const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+      setUserPlan(savedPlan);
+    }
+
+    const handlePlanUpdate = () => {
+      const updated = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+      setUserPlan(updated);
+    };
+
+    window.addEventListener('xsendflow_plan_updated', handlePlanUpdate);
+    return () => window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
+  }, []);
+
+  useEffect(() => {
     async function checkAuth() {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.user) {
           setUser(session.user);
+          // Fetch plan from Supabase profiles if available
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.plan) {
+            setUserPlan(profile.plan as UserPlan);
+            localStorage.setItem('xsendflow_user_plan', profile.plan);
+          }
         } else {
           setUser(null);
         }
@@ -43,8 +80,20 @@ export default function StudioPage() {
     }
     checkAuth();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
       setUser(session?.user || null);
+      if (session?.user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('plan')
+          .eq('id', session.user.id)
+          .single();
+
+        if (profile?.plan) {
+          setUserPlan(profile.plan as UserPlan);
+          localStorage.setItem('xsendflow_user_plan', profile.plan);
+        }
+      }
       setAuthLoading(false);
     });
 
@@ -199,6 +248,39 @@ export default function StudioPage() {
             </button>
           </div>
 
+          {/* Center: Live Tier Status Badge */}
+          <div className="flex items-center gap-2">
+            {userPlan === 'free' && (
+              <button
+                type="button"
+                onClick={() => { setUpgradeReason('general'); setIsUpgradeOpen(true); }}
+                className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 border border-amber-400/40 text-amber-900 text-xs font-bold flex items-center gap-1.5 hover:border-indigo-400 transition-all active:scale-95 shadow-2xs"
+              >
+                <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500" />
+                <span>Free Plan (50/day) — Upgrade to Pro ➔</span>
+              </button>
+            )}
+
+            {userPlan === 'pro' && (
+              <button
+                type="button"
+                onClick={() => { setUpgradeReason('general'); setIsUpgradeOpen(true); }}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-bold flex items-center gap-1.5 hover:bg-indigo-100 transition-all shadow-2xs"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                <span>👑 Pro Unlimited</span>
+              </button>
+            )}
+
+            {userPlan === 'agency' && (
+              <div className="px-3.5 py-1.5 rounded-xl bg-purple-50 border border-purple-200 text-purple-800 text-xs font-bold flex items-center gap-1.5 shadow-2xs">
+                <Building2 className="w-3.5 h-3.5 text-purple-600" />
+                <span>🏢 Agency Scale</span>
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" />
+              </div>
+            )}
+          </div>
+
           {/* Quick Actions & Settings */}
           <div className="flex items-center gap-2">
             <button
@@ -254,6 +336,13 @@ export default function StudioPage() {
       <ProfileSettingsModal
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+
+      <UpgradeProModal
+        isOpen={isUpgradeOpen}
+        onClose={() => setIsUpgradeOpen(false)}
+        triggerReason={upgradeReason}
+        userEmail={user?.email}
       />
 
       <OnboardingTour

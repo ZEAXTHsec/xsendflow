@@ -111,9 +111,22 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
           };
         }).filter(r => r.email);
 
-        const cleaned = cleanLeadItems(parsed);
-        setLeads([...cleaned, ...leads]);
-        try { confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } }); } catch {}
+        const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+        const maxAllowed = userPlan === 'free' ? 250 : 999999;
+        const availableSlots = Math.max(0, maxAllowed - leads.length);
+
+        if (userPlan === 'free' && parsed.length > availableSlots) {
+          const allowedItems = parsed.slice(0, availableSlots);
+          const cleaned = cleanLeadItems(allowedItems);
+          setLeads([...cleaned, ...leads]);
+          setUpgradeReason('contact_limit');
+          setIsUpgradeOpen(true);
+          alert(`⚡ Free Plan: Imported ${allowedItems.length} leads. ${parsed.length - allowedItems.length} leads held in reserve. Upgrade to Pro to import all ${parsed.length} contacts.`);
+        } else {
+          const cleaned = cleanLeadItems(parsed);
+          setLeads([...cleaned, ...leads]);
+          try { confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } }); } catch {}
+        }
       }
     });
   };
@@ -124,9 +137,9 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
       const parsed = Papa.parse(pastedText.trim(), { header: true, skipEmptyLines: true });
       let rows = parsed.data as Record<string, string>[];
 
-      // Fallback: If header parsing yielded 0 rows or single line, parse line-by-line
-      if (!rows.length || !rows[0] || Object.keys(rows[0]).length <= 1) {
-        const lines = pastedText.split('\n').filter(l => l.trim());
+      // If no valid headers detected, fallback to line-by-line delimiter splitting
+      if (!rows.length || !Object.keys(rows[0]).some(k => k.toLowerCase().includes('mail') || k.toLowerCase().includes('name') || k.toLowerCase().includes('company'))) {
+        const lines = pastedText.trim().split('\n').filter(l => l.trim().length > 0);
         rows = lines.map(line => {
           const parts = line.split(/[,\t|]/).map(p => p.trim());
           return {
@@ -153,11 +166,26 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
         };
       }).filter(i => i.email && i.email.includes('@'));
 
-      const cleaned = cleanLeadItems(items);
-      setLeads([...cleaned, ...leads]);
-      setPastedText('');
-      setIsPasting(false);
-      try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } }); } catch {}
+      const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+      const maxAllowed = userPlan === 'free' ? 250 : 999999;
+      const availableSlots = Math.max(0, maxAllowed - leads.length);
+
+      if (userPlan === 'free' && items.length > availableSlots) {
+        const allowedItems = items.slice(0, availableSlots);
+        const cleaned = cleanLeadItems(allowedItems);
+        setLeads([...cleaned, ...leads]);
+        setPastedText('');
+        setIsPasting(false);
+        setUpgradeReason('contact_limit');
+        setIsUpgradeOpen(true);
+        alert(`⚡ Free Plan: Imported ${allowedItems.length} leads. ${items.length - allowedItems.length} leads held in reserve. Upgrade to Pro to import all ${items.length} contacts.`);
+      } else {
+        const cleaned = cleanLeadItems(items);
+        setLeads([...cleaned, ...leads]);
+        setPastedText('');
+        setIsPasting(false);
+        try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } }); } catch {}
+      }
     } catch {
       alert('Could not parse pasted data. Ensure comma or tab separated format.');
     }

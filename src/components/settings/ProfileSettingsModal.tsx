@@ -1,7 +1,10 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Server, Key, Settings, Plus, CheckCircle2, AlertCircle, Trash2, Eye, EyeOff, RefreshCw, Check } from 'lucide-react';
+import { 
+  X, Server, Key, Settings, Plus, CheckCircle2, AlertCircle, 
+  Trash2, Eye, EyeOff, RefreshCw, Check, Zap, Sparkles, Building2 
+} from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { SenderAccount } from '../tabs/SendersTab';
 import UpgradeProModal from '../modals/UpgradeProModal';
@@ -10,7 +13,7 @@ import { canAddMailbox, UserPlan } from '@/lib/planLimits';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  initialTab?: 'senders' | 'api' | 'preferences';
+  initialTab?: 'senders' | 'api' | 'preferences' | 'billing';
 }
 
 export const DEFAULT_USER_SENDERS: SenderAccount[] = [];
@@ -30,7 +33,7 @@ const getInitialSenders = (): SenderAccount[] => {
 };
 
 export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'senders' }: Props) {
-  const [activeTab, setActiveTab] = useState<'senders' | 'api' | 'preferences'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'senders' | 'api' | 'preferences' | 'billing'>(initialTab);
 
   // Sender state
   const [senders, setSenders] = useState<SenderAccount[]>(getInitialSenders);
@@ -253,6 +256,18 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
             >
               <Settings className="w-3.5 h-3.5 text-slate-600" />
               <span>Preferences</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab('billing')}
+              className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
+                activeTab === 'billing'
+                  ? 'bg-white text-indigo-700 shadow-xs border border-slate-200'
+                  : 'text-slate-600 hover:text-slate-900 hover:bg-white/60'
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-amber-500" />
+              <span>Plan &amp; Billing</span>
             </button>
           </div>
 
@@ -569,6 +584,121 @@ export default function ProfileSettingsModal({ isOpen, onClose, initialTab = 'se
                     </button>
                   </div>
                 </div>
+              </div>
+            )}
+
+            {/* ═══ TAB 4: PLAN & BILLING ═══ */}
+            {activeTab === 'billing' && (
+              <div className="space-y-6 animate-in fade-in">
+                {(() => {
+                  const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                  return (
+                    <div className="space-y-6">
+                      {/* Header */}
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+                        <div>
+                          <h4 className="text-sm font-bold text-slate-900">Subscription &amp; Resource Quotas</h4>
+                          <p className="text-xs text-slate-500">Manage your active tier, sending volume, and cloud worker seats</p>
+                        </div>
+                        <div className="px-3 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-xs font-mono font-bold uppercase">
+                          Current: {userPlan.toUpperCase()}
+                        </div>
+                      </div>
+
+                      {/* Quota Progress Cards */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daily Send Quota</span>
+                          <div className="text-lg font-extrabold text-slate-900 font-mono">
+                            {userPlan === 'free' ? '0 / 50' : 'Unlimited'}
+                          </div>
+                          <span className="text-[10px] text-slate-400 block">
+                            {userPlan === 'free' ? 'Resets at 00:00 UTC' : 'Provider Safe Limits'}
+                          </span>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Connected Mailboxes</span>
+                          <div className="text-lg font-extrabold text-slate-900 font-mono">
+                            {senders.length} / {userPlan === 'free' ? '1' : 'Unlimited'}
+                          </div>
+                          <span className="text-[10px] text-slate-400 block">
+                            {userPlan === 'free' ? 'Single Sender' : 'Multi-Inbox Rotation'}
+                          </span>
+                        </div>
+
+                        <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
+                          <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">24/7 VPS Background</span>
+                          <div className="text-lg font-extrabold text-slate-900 font-mono">
+                            {userPlan === 'free' ? 'Browser Only' : 'Active Daemon'}
+                          </div>
+                          <span className="text-[10px] text-slate-400 block">
+                            {userPlan === 'free' ? 'Upgrade to Pro' : '68.233.104.131'}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Upgrade Options */}
+                      {userPlan === 'free' && (
+                        <div className="p-5 rounded-2xl bg-gradient-to-br from-indigo-900 via-[#0b1022] to-purple-950 text-white border border-indigo-500/30 shadow-xl space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-indigo-500/20 text-cyan-300 border border-indigo-500/30 px-2 py-0.5 rounded-full">
+                                <Sparkles className="w-3 h-3 text-cyan-400" /> RECOMMENDED UPGRADE
+                              </span>
+                              <h5 className="text-base font-extrabold text-white">Upgrade to Pro Unlimited ($29/mo)</h5>
+                              <p className="text-xs text-slate-300 max-w-md">
+                                Connect unlimited mailboxes, send 25,000+ emails/mo, and dispatch 24/7 in the cloud on our dedicated VPS worker.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => { setIsUpgradeOpen(true); }}
+                              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 shrink-0 active:scale-95 transition-all"
+                            >
+                              Upgrade to Pro ➔
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {userPlan === 'pro' && (
+                        <div className="p-5 rounded-2xl bg-gradient-to-br from-purple-950 via-[#0b1022] to-slate-900 text-white border border-purple-500/30 shadow-xl space-y-4">
+                          <div className="flex items-center justify-between">
+                            <div className="space-y-1">
+                              <span className="inline-flex items-center gap-1 text-[10px] font-mono font-bold bg-purple-500/20 text-purple-300 border border-purple-500/30 px-2 py-0.5 rounded-full">
+                                <Building2 className="w-3 h-3 text-purple-400" /> AGENCY FLEETS
+                              </span>
+                              <h5 className="text-base font-extrabold text-white">Upgrade to Agency Scale ($79/mo)</h5>
+                              <p className="text-xs text-slate-300 max-w-md">
+                                Multi-client workspace isolation, shareable live client performance reports (/report/[token]), and dedicated VPS IP routing.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => { setIsUpgradeOpen(true); }}
+                              className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-purple-500/25 shrink-0 active:scale-95 transition-all"
+                            >
+                              Upgrade to Agency ➔
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      {userPlan === 'agency' && (
+                        <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-5 h-5 text-emerald-600" />
+                            <h5 className="text-sm font-extrabold text-slate-900">Agency Scale Tier Active</h5>
+                          </div>
+                          <p className="text-xs text-slate-600">
+                            You have full unrestricted access to all features, client reporting portals, and unlimited multi-mailbox rotation.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
             )}
           </div>
