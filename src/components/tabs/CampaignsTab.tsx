@@ -996,8 +996,8 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     const interval = setInterval(() => {
       const activeCampaigns = campaigns.filter(c => c.status === 'in_progress' || c.status === 'scheduled' || c.status === 'sending');
       for (const camp of activeCampaigns) {
-        const inWindow = isInsideScheduleWindow(camp.windowStart, camp.windowEnd, camp.timezone);
-        if (!inWindow) {
+        const windowCheck = inspectScheduleWindow(camp.windowStart, camp.windowEnd, camp.timezone, camp.is24Hours);
+        if (!windowCheck.inWindow) {
           continue; // Outside schedule window, wait!
         }
         const hasPending = camp.recipients.some(r => r.status === 'pending');
