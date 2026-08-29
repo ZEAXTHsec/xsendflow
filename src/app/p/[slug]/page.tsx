@@ -17,6 +17,22 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
   };
 }
 
+function formatEmbedUrl(url: string): string {
+  if (!url) return 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0';
+  if (url.includes('loom.com/share/')) {
+    return url.replace('loom.com/share/', 'loom.com/embed/');
+  }
+  if (url.includes('youtube.com/watch?v=')) {
+    const videoId = url.split('v=')[1]?.split('&')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0];
+    return `https://www.youtube.com/embed/${videoId}`;
+  }
+  return url;
+}
+
 export default async function PitchPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const sp = await searchParams;
@@ -26,7 +42,8 @@ export default async function PitchPage({ params, searchParams }: Props) {
   const rawCompany = (sp.company as string) || parts[0] || 'Your Company';
   const rawName = (sp.name as string) || parts[1] || 'there';
   const rawTitle = (sp.title as string) || 'Growth Leader';
-  const videoUrl = (sp.video as string) || 'https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=0';
+  const rawVideo = (sp.video as string) || '';
+  const videoUrl = formatEmbedUrl(rawVideo);
   const calendarUrl = (sp.cal as string) || 'https://cal.com';
 
   const company = rawCompany.charAt(0).toUpperCase() + rawCompany.slice(1);

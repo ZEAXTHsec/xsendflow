@@ -858,60 +858,71 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
   const activeCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
 
   return (
-    <div className="space-y-6">
-      {/* Top Banner */}
-      <div className="bg-white p-6 sm:p-7 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-xs font-bold border border-blue-200">
-            <Mail className="w-3.5 h-3.5 text-blue-600" />
-            <span>Campaign Creation &amp; Delivery Engine</span>
-          </div>
-          <h2 className="text-2xl font-black text-slate-900 tracking-tight">
-            Schedule, Throttle &amp; Automate Follow-Ups
-          </h2>
-          <p className="text-xs sm:text-sm text-slate-600 max-w-xl leading-relaxed">
-            Multi-step sequences with automated day delays, intelligent CSV column detection, randomized human delay jitter (10s–10m), and timezone delivery windows.
-          </p>
-        </div>
+    <div className="space-y-8">
+      {/* 1. EXECUTIVE HERO COMMAND BANNER */}
+      <div className="relative overflow-hidden rounded-3xl bg-[#0b101b] border border-slate-800 text-white p-6 sm:p-8 shadow-2xl">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={loadSampleCampaignData}
-            className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 px-4 py-3 rounded-xl border border-slate-200 transition-all active:scale-95"
-          >
-            Load Sample Campaign
-          </button>
-          <button
-            onClick={() => { setIsCreating(true); setWizardStep(1); }}
-            className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-3 rounded-xl transition-all shadow-md shadow-indigo-500/20 flex items-center gap-2 active:scale-95 glow-tag shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            <span>New Campaign Wizard</span>
-          </button>
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 text-xs font-mono font-bold">
+                <Mail className="w-3.5 h-3.5 text-blue-400" />
+                <span>Multi-Mailbox Rotator Active</span>
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-mono font-bold">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Zero Domain Burn Pacing</span>
+              </span>
+            </div>
+
+            <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+              Campaigns &amp; Outbound Dispatcher
+            </h1>
+            <p className="text-xs sm:text-sm text-slate-300 max-w-xl leading-relaxed">
+              Schedule multi-step cold outreach sequences with automated day delays, Spintax permutation variations, and timezone-aware delivery windows.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <button
+              onClick={loadSampleCampaignData}
+              className="bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs px-4 py-3 rounded-xl transition-all active:scale-95"
+            >
+              Load Sample Campaign
+            </button>
+            <button
+              onClick={() => { setIsCreating(true); setWizardStep(1); }}
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 active:scale-95 transition-all"
+            >
+              <Plus className="w-4 h-4" />
+              <span>New Campaign Wizard</span>
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Metrics Bar */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4" suppressHydrationWarning>
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-500">Campaigns</span>
-          <div className="text-2xl font-black text-slate-900 font-mono tnum" suppressHydrationWarning>{campaigns.length}</div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-slate-500">Total Campaigns</span>
+          <div className="text-3xl font-black text-slate-900 font-mono tnum" suppressHydrationWarning>{campaigns.length}</div>
         </div>
-        <div className="bg-emerald-50/70 p-4 rounded-2xl border border-emerald-200 shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" /> Total Sent
           </span>
-          <div className="text-2xl font-black text-emerald-700 font-mono tnum" suppressHydrationWarning>{totalSentAll.toLocaleString()}</div>
+          <div className="text-3xl font-black text-emerald-600 font-mono tnum" suppressHydrationWarning>{totalSentAll.toLocaleString()}</div>
         </div>
-        <div className="bg-blue-50/70 p-4 rounded-2xl border border-blue-200 shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-blue-700 flex items-center gap-1.5">
             <Play className="w-3.5 h-3.5 text-blue-600" /> Active Sending
           </span>
-          <div className="text-2xl font-black text-blue-700 font-mono tnum" suppressHydrationWarning>{activeCount}</div>
+          <div className="text-3xl font-black text-blue-600 font-mono tnum" suppressHydrationWarning>{activeCount}</div>
         </div>
-        <div className="bg-purple-50/70 p-4 rounded-2xl border border-purple-200 shadow-xs space-y-1">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-700">Total Contacts</span>
-          <div className="text-2xl font-black text-purple-700 font-mono tnum" suppressHydrationWarning>{totalLeadsAll.toLocaleString()}</div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-1">
+          <span className="text-xs font-bold uppercase tracking-wider text-purple-700">Total Contacts</span>
+          <div className="text-3xl font-black text-purple-600 font-mono tnum" suppressHydrationWarning>{totalLeadsAll.toLocaleString()}</div>
         </div>
       </div>
 
@@ -921,23 +932,23 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           {/* Step Navigator Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-100 pb-5 gap-4">
             <div>
-              <div className="flex items-center gap-2 text-xs font-bold text-indigo-700 uppercase tracking-wider">
-                <span>Step {wizardStep} of 4</span>
+              <div className="flex items-center gap-2 text-xs font-extrabold text-indigo-700 uppercase tracking-wider">
+                <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800">Step {wizardStep} of 4</span>
                 <span>•</span>
                 <span>
-                  {wizardStep === 1 && 'Campaign Parameters & Sending Window'}
-                  {wizardStep === 2 && 'Upload Contacts & Map CSV Columns'}
-                  {wizardStep === 3 && 'Multi-Touch Sequence & Spintax'}
-                  {wizardStep === 4 && 'Review, Test & Launch'}
+                  {wizardStep === 1 && '1. Mailboxes & Pacing Parameters'}
+                  {wizardStep === 2 && '2. Contacts & Column Mapping'}
+                  {wizardStep === 3 && '3. Multi-Touch Sequence & Spintax'}
+                  {wizardStep === 4 && '4. Review, Safety Check & Launch'}
                 </span>
               </div>
-              <h3 className="text-xl font-extrabold text-slate-900 mt-1">Create Cold Outreach Campaign</h3>
+              <h3 className="text-xl font-black text-slate-900 mt-1.5">Launch Cold Outreach Campaign</h3>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsCreating(false)}
-                className="text-xs font-semibold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-lg hover:bg-slate-100"
+                className="text-xs font-bold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors"
               >
                 Cancel
               </button>
