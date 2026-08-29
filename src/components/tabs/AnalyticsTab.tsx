@@ -605,7 +605,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-mono">
                         <span className="text-slate-700 font-medium">Sender: {camp.fromName || 'Alex Turner'}</span>
                         <span>•</span>
-                        <span>{camp.steps?.length || 1} Touchpoints</span>
+                        <span>{camp.steps?.length || 1} Follow-ups</span>
                         <span>•</span>
                         <span>{camp.is24Hours ? '24/7 Continuous' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}</span>
                         <span className="text-slate-400">({camp.delaySeconds}s delay)</span>
@@ -616,7 +616,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   {/* Middle: Progress Bar with Tabular Volume */}
                   <div className="w-full xl:w-52 shrink-0 space-y-1 font-mono">
                     <div className="flex items-center justify-between text-[11px]">
-                      <span className="text-slate-600 font-bold">Progress: <strong className="text-slate-900">{sentRecipients} / {totalRecipients}</strong></span>
+                      <span className="text-slate-600 font-bold">Sent: <strong className="text-slate-900">{sentRecipients} / {totalRecipients}</strong></span>
                       <span className="text-indigo-600 font-extrabold">{progressPct}%</span>
                     </div>
                     <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
@@ -1008,7 +1008,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               {/* Modal KPI Strip */}
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 sm:p-5 bg-white border-b border-slate-100">
                 <div className="p-3 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1">
-                  <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">Dispatch Volume</span>
+                  <span className="text-[10px] font-mono font-bold text-slate-500 uppercase">Emails Sent</span>
                   <div className="text-lg font-black text-slate-900 font-mono">{sentRecips} / {totalRecips}</div>
                   <div className="text-[10px] text-indigo-600 font-bold">{progressPct}% completed</div>
                 </div>
@@ -1016,7 +1016,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 <div className="p-3 rounded-2xl bg-purple-50/70 border border-purple-100 space-y-1">
                   <span className="text-[10px] font-mono font-bold text-purple-700 uppercase">Open Rate</span>
                   <div className="text-lg font-black text-purple-900 font-mono">{openPct}%</div>
-                  <div className="text-[10px] text-purple-600">Spintax variant tracking</div>
+                  <div className="text-[10px] text-purple-600">Personalized variations</div>
                 </div>
 
                 <div className="p-3 rounded-2xl bg-emerald-50/70 border border-emerald-100 space-y-1">
@@ -1042,7 +1042,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   }`}
                 >
                   <Users className="w-3.5 h-3.5" />
-                  <span>Recipient Leads ({totalRecips})</span>
+                  <span>Leads ({totalRecips})</span>
                 </button>
 
                 <button
@@ -1053,7 +1053,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   }`}
                 >
                   <Layers className="w-3.5 h-3.5" />
-                  <span>Sequence Steps ({camp.steps?.length || 1})</span>
+                  <span>Email Follow-ups ({camp.steps?.length || 1})</span>
                 </button>
 
                 <button
@@ -1064,7 +1064,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   }`}
                 >
                   <Mail className="w-3.5 h-3.5" />
-                  <span>Rotated Mailboxes ({senders.length})</span>
+                  <span>Sender Inboxes ({senders.length})</span>
                 </button>
 
                 <button
@@ -1075,7 +1075,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   }`}
                 >
                   <Sliders className="w-3.5 h-3.5" />
-                  <span>Pacing &amp; Safety Controls</span>
+                  <span>{isDone ? 'Campaign Settings' : 'Sending Speed & Limits'}</span>
                 </button>
               </div>
 
@@ -1137,7 +1137,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                               <th className="py-2.5 px-4">Contact</th>
                               <th className="py-2.5 px-4">Company</th>
                               <th className="py-2.5 px-4">Status</th>
-                              <th className="py-2.5 px-4 text-right">Activity Timestamp</th>
+                              <th className="py-2.5 px-4 text-right">Activity</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-100">
@@ -1163,7 +1163,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                                   </span>
                                 </td>
                                 <td className="py-2.5 px-4 text-right text-slate-400 font-mono text-[11px]">
-                                  {r.sentAt ? new Date(r.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Scheduled in queue'}
+                                  {r.sentAt ? new Date(r.sentAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'In Queue'}
                                 </td>
                               </tr>
                             ))}
@@ -1172,13 +1172,13 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       </div>
                     ) : (
                       <div className="p-8 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-slate-500 text-xs">
-                        No recipient leads match your filter.
+                        No leads match your filter.
                       </div>
                     )}
                   </div>
                 )}
 
-                {/* Tab 2: Sequence Steps & Drop-off Performance */}
+                {/* Tab 2: Follow-up Emails & Performance */}
                 {inspectActiveTab === 'sequence' && (
                   <div className="space-y-4">
                     {(camp.steps || []).map((step, idx) => (
@@ -1189,7 +1189,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                               {idx + 1}
                             </span>
                             <h4 className="text-xs font-bold text-slate-900">
-                              {idx === 0 ? 'Initial Hook / Cold Email' : `Follow-up Touchpoint (+${idx * 3} days)`}
+                              {idx === 0 ? 'Email 1: Initial Pitch' : `Follow-up ${idx} (+${idx * 3} days)`}
                             </h4>
                           </div>
                           <div className="flex items-center gap-3 font-mono text-[11px]">
@@ -1211,11 +1211,11 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   </div>
                 )}
 
-                {/* Tab 3: Rotated Mailboxes & Health */}
+                {/* Tab 3: Sender Inboxes */}
                 {inspectActiveTab === 'mailboxes' && (
                   <div className="space-y-3">
                     <p className="text-xs text-slate-500">
-                      This campaign distributes sending volume across all authenticated mailboxes to ensure 0% domain burn:
+                      Outreach is distributed across your connected inboxes to protect domain deliverability:
                     </p>
                     {senders.map((s, i) => (
                       <div key={i} className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between gap-4">
@@ -1232,60 +1232,94 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   </div>
                 )}
 
-                {/* Tab 4: Pacing, Safety & Schedule Controls */}
+                {/* Tab 4: Sending Speed & Limits (Intelligently Handled for Done Campaigns) */}
                 {inspectActiveTab === 'pacing' && (
                   <div className="space-y-5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label className="block text-xs font-bold text-slate-900">
-                          Daily Campaign Limit
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="range"
-                            min="10"
-                            max="500"
-                            step="10"
-                            value={editDailyLimit}
-                            onChange={e => setEditDailyLimit(Number(e.target.value))}
-                            className="flex-1 accent-indigo-600 cursor-pointer"
-                          />
-                          <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
-                            {editDailyLimit}/day
-                          </span>
+                    {isDone ? (
+                      <div className="p-6 rounded-2xl bg-slate-50 border border-slate-200 text-center space-y-3">
+                        <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
+                          <CheckCircle2 className="w-5 h-5" />
                         </div>
-                        <p className="text-[11px] text-slate-500">Safely distributed across connected mailboxes.</p>
-                      </div>
-
-                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
-                        <label className="block text-xs font-bold text-slate-900">
-                          Gaussian Delay Pacing (Jitter)
-                        </label>
-                        <div className="flex items-center gap-3">
-                          <input
-                            type="range"
-                            min="15"
-                            max="180"
-                            step="5"
-                            value={editDelaySeconds}
-                            onChange={e => setEditDelaySeconds(Number(e.target.value))}
-                            className="flex-1 accent-indigo-600 cursor-pointer"
-                          />
-                          <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
-                            {editDelaySeconds}s delay
-                          </span>
+                        <div className="space-y-1">
+                          <h4 className="text-sm font-bold text-slate-900">Campaign Completed</h4>
+                          <p className="text-xs text-slate-500 max-w-md mx-auto">
+                            All {totalRecips} leads have finished this sequence. Daily limits and sending delays are no longer active for completed campaigns.
+                          </p>
                         </div>
-                        <p className="text-[11px] text-slate-500">Randomized intervals between consecutive sends.</p>
+                        <div className="flex items-center justify-center gap-3 pt-2">
+                          <button
+                            type="button"
+                            onClick={(e) => handleCloneCampaign(camp, e)}
+                            className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-4 py-2 rounded-xl transition-all shadow-xs flex items-center gap-1.5"
+                          >
+                            <Copy className="w-3.5 h-3.5" />
+                            <span>Clone Campaign to Re-run ➔</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleExportLeadsCSV(camp, e)}
+                            className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-4 py-2 rounded-xl transition-all shadow-2xs flex items-center gap-1.5"
+                          >
+                            <Download className="w-3.5 h-3.5" />
+                            <span>Export Full Report</span>
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    ) : (
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <label className="block text-xs font-bold text-slate-900">
+                              Daily Send Limit
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="range"
+                                min="10"
+                                max="500"
+                                step="10"
+                                value={editDailyLimit}
+                                onChange={e => setEditDailyLimit(Number(e.target.value))}
+                                className="flex-1 accent-indigo-600 cursor-pointer"
+                              />
+                              <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                                {editDailyLimit}/day
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">Evenly split across all sender inboxes.</p>
+                          </div>
 
-                    <button
-                      type="button"
-                      onClick={handleSavePacingSettings}
-                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-xs active:scale-95"
-                    >
-                      Save Pacing Changes 💾
-                    </button>
+                          <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
+                            <label className="block text-xs font-bold text-slate-900">
+                              Delay Between Emails
+                            </label>
+                            <div className="flex items-center gap-3">
+                              <input
+                                type="range"
+                                min="15"
+                                max="180"
+                                step="5"
+                                value={editDelaySeconds}
+                                onChange={e => setEditDelaySeconds(Number(e.target.value))}
+                                className="flex-1 accent-indigo-600 cursor-pointer"
+                              />
+                              <span className="font-mono font-bold text-xs text-slate-900 bg-white px-2 py-1 rounded-lg border border-slate-200">
+                                {editDelaySeconds}s delay
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">Paces out emails to mimic human sending.</p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={handleSavePacingSettings}
+                          className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl transition-all shadow-xs active:scale-95"
+                        >
+                          Save Limit &amp; Delay Settings 💾
+                        </button>
+                      </div>
+                    )}
                   </div>
                 )}
 
