@@ -13,6 +13,7 @@ import { Campaign, CampaignRecipient } from './CampaignsTab';
 import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns, getHighVolumeMockCampaigns, SenderAccount } from '@/lib/mockData/agencyMockData';
 
 import UpgradeProModal from '../modals/UpgradeProModal';
+import CloneCampaignModal from '../modals/CloneCampaignModal';
 import { UserPlan } from '@/lib/planLimits';
 
 interface Props {
@@ -25,6 +26,8 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<'campaign_limit' | 'pro_campaign_limit' | 'mailbox_limit'>('campaign_limit');
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [campaignToClone, setCampaignToClone] = useState<Campaign | null>(null);
   const [senders, setSenders] = useState<SenderAccount[]>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -61,20 +64,33 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
   const handleCloneCampaign = (camp: Campaign, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
-    const cloned: Campaign = {
-      ...camp,
-      id: `camp_${Date.now()}`,
-      name: `${camp.name} (Copy)`,
-      status: 'draft',
-      createdAt: new Date().toISOString()
-    };
-    const updated = [cloned, ...campaigns];
+    setCampaignToClone(camp);
+    setIsCloneModalOpen(true);
+  };
+
+  const handleConfirmClone = (clonedCamp: Campaign) => {
+    const updated = [clonedCamp, ...campaigns];
     setCampaigns(updated);
     try {
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
       window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
     } catch {}
-    setSelectedInspectCampaign(cloned);
+    setSelectedInspectCampaign(clonedCamp);
+    try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
+  };
+
+  const handleDeleteCampaign = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const target = campaigns.find(c => c.id === id);
+    if (!target) return;
+    if (!confirm(`Are you sure you want to permanently delete campaign "${target.name}"?`)) return;
+    const updated = campaigns.filter(c => c.id !== id);
+    setCampaigns(updated);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
+    if (selectedInspectCampaign?.id === id) setSelectedInspectCampaign(null);
   };
 
   const handleExportLeadsCSV = (camp: Campaign, e?: React.MouseEvent) => {
@@ -732,6 +748,15 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
                       <button
                         type="button"
+                        onClick={(e) => handleDeleteCampaign(camp.id, e)}
+                        className="p-1.5 rounded-xl border border-slate-200 bg-white hover:bg-rose-50 text-slate-400 hover:text-rose-600 hover:border-rose-200 transition-colors shadow-2xs"
+                        title="Delete Campaign"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
                         onClick={(e) => handleOpenInspector(camp, e)}
                         className="px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all shadow-2xs flex items-center gap-1 group-hover:border-indigo-300 group-hover:text-indigo-600"
                       >
@@ -1051,6 +1076,16 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                   >
                     <Download className="w-3.5 h-3.5" />
                     <span className="hidden sm:inline">Export CSV</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={(e) => handleDeleteCampaign(camp.id, e)}
+                    className="px-3 py-1.5 rounded-xl border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 font-bold text-xs transition-all shadow-2xs flex items-center gap-1.5"
+                    title="Delete this campaign"
+                  >
+                    <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                    <span className="hidden sm:inline">Delete</span>
                   </button>
 
                   <button
@@ -1422,6 +1457,16 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         isOpen={isUpgradeOpen}
         onClose={() => setIsUpgradeOpen(false)}
         triggerReason={upgradeReason}
+      />
+
+      <CloneCampaignModal
+        isOpen={isCloneModalOpen}
+        onClose={() => {
+          setIsCloneModalOpen(false);
+          setCampaignToClone(null);
+        }}
+        campaign={campaignToClone}
+        onCloneConfirm={handleConfirmClone}
       />
     </div>
   );

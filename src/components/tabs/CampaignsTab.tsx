@@ -11,6 +11,7 @@ import { calculateSpintaxPermutations, generateSpintaxSamples } from '@/lib/engi
 import { deSpamifyText } from '@/lib/spamWords';
 import { autoWrapSpintax } from '@/lib/spintax';
 import UpgradeProModal from '../modals/UpgradeProModal';
+import CloneCampaignModal from '../modals/CloneCampaignModal';
 import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
 import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone } from '@/lib/engine/timeZoneScheduler';
@@ -859,9 +860,36 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     );
   };
 
-  const handleDeleteCampaign = (id: string) => {
-    if (!confirm('Are you sure you want to delete this campaign?')) return;
-    setCampaigns(prev => prev.filter(c => c.id !== id));
+  const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
+  const [campaignToClone, setCampaignToClone] = useState<Campaign | null>(null);
+
+  const handleCloneCampaign = (camp: Campaign) => {
+    setCampaignToClone(camp);
+    setIsCloneModalOpen(true);
+  };
+
+  const handleConfirmClone = (clonedCamp: Campaign) => {
+    const updated = [clonedCamp, ...campaigns];
+    setCampaigns(updated);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
+    setSelectedCampaignId(clonedCamp.id);
+    try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
+  };
+
+  const handleDeleteCampaign = (id: string, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const target = campaigns.find(c => c.id === id);
+    if (!target) return;
+    if (!confirm(`Are you sure you want to permanently delete campaign "${target.name}"?`)) return;
+    const updated = campaigns.filter(c => c.id !== id);
+    setCampaigns(updated);
+    try {
+      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
+      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
+    } catch {}
     if (selectedCampaignId === id) setSelectedCampaignId(null);
   };
 
@@ -1084,22 +1112,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     setCampaigns(hvFleets);
     try {
       localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(hvFleets));
-      window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
-    } catch {}
-  };
-
-  const handleCloneCampaign = (camp: Campaign) => {
-    const cloned: Campaign = {
-      ...camp,
-      id: `camp_${Date.now()}`,
-      name: `${camp.name} (Copy)`,
-      status: 'draft',
-      createdAt: new Date().toISOString()
-    };
-    const updated = [cloned, ...campaigns];
-    setCampaigns(updated);
-    try {
-      localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(updated));
       window.dispatchEvent(new Event('xsendflow_campaigns_updated'));
     } catch {}
   };
@@ -2234,11 +2246,26 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
             <div className="flex items-center gap-2">
               <button
+                onClick={() => handleCloneCampaign(selectedCampaign)}
+                className="text-xs font-bold bg-white hover:bg-slate-50 text-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5 shadow-2xs transition-all"
+              >
+                <Copy className="w-3.5 h-3.5 text-indigo-600" />
+                <span>Clone Sequence</span>
+              </button>
+              <button
                 onClick={() => setTestModalOpen(true)}
                 className="text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-800 px-3.5 py-2 rounded-xl border border-slate-200 flex items-center gap-1.5"
               >
                 <Send className="w-3.5 h-3.5 text-indigo-600" />
                 <span>Send Test</span>
+              </button>
+              <button
+                onClick={() => handleDeleteCampaign(selectedCampaign.id)}
+                className="text-xs font-bold bg-rose-50 hover:bg-rose-100 text-rose-700 px-3.5 py-2 rounded-xl border border-rose-200 flex items-center gap-1.5 transition-colors shadow-2xs"
+                title="Delete Campaign"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Delete Campaign</span>
               </button>
               <button
                 onClick={() => setSelectedCampaignId(null)}
@@ -2686,6 +2713,16 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
         isOpen={isUpgradeOpen}
         onClose={() => setIsUpgradeOpen(false)}
         triggerReason={upgradeReason}
+      />
+
+      <CloneCampaignModal
+        isOpen={isCloneModalOpen}
+        onClose={() => {
+          setIsCloneModalOpen(false);
+          setCampaignToClone(null);
+        }}
+        campaign={campaignToClone}
+        onCloneConfirm={handleConfirmClone}
       />
     </div>
   );
