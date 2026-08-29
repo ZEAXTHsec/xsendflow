@@ -84,7 +84,7 @@ graph TD
 | Check ID | Verification Item | Expected Behavior | Verification Method | Status |
 | :--- | :--- | :--- | :--- | :---: |
 | **VPS-01** | **24/7 Headless Dispatch Daemon** | `worker.mjs` polls Supabase queue every 10 seconds and dispatches scheduled campaign steps autonomously. | Inspect VPS terminal logs: `pm2 logs xsendflow-worker`. | [ ] |
-| **VPS-02** | **PM2 Auto-Heal on Server Reboot** | If Oracle VPS (`68.233.104.131`) restarts, PM2 resurrects the worker process automatically with zero manual intervention. | Execute `pm2 startup` and `pm2 save` on VPS. | [ ] |
+| **VPS-02** | **PM2 Auto-Heal on Server Reboot** | If Dedicated Cloud VPS restarts, PM2 resurrects the worker process automatically with zero manual intervention. | Execute `pm2 startup` and `pm2 save` on VPS. | [ ] |
 | **VPS-03** | **Memory Ceiling & Leak Protection** | `ecosystem.config.cjs` enforces a 300MB memory ceiling with auto-restart to prevent memory leaks during massive batches. | Verify `max_memory_restart: '300M'` in ecosystem config. | [ ] |
 | **VPS-04** | **Real-Time Client Performance Portal (`/report/[token]`)** | Branded, tamper-proof client audit report loads with real-time inboxing metrics (99.6% placement, open rates). | Navigate to `/report/[token]` in incognito browser. | [ ] |
 

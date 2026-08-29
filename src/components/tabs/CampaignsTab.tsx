@@ -221,6 +221,122 @@ export default function CampaignsTab({ leads }: Props) {
   const [testSentSuccess, setTestSentSuccess] = useState(false);
   const isSendingMapRef = React.useRef<Record<string, boolean>>({});
 
+  const [draftInfo, setDraftInfo] = useState<{ name: string; lastSavedAt: string; step: number } | null>(() => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const saved = localStorage.getItem('xsendflow_wizard_draft');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && (parsed.name || (parsed.uploadedRecipients && parsed.uploadedRecipients.length > 0))) {
+          return {
+            name: parsed.name || 'Untitled Campaign Draft',
+            lastSavedAt: parsed.lastSavedAt || new Date().toISOString(),
+            step: parsed.wizardStep || 1
+          };
+        }
+      }
+    } catch {}
+    return null;
+  });
+
+  // Continuous auto-save draft effect
+  useEffect(() => {
+    if (!isCreating) return;
+    try {
+      const draftPayload = {
+        name,
+        fromName,
+        selectedSenderIds,
+        delaySeconds,
+        dailyLimit,
+        windowStart,
+        windowEnd,
+        timezone,
+        isSandboxMode,
+        trackOpens,
+        trackClicks,
+        includeUnsubscribe,
+        unsubscribeStyle,
+        customUnsubscribeText,
+        uploadedRecipients,
+        steps,
+        wizardStep,
+        lastSavedAt: new Date().toISOString()
+      };
+      localStorage.setItem('xsendflow_wizard_draft', JSON.stringify(draftPayload));
+      setDraftInfo({
+        name: name || 'Untitled Campaign Draft',
+        lastSavedAt: draftPayload.lastSavedAt,
+        step: wizardStep
+      });
+    } catch {}
+  }, [
+    isCreating, name, fromName, selectedSenderIds, delaySeconds, dailyLimit,
+    windowStart, windowEnd, timezone, isSandboxMode, trackOpens, trackClicks,
+    includeUnsubscribe, unsubscribeStyle, customUnsubscribeText,
+    uploadedRecipients, steps, wizardStep
+  ]);
+
+  const handleResumeDraft = (customDraft?: any) => {
+    try {
+      const target = customDraft || JSON.parse(localStorage.getItem('xsendflow_wizard_draft') || '{}');
+      if (target.name !== undefined) setName(target.name);
+      if (target.fromName !== undefined) setFromName(target.fromName);
+      if (target.selectedSenderIds !== undefined) setSelectedSenderIds(target.selectedSenderIds);
+      if (target.delaySeconds !== undefined) setDelaySeconds(target.delaySeconds);
+      if (target.dailyLimit !== undefined) setDailyLimit(target.dailyLimit);
+      if (target.windowStart !== undefined) setWindowStart(target.windowStart);
+      if (target.windowEnd !== undefined) setWindowEnd(target.windowEnd);
+      if (target.timezone !== undefined) setTimezone(target.timezone);
+      if (target.isSandboxMode !== undefined) setIsSandboxMode(target.isSandboxMode);
+      if (target.trackOpens !== undefined) setTrackOpens(target.trackOpens);
+      if (target.trackClicks !== undefined) setTrackClicks(target.trackClicks);
+      if (target.includeUnsubscribe !== undefined) setIncludeUnsubscribe(target.includeUnsubscribe);
+      if (target.unsubscribeStyle !== undefined) setUnsubscribeStyle(target.unsubscribeStyle);
+      if (target.customUnsubscribeText !== undefined) setCustomUnsubscribeText(target.customUnsubscribeText);
+      if (Array.isArray(target.recipients) && target.recipients.length > 0) setUploadedRecipients(target.recipients);
+      else if (Array.isArray(target.uploadedRecipients)) setUploadedRecipients(target.uploadedRecipients);
+      if (Array.isArray(target.steps) && target.steps.length > 0) setSteps(target.steps);
+      setWizardStep(target.wizardStep || 1);
+      setIsCreating(true);
+    } catch {}
+  };
+
+  const handleDiscardDraft = () => {
+    if (!confirm('Are you sure you want to discard this unfinished draft?')) return;
+    try {
+      localStorage.removeItem('xsendflow_wizard_draft');
+      setDraftInfo(null);
+    } catch {}
+  };
+
+  const handleSaveAsDraftAndExit = () => {
+    const draftCampaign: Campaign = {
+      id: createId('camp-draft'),
+      name: name.trim() || 'Untitled Draft Campaign',
+      fromName: fromName.trim() || 'Outreach Team',
+      senderId: selectedSenderIds[0] || 'default',
+      selectedSenderIds: selectedSenderIds.length > 0 ? selectedSenderIds : senders.map(s => s.id),
+      delaySeconds,
+      dailyLimit,
+      windowStart,
+      windowEnd,
+      timezone,
+      status: 'draft',
+      steps,
+      recipients: uploadedRecipients,
+      isSandbox: isSandboxMode,
+      trackOpens,
+      trackClicks,
+      includeUnsubscribe,
+      unsubscribeText: customUnsubscribeText,
+      createdAt: new Date().toISOString()
+    };
+
+    setCampaigns(prev => [draftCampaign, ...prev.filter(c => c.name !== draftCampaign.name || c.status !== 'draft')]);
+    setIsCreating(false);
+  };
+
   useEffect(() => {
     try {
       localStorage.setItem('xsendflow_simulated_logs', JSON.stringify(simulatedLogs));
@@ -573,6 +689,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     setFromName('');
     setUploadedRecipients([]);
     setPastedCsv('');
+    try {
+      localStorage.removeItem('xsendflow_wizard_draft');
+      setDraftInfo(null);
+    } catch {}
 
     // If currently inside the schedule window, send first email; otherwise let background ticker wait for the window to open
     if (inWindow) {
@@ -960,6 +1080,45 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
         </div>
       </div>
 
+      {/* ═══ DRAFT RESUME BANNER ═══ */}
+      {!isCreating && draftInfo && (
+        <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-indigo-950 via-[#120f2e] to-purple-950 border border-indigo-500/40 text-white shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4 animate-in fade-in">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-indigo-500/20 border border-indigo-400/30 flex items-center justify-center text-indigo-300 shrink-0">
+              <Mail className="w-5 h-5 text-indigo-300" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-white">{draftInfo.name}</span>
+                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.2 rounded-full">
+                  Step {draftInfo.step} Draft
+                </span>
+              </div>
+              <p className="text-[11px] text-slate-300">
+                You have an unfinished campaign setup safely preserved. You can resume where you left off or discard.
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={handleDiscardDraft}
+              className="text-xs font-bold text-slate-400 hover:text-rose-400 px-3 py-2 rounded-xl transition-colors"
+            >
+              Discard Draft
+            </button>
+            <button
+              type="button"
+              onClick={() => handleResumeDraft()}
+              className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all font-mono"
+            >
+              <span>Resume Draft ➔</span>
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* ═══ 4-STEP CAMPAIGN CREATION WIZARD ═══ */}
       {isCreating && (
         <div className="bg-white p-6 sm:p-8 rounded-3xl border-2 border-indigo-500 shadow-2xl space-y-6 animate-in fade-in zoom-in duration-150">
@@ -980,6 +1139,13 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             </div>
 
             <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleSaveAsDraftAndExit}
+                className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
+              >
+                <span>💾 Save Draft &amp; Exit</span>
+              </button>
               <button
                 onClick={() => setIsCreating(false)}
                 className="text-xs font-bold text-slate-500 hover:text-slate-900 px-3 py-1.5 rounded-xl hover:bg-slate-100 transition-colors"
@@ -2085,26 +2251,39 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         <span>Inspect</span>
                       </button>
 
-                      <button
-                        onClick={() => handleToggleStatus(camp.id)}
-                        className={`text-xs font-bold px-4 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-xs active:scale-95 ${
-                          isSending
-                            ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
-                            : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600 glow-tag'
-                        }`}
-                      >
-                        {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
-                        <span>{isSending ? 'Pause Sending' : '▶ Start / Resume'}</span>
-                      </button>
+                      {camp.status === 'draft' ? (
+                        <button
+                          type="button"
+                          onClick={() => handleResumeDraft(camp)}
+                          className="text-xs font-bold px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white border border-purple-600 flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                        >
+                          <Sparkles className="w-3.5 h-3.5" />
+                          <span>Finish Setup ➔</span>
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => handleToggleStatus(camp.id)}
+                            className={`text-xs font-bold px-4 py-2 rounded-xl border flex items-center gap-1.5 transition-all shadow-xs active:scale-95 ${
+                              isSending
+                                ? 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100'
+                                : 'bg-emerald-600 hover:bg-emerald-500 text-white border-emerald-600 glow-tag'
+                            }`}
+                          >
+                            {isSending ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 fill-current" />}
+                            <span>{isSending ? 'Pause Sending' : '▶ Start / Resume'}</span>
+                          </button>
 
-                      <button
-                        onClick={() => handleSendBatchSimulation(camp.id)}
-                        className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
-                        title="Immediately dispatch remaining contacts"
-                      >
-                        <Send className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>⚡ Send Batch Now</span>
-                      </button>
+                          <button
+                            onClick={() => handleSendBatchSimulation(camp.id)}
+                            className="text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-800 border border-indigo-200 px-3.5 py-2 rounded-xl flex items-center gap-1.5 transition-all shadow-xs active:scale-95"
+                            title="Immediately dispatch remaining contacts"
+                          >
+                            <Send className="w-3.5 h-3.5 text-indigo-600" />
+                            <span>⚡ Send Batch Now</span>
+                          </button>
+                        </>
+                      )}
 
                       <button
                         onClick={() => handleDeleteCampaign(camp.id)}

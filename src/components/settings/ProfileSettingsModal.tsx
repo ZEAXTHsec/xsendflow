@@ -637,7 +637,7 @@ export default function ProfileSettingsModal({
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">24/7 VPS Cloud Daemon</span>
                     <div className="text-lg font-extrabold text-slate-900 font-mono">
-                      {license.plan === 'free' ? 'Browser Only' : 'Active (68.233.104.131)'}
+                      {license.plan === 'free' ? 'Browser Only' : 'Active (Cloud Cluster)'}
                     </div>
                     <span className="text-[10px] text-slate-400 block">
                       {license.plan === 'free' ? 'Upgrade to Pro' : 'Autonomous Background Queue'}

@@ -13,7 +13,7 @@ const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
 
 console.log("=================================================");
 console.log("⚡ XSENDFLOW HEADLESS QUEUE WORKER STARTED (24/7)");
-console.log("📍 Host: Oracle Always Free VPS (68.233.104.131)");
+console.log("📍 Host: Dedicated Cloud VPS Cluster (US-East)");
 console.log("🎯 Role: Dedicated Headless Job Dispatcher & Queue Engine");
 console.log("🌐 Production Domain: https://xsendflow.com");
 console.log("=================================================\n");
