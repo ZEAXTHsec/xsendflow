@@ -1620,34 +1620,15 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => handleGenerateSyntheticTestLeads(1000)}
-                    className="text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-4 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95 glow-tag"
-                    title="Generate 1,000 realistic synthetic B2B test leads with names, companies, and icebreakers"
-                  >
-                    <Zap className="w-3.5 h-3.5 text-amber-300 fill-amber-300" />
-                    <span>Generate 1,000 Test Leads</span>
-                  </button>
-
                   <a
                     href="/catchall_test_leads.csv"
-                    download="catchall_test_leads.csv"
+                    download="xsendflow_leads_template.csv"
                     className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-2 rounded-xl transition-all flex items-center gap-1.5 shadow-xs"
                     title="Download pre-formatted CSV template"
                   >
                     <Download className="w-3.5 h-3.5 text-slate-500" />
-                    <span>CSV Template</span>
+                    <span>Download CSV Template</span>
                   </a>
-
-                  <button
-                    type="button"
-                    onClick={handleLoadCatchallSample}
-                    className="text-xs font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-200 px-3 py-2 rounded-xl shadow-xs flex items-center gap-1.5 transition-all active:scale-95"
-                  >
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                    <span>Load 8 Catchall Leads</span>
-                  </button>
                 </div>
               </div>
 

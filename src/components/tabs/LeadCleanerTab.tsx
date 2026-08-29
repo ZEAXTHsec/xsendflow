@@ -361,22 +361,23 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
           </div>
         </div>
 
-        {/* Card 3: Preloaded Sample */}
-        <div 
-          onClick={handleLoadSamples}
-          className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:border-purple-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
+        {/* Card 3: Download CSV Template */}
+        <a 
+          href="/catchall_test_leads.csv"
+          download="xsendflow_leads_template.csv"
+          className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer flex flex-col justify-between group space-y-4"
         >
           <div className="space-y-2">
-            <div className="w-10 h-10 rounded-2xl bg-purple-50 text-purple-600 flex items-center justify-center group-hover:scale-110 transition-transform">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Download className="w-5 h-5" />
             </div>
-            <h2 className="text-sm font-extrabold text-slate-900">Load Dirty B2B Sample</h2>
-            <p className="text-xs text-slate-500">Inspect real-time syntax cleaning &amp; icebreakers.</p>
+            <h2 className="text-sm font-extrabold text-slate-900">Download CSV Template</h2>
+            <p className="text-xs text-slate-500">Get standard headers (Email, First Name, Company, Title, Website).</p>
           </div>
-          <div className="text-xs font-bold text-purple-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
-            <span>Load 6 Test Leads →</span>
+          <div className="text-xs font-bold text-emerald-600 flex items-center gap-1 group-hover:translate-x-1 transition-transform">
+            <span>Download .CSV Template →</span>
           </div>
-        </div>
+        </a>
       </div>
 
       {/* Paste Box Drawer */}
