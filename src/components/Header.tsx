@@ -24,8 +24,31 @@ export default function Header() {
   const isStudio = pathname?.startsWith('/studio');
 
   useEffect(() => {
-    function checkUser() {
+    async function checkUser() {
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user?.email) {
+          setUserEmail(session.user.email);
+          setUserId(session.user.id);
+          // Clear mock storage so real user session isn't contaminated
+          localStorage.removeItem('xsendflow_mock_user');
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.plan) {
+            setUserPlan(profile.plan as UserPlan);
+            localStorage.setItem('xsendflow_user_plan', profile.plan);
+          } else {
+            const currentPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+            setUserPlan(currentPlan);
+          }
+          return;
+        }
+
         const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
         if (mockUserStr) {
           try {
@@ -38,20 +61,8 @@ export default function Header() {
           } catch {}
         }
 
-        supabase.auth.getSession().then(({ data: { session } }) => {
-          if (session?.user?.email) {
-            setUserEmail(session.user.email);
-            setUserId(session.user.id);
-            const savedPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
-            setUserPlan(savedPlan);
-          } else {
-            const localMock = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
-            if (!localMock) {
-              setUserEmail(null);
-              setUserId(null);
-            }
-          }
-        });
+        setUserEmail(null);
+        setUserId(null);
       } catch {
         // Fallback
       }

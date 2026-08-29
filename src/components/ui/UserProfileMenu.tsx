@@ -33,11 +33,17 @@ export default function UserProfileMenu({
   const [license, setLicense] = useState<LicenseDetails>(getStoredLicense);
   const [displayName, setDisplayName] = useState(() => {
     if (typeof window === 'undefined') return 'Founder';
+    if (userEmail && userEmail !== 'agency_user@xsendflow.com') {
+      return userEmail.split('@')[0];
+    }
     return localStorage.getItem('xsendflow_display_name') || (userEmail ? userEmail.split('@')[0] : 'Founder');
   });
   const [orgName, setOrgName] = useState(() => {
-    if (typeof window === 'undefined') return 'Growth Studio';
-    return localStorage.getItem('xsendflow_org_name') || 'Growth Studio';
+    if (typeof window === 'undefined') return 'Personal Workspace';
+    if (userEmail && userEmail !== 'agency_user@xsendflow.com') {
+      return `${userEmail.split('@')[0]}'s Workspace`;
+    }
+    return localStorage.getItem('xsendflow_org_name') || 'Personal Workspace';
   });
   const [sendersCount, setSendersCount] = useState(0);
 
@@ -48,10 +54,15 @@ export default function UserProfileMenu({
     const updateDetails = () => {
       setLicense(getStoredLicense());
       if (typeof window !== 'undefined') {
-        const storedName = localStorage.getItem('xsendflow_display_name');
-        if (storedName) setDisplayName(storedName);
-        const storedOrg = localStorage.getItem('xsendflow_org_name');
-        if (storedOrg) setOrgName(storedOrg);
+        if (userEmail && userEmail !== 'agency_user@xsendflow.com') {
+          setDisplayName(userEmail.split('@')[0]);
+          setOrgName(`${userEmail.split('@')[0]}'s Workspace`);
+        } else {
+          const storedName = localStorage.getItem('xsendflow_display_name');
+          if (storedName) setDisplayName(storedName);
+          const storedOrg = localStorage.getItem('xsendflow_org_name');
+          if (storedOrg) setOrgName(storedOrg);
+        }
         try {
           const senders = JSON.parse(localStorage.getItem('xsendflow_senders') || '[]');
           if (Array.isArray(senders)) setSendersCount(senders.length);
@@ -69,7 +80,7 @@ export default function UserProfileMenu({
       window.removeEventListener('xsendflow_plan_updated', updateDetails);
       window.removeEventListener('xsendflow_senders_updated', updateDetails);
     };
-  }, []);
+  }, [userEmail]);
 
   // Close on outside click or Escape
   useEffect(() => {
@@ -96,6 +107,11 @@ export default function UserProfileMenu({
     await supabase.auth.signOut();
     if (typeof window !== 'undefined') {
       localStorage.removeItem('xsendflow_mock_user');
+      localStorage.removeItem('xsendflow_user_plan');
+      localStorage.removeItem('xsendflow_license_v2');
+      localStorage.removeItem('xsendflow_display_name');
+      localStorage.removeItem('xsendflow_org_name');
+      document.cookie = 'xsendflow_mock_session=; path=/; max-age=0';
       window.location.href = '/login';
     }
   };
