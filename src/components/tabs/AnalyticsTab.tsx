@@ -364,23 +364,23 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
         </div>
       )}
 
-      {/* 4. CAMPAIGN OPERATIONS COMMAND CENTER (Linear-Grade Enterprise Fleet Table) */}
-      <div className="rounded-3xl bg-white border border-slate-200/90 shadow-sm overflow-hidden space-y-0">
+      {/* 4. CAMPAIGN OPERATIONS COMMAND CENTER (Linear/Raycast-Grade Floating Row Cards) */}
+      <div className="p-5 sm:p-6 rounded-3xl bg-slate-50/80 border border-slate-200/90 shadow-sm space-y-4">
         {/* Header Toolbar */}
-        <div className="p-5 sm:p-6 border-b border-slate-100 flex flex-col lg:flex-row lg:items-center justify-between gap-4 bg-slate-50/50">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-200/70 pb-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               <h3 className="text-base font-black text-slate-900 tracking-tight">Campaign Fleet Operations</h3>
-              <span className="text-xs font-mono font-bold bg-slate-200/70 text-slate-800 px-2.5 py-0.5 rounded-full">
-                {campaigns.length} Total
+              <span className="text-xs font-mono font-bold bg-white text-slate-800 px-2.5 py-0.5 rounded-full border border-slate-200 shadow-2xs">
+                {campaigns.length} Total Fleets
               </span>
               <button
                 type="button"
                 onClick={handleLoad100Campaigns}
-                className="text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 px-3 py-0.5 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
+                className="text-[11px] font-bold bg-white hover:bg-slate-100 text-slate-800 border border-slate-300 px-3 py-1 rounded-full transition-all active:scale-95 flex items-center gap-1 shadow-2xs"
                 title="Populate 100+ realistic enterprise campaigns for demo"
               >
-                <Zap className="w-3 h-3 text-amber-600 fill-amber-500" />
+                <Zap className="w-3 h-3 text-amber-500 fill-amber-500" />
                 <span>Load 100+ Fleet</span>
               </button>
             </div>
@@ -396,8 +396,8 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 type="text"
                 value={searchQuery}
                 onChange={e => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                placeholder="Filter campaigns..."
-                className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-slate-400 w-44 sm:w-48 font-medium shadow-2xs"
+                placeholder="Search campaigns..."
+                className="pl-8 pr-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:border-indigo-500 w-44 sm:w-48 font-medium shadow-2xs"
               />
             </div>
 
@@ -406,7 +406,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               value={sortBy}
               onChange={e => setSortBy(e.target.value as any)}
               aria-label="Sort campaigns"
-              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-slate-400 cursor-pointer shadow-2xs"
+              className="px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 focus:outline-none focus:border-indigo-500 cursor-pointer shadow-2xs"
             >
               <option value="default">Sort: Default</option>
               <option value="open_rate">Sort: Highest Opens %</option>
@@ -415,32 +415,32 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
             </select>
 
             {/* Filter Tabs */}
-            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200 text-xs font-bold">
+            <div className="flex items-center bg-white p-1 rounded-xl border border-slate-200 text-xs font-bold shadow-2xs">
               <button
                 type="button"
                 onClick={() => { setStatusFilter('all'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'all' ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 All ({campaigns.length})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('active'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'active' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'active' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Active ({activeCount})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('paused'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'paused' ? 'bg-white text-amber-700 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'paused' ? 'bg-amber-50 text-amber-700 border border-amber-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Paused ({pausedCount})
               </button>
               <button
                 type="button"
                 onClick={() => { setStatusFilter('done'); setCurrentPage(1); }}
-                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'done' ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-600 hover:text-slate-900'}`}
+                className={`px-2.5 py-1 rounded-lg transition-all ${statusFilter === 'done' ? 'bg-purple-50 text-purple-700 border border-purple-200' : 'text-slate-600 hover:text-slate-900'}`}
               >
                 Done ({doneCount})
               </button>
@@ -448,152 +448,154 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
           </div>
         </div>
 
-        {/* Enterprise Fleet Data Table (High-Density, Zero-Slop Architecture) */}
+        {/* Linear/Raycast-Grade Floating Row Cards List */}
         {paginatedCampaigns.length > 0 ? (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="border-b border-slate-200/80 bg-slate-50/70 text-slate-500 font-mono text-[10px] font-bold uppercase tracking-wider">
-                  <th className="py-3 px-5">Campaign / Sender</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4">Window / Pacing</th>
-                  <th className="py-3 px-4">Dispatch Progress</th>
-                  <th className="py-3 px-4">Engagement Rate</th>
-                  <th className="py-3 px-5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {paginatedCampaigns.map((camp) => {
-                  const totalRecipients = camp.recipients?.length || 0;
-                  const sentRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
-                  const openRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'opened' || r.status === 'replied').length || 0;
-                  const replyRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'replied').length || 0;
-                  
-                  const progressPct = totalRecipients > 0 ? Math.round((sentRecipients / totalRecipients) * 100) : 0;
-                  const openPct = sentRecipients > 0 ? Math.round((openRecipients / sentRecipients) * 100) : 0;
-                  const replyPct = sentRecipients > 0 ? Math.round((replyRecipients / sentRecipients) * 100) : 0;
+          <div className="space-y-2.5">
+            {paginatedCampaigns.map((camp, idx) => {
+              const totalRecipients = camp.recipients?.length || 0;
+              const sentRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length || 0;
+              const openRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'opened' || r.status === 'replied').length || 0;
+              const replyRecipients = camp.recipients?.filter((r: CampaignRecipient) => r.status === 'replied').length || 0;
+              
+              const progressPct = totalRecipients > 0 ? Math.round((sentRecipients / totalRecipients) * 100) : 0;
+              const openPct = sentRecipients > 0 ? Math.round((openRecipients / sentRecipients) * 100) : 0;
+              const replyPct = sentRecipients > 0 ? Math.round((replyRecipients / sentRecipients) * 100) : 0;
 
-                  const isSending = camp.status === 'sending' || camp.status === 'in_progress' || camp.status === 'scheduled';
-                  const isPaused = camp.status === 'paused';
-                  const isDraft = camp.status === 'draft';
-                  const isDone = camp.status === 'done';
+              const isSending = camp.status === 'sending' || camp.status === 'in_progress' || camp.status === 'scheduled';
+              const isPaused = camp.status === 'paused';
+              const isDraft = camp.status === 'draft';
+              const isDone = camp.status === 'done';
 
-                  return (
-                    <tr
-                      key={camp.id}
-                      onClick={() => onNavigateTab?.('campaigns')}
-                      className="hover:bg-slate-50/90 transition-colors cursor-pointer group"
-                    >
-                      {/* Column 1: Campaign Name & Subtitle */}
-                      <td className="py-3.5 px-5">
-                        <div className="space-y-0.5 min-w-[220px]">
-                          <div className="flex items-center gap-2">
-                            <span className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors text-xs">
-                              {camp.name}
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500 font-mono flex items-center gap-1.5">
-                            <span>From: {camp.fromName || 'Alex Turner'}</span>
-                            <span>•</span>
-                            <span>{camp.steps?.length || 1} Steps</span>
-                          </div>
-                        </div>
-                      </td>
+              // Dynamic Visual Theme for Campaign Thumbnail
+              const nameLower = camp.name.toLowerCase();
+              let thumbGradient = 'from-blue-600 to-indigo-600';
+              let IconElem = Send;
+              if (nameLower.includes('fintech') || nameLower.includes('payment')) {
+                thumbGradient = 'from-amber-500 to-orange-600';
+                IconElem = Zap;
+              } else if (nameLower.includes('ai') || nameLower.includes('genai') || nameLower.includes('saas')) {
+                thumbGradient = 'from-indigo-600 to-purple-600';
+                IconElem = Sparkles;
+              } else if (nameLower.includes('cyber') || nameLower.includes('security') || nameLower.includes('ops')) {
+                thumbGradient = 'from-cyan-600 to-blue-700';
+                IconElem = ShieldCheck;
+              } else if (nameLower.includes('health') || nameLower.includes('biotech')) {
+                thumbGradient = 'from-emerald-500 to-teal-600';
+                IconElem = Activity;
+              } else if (nameLower.includes('devops') || nameLower.includes('infra')) {
+                thumbGradient = 'from-rose-500 to-pink-600';
+                IconElem = Server;
+              }
 
-                      {/* Column 2: Status */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full shrink-0 ${
+              const campIndex = (currentPage - 1) * ITEMS_PER_PAGE + idx;
+
+              return (
+                <div
+                  key={camp.id}
+                  onClick={() => onNavigateTab?.('campaigns')}
+                  className="p-3.5 sm:p-4 rounded-2xl bg-white border border-slate-200/90 hover:border-indigo-400 hover:shadow-md transition-all duration-150 cursor-pointer flex flex-col xl:flex-row xl:items-center justify-between gap-4 group"
+                >
+                  {/* Left: Icon Thumbnail + Campaign Identity */}
+                  <div className="flex items-center gap-3.5 min-w-0 flex-1">
+                    <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${thumbGradient} flex items-center justify-center text-white shadow-xs shrink-0 group-hover:scale-105 transition-transform`}>
+                      <IconElem className="w-5 h-5" />
+                    </div>
+
+                    <div className="space-y-1 min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-[10px] font-mono font-bold bg-slate-100 text-slate-700 px-1.5 py-0.5 rounded border border-slate-200">
+                          #{String(campIndex + 1).padStart(3, '0')}
+                        </span>
+                        <h4 className="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-indigo-600 transition-colors truncate">
+                          {camp.name}
+                        </h4>
+                        <span className={`inline-flex items-center gap-1 text-[10px] font-mono font-extrabold uppercase px-2 py-0.5 rounded-full border ${
+                          isSending ? 'bg-emerald-50 text-emerald-800 border-emerald-200' :
+                          isPaused ? 'bg-amber-50 text-amber-800 border-amber-200' :
+                          isDone ? 'bg-indigo-50 text-indigo-700 border-indigo-200' :
+                          'bg-slate-100 text-slate-700 border-slate-200'
+                        }`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${
                             isSending ? 'bg-emerald-500 animate-pulse' :
                             isPaused ? 'bg-amber-400' :
-                            isDone ? 'bg-slate-400' : 'bg-purple-400'
+                            isDone ? 'bg-indigo-500' : 'bg-slate-400'
                           }`} />
-                          <span className={`text-[11px] font-mono font-bold uppercase ${
-                            isSending ? 'text-emerald-700' :
-                            isPaused ? 'text-amber-700' :
-                            isDone ? 'text-slate-600' : 'text-purple-700'
-                          }`}>
-                            {isSending ? 'Active' : isPaused ? 'Paused' : isDraft ? 'Draft' : 'Done'}
-                          </span>
-                        </div>
-                      </td>
+                          {isSending ? 'Active' : isPaused ? 'Paused' : isDraft ? 'Draft' : 'Done'}
+                        </span>
+                      </div>
 
-                      {/* Column 3: Window & Pacing */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="space-y-0.5 font-mono text-[11px]">
-                          <div className="text-slate-700 font-medium">
-                            {camp.is24Hours ? '24/7 Continuous' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}
-                          </div>
-                          <div className="text-slate-400">
-                            {camp.delaySeconds}s delay • {camp.dailyLimit || 150}/day
-                          </div>
-                        </div>
-                      </td>
+                      <div className="flex flex-wrap items-center gap-2 text-[11px] text-slate-500 font-mono">
+                        <span className="text-slate-700 font-medium">From: {camp.fromName || 'Alex Turner'}</span>
+                        <span>•</span>
+                        <span>{camp.steps?.length || 1} Touchpoints</span>
+                        <span>•</span>
+                        <span>{camp.is24Hours ? '24/7 Continuous' : `${camp.windowStart || '09:00'}–${camp.windowEnd || '17:30'}`}</span>
+                        <span className="text-slate-400">({camp.delaySeconds}s delay)</span>
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Column 4: Progress Bar & Tabular Numbers */}
-                      <td className="py-3.5 px-4 min-w-[170px]">
-                        <div className="space-y-1 font-mono">
-                          <div className="flex items-center justify-between text-[11px]">
-                            <span className="font-bold text-slate-800">{sentRecipients} / {totalRecipients}</span>
-                            <span className="text-slate-500">{progressPct}%</span>
-                          </div>
-                          <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
-                            <div
-                              className={`h-full rounded-full transition-all duration-300 ${
-                                isSending ? 'bg-indigo-600' : isDone ? 'bg-emerald-500' : 'bg-slate-400'
-                              }`}
-                              style={{ width: `${Math.max(2, progressPct)}%` }}
-                            />
-                          </div>
-                        </div>
-                      </td>
+                  {/* Middle: Progress Bar with Tabular Volume */}
+                  <div className="w-full xl:w-52 shrink-0 space-y-1 font-mono">
+                    <div className="flex items-center justify-between text-[11px]">
+                      <span className="text-slate-600 font-bold">Progress: <strong className="text-slate-900">{sentRecipients} / {totalRecipients}</strong></span>
+                      <span className="text-indigo-600 font-extrabold">{progressPct}%</span>
+                    </div>
+                    <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          isSending ? 'bg-gradient-to-r from-blue-600 to-indigo-600' :
+                          isDone ? 'bg-gradient-to-r from-emerald-500 to-teal-500' : 'bg-slate-400'
+                        }`}
+                        style={{ width: `${Math.max(3, progressPct)}%` }}
+                      />
+                    </div>
+                  </div>
 
-                      {/* Column 5: Engagement (Opens / Replies) */}
-                      <td className="py-3.5 px-4 whitespace-nowrap">
-                        <div className="flex items-center gap-3 font-mono text-[11px]">
-                          <div>
-                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Opens</span>
-                            <strong className="text-slate-900 font-bold">{openPct > 0 ? `${openPct}%` : '68%'}</strong>
-                          </div>
-                          <div className="border-l border-slate-200 pl-3">
-                            <span className="text-slate-400 block text-[10px] uppercase font-bold">Replies</span>
-                            <strong className="text-emerald-700 font-bold">{replyPct > 0 ? `${replyPct}%` : '14.2%'}</strong>
-                          </div>
-                        </div>
-                      </td>
+                  {/* Right: Rich Metric Chips & Action Controls */}
+                  <div className="flex flex-wrap sm:flex-nowrap items-center justify-between xl:justify-end gap-3 shrink-0">
+                    <div className="flex items-center gap-1.5 font-mono text-[11px]">
+                      <div className="px-2.5 py-1 rounded-xl bg-purple-50 border border-purple-200/80 text-purple-900 flex items-center gap-1 font-bold">
+                        <Eye className="w-3 h-3 text-purple-600" />
+                        <span>{openPct > 0 ? `${openPct}%` : '68%'}</span>
+                      </div>
+                      <div className="px-2.5 py-1 rounded-xl bg-emerald-50 border border-emerald-200/80 text-emerald-900 flex items-center gap-1 font-bold">
+                        <MessageSquare className="w-3 h-3 text-emerald-600" />
+                        <span>{replyPct > 0 ? `${replyPct}%` : '14.2%'}</span>
+                      </div>
+                      <div className="px-2 py-1 rounded-xl bg-slate-100 border border-slate-200 text-slate-700 font-medium">
+                        <span>{camp.dailyLimit || 150}/d</span>
+                      </div>
+                    </div>
 
-                      {/* Column 6: Quick Action Controls */}
-                      <td className="py-3.5 px-5 text-right whitespace-nowrap" onClick={e => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
-                          {!isDraft && (
-                            <button
-                              type="button"
-                              onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
-                              className="p-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
-                              title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
-                            >
-                              {isSending ? <Pause className="w-3 h-3 text-amber-600" /> : <Play className="w-3 h-3 text-emerald-600 fill-current" />}
-                            </button>
-                          )}
+                    <div className="flex items-center gap-1.5" onClick={e => e.stopPropagation()}>
+                      {!isDraft && (
+                        <button
+                          type="button"
+                          onClick={(e) => handleToggleCampaignStatus(camp.id, e)}
+                          className="p-2 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 transition-colors shadow-2xs"
+                          title={isSending ? 'Pause Campaign' : 'Resume Campaign'}
+                        >
+                          {isSending ? <Pause className="w-3.5 h-3.5 text-amber-600" /> : <Play className="w-3.5 h-3.5 text-emerald-600 fill-current" />}
+                        </button>
+                      )}
 
-                          <button
-                            type="button"
-                            onClick={() => onNavigateTab?.('campaigns')}
-                            className="px-3 py-1.5 rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs transition-colors shadow-2xs flex items-center gap-1 group-hover:border-indigo-300 group-hover:text-indigo-600"
-                          >
-                            <span>Inspect</span>
-                            <ChevronRight className="w-3 h-3" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                      <button
+                        type="button"
+                        onClick={() => onNavigateTab?.('campaigns')}
+                        className="px-3.5 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-800 font-bold text-xs transition-all shadow-2xs flex items-center gap-1 group-hover:border-indigo-300 group-hover:text-indigo-600"
+                      >
+                        <span>Inspect</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
           </div>
         ) : (
-          <div className="p-12 text-center space-y-3 bg-slate-50/50">
+          <div className="p-12 text-center space-y-3 bg-white rounded-2xl border border-dashed border-slate-200">
             <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center mx-auto">
               <Mail className="w-6 h-6" />
             </div>
