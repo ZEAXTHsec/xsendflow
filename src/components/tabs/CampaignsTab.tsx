@@ -13,6 +13,8 @@ import { autoWrapSpintax } from '@/lib/spintax';
 import UpgradeProModal from '../modals/UpgradeProModal';
 import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
+import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone } from '@/lib/engine/timeZoneScheduler';
+
 export interface CampaignStep {
   id: number;
   dayDelay: number; // days after previous step
@@ -45,6 +47,7 @@ export interface Campaign {
   windowStart: string;
   windowEnd: string;
   timezone: string;
+  is24Hours?: boolean;
   status: 'draft' | 'scheduled' | 'sending' | 'in_progress' | 'done' | 'paused';
   steps: CampaignStep[];
   recipients: CampaignRecipient[];
@@ -141,6 +144,7 @@ export default function CampaignsTab({ leads }: Props) {
   const [windowStart, setWindowStart] = useState('09:00');
   const [windowEnd, setWindowEnd] = useState('17:00');
   const [timezone, setTimezone] = useState('America/New_York (EST)');
+  const [is24Hours, setIs24Hours] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
 
   // Tracking & Unsubscribe Preferences
@@ -252,6 +256,7 @@ export default function CampaignsTab({ leads }: Props) {
         windowStart,
         windowEnd,
         timezone,
+        is24Hours,
         isSandboxMode,
         trackOpens,
         trackClicks,
@@ -272,7 +277,7 @@ export default function CampaignsTab({ leads }: Props) {
     } catch {}
   }, [
     isCreating, name, fromName, selectedSenderIds, delaySeconds, dailyLimit,
-    windowStart, windowEnd, timezone, isSandboxMode, trackOpens, trackClicks,
+    windowStart, windowEnd, timezone, is24Hours, isSandboxMode, trackOpens, trackClicks,
     includeUnsubscribe, unsubscribeStyle, customUnsubscribeText,
     uploadedRecipients, steps, wizardStep
   ]);
@@ -288,6 +293,7 @@ export default function CampaignsTab({ leads }: Props) {
       if (target.windowStart !== undefined) setWindowStart(target.windowStart);
       if (target.windowEnd !== undefined) setWindowEnd(target.windowEnd);
       if (target.timezone !== undefined) setTimezone(target.timezone);
+      if (target.is24Hours !== undefined) setIs24Hours(target.is24Hours);
       if (target.isSandboxMode !== undefined) setIsSandboxMode(target.isSandboxMode);
       if (target.trackOpens !== undefined) setTrackOpens(target.trackOpens);
       if (target.trackClicks !== undefined) setTrackClicks(target.trackClicks);
@@ -595,44 +601,8 @@ export default function CampaignsTab({ leads }: Props) {
     setActiveStepIndex(Math.max(0, index - 1));
   };
 
-const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezoneStr?: string): boolean => {
-  if (!windowStart || !windowEnd) return true;
-  try {
-    const now = new Date();
-    let currentH = now.getHours();
-    let currentM = now.getMinutes();
-
-    if (timezoneStr) {
-      const ianaTz = timezoneStr.split(' ')[0].trim();
-      const formatter = new Intl.DateTimeFormat('en-US', {
-        timeZone: ianaTz,
-        hour: 'numeric',
-        minute: 'numeric',
-        hour12: false
-      });
-      const parts = formatter.formatToParts(now);
-      const hPart = parts.find(p => p.type === 'hour')?.value;
-      const mPart = parts.find(p => p.type === 'minute')?.value;
-      if (hPart) currentH = Number(hPart) % 24;
-      if (mPart) currentM = Number(mPart);
-    }
-
-    const currentMinutes = currentH * 60 + currentM;
-    const [startH = 0, startM = 0] = windowStart.split(':').map(Number);
-    const [endH = 23, endM = 59] = windowEnd.split(':').map(Number);
-
-    const startMinutes = startH * 60 + startM;
-    const endMinutes = endH * 60 + endM;
-
-    if (startMinutes <= endMinutes) {
-      return currentMinutes >= startMinutes && currentMinutes <= endMinutes;
-    } else {
-      // Overnight window (e.g. 22:00 to 06:00)
-      return currentMinutes >= startMinutes || currentMinutes <= endMinutes;
-    }
-  } catch {
-    return true;
-  }
+const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezoneStr?: string, is24Hours = false): boolean => {
+  return inspectScheduleWindow(windowStart, windowEnd, timezoneStr, is24Hours).inWindow;
 };
 
   const handleFinalizeCreateCampaign = () => {
@@ -657,7 +627,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       return;
     }
 
-    const inWindow = isInsideScheduleWindow(windowStart, windowEnd, timezone);
+    const windowCheck = inspectScheduleWindow(windowStart, windowEnd, timezone, is24Hours);
     const effectiveSenderIds = selectedSenderIds.length > 0 ? selectedSenderIds : senders.map(s => s.id);
 
     let resolvedUnsubscribeText = '';
@@ -676,10 +646,11 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       selectedSenderIds: effectiveSenderIds,
       delaySeconds,
       dailyLimit,
-      windowStart,
-      windowEnd,
+      windowStart: is24Hours ? '00:00' : windowStart,
+      windowEnd: is24Hours ? '23:59' : windowEnd,
       timezone,
-      status: inWindow ? 'in_progress' : 'scheduled',
+      is24Hours,
+      status: windowCheck.inWindow ? 'in_progress' : 'scheduled',
       steps,
       recipients: uploadedRecipients,
       isSandbox: isSandboxMode,
@@ -697,13 +668,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     setFromName('');
     setUploadedRecipients([]);
     setPastedCsv('');
+    setIs24Hours(false);
     try {
       localStorage.removeItem('xsendflow_wizard_draft');
       setDraftInfo(null);
     } catch {}
 
-    // If currently inside the schedule window, send first email; otherwise let background ticker wait for the window to open
-    if (inWindow) {
+    // If currently inside the schedule window or 24/7, send first email; otherwise let background ticker wait
+    if (windowCheck.inWindow) {
       setTimeout(() => {
         handleSendBatchSimulation(newCampaign.id, newCampaign, 1);
       }, 200);
@@ -793,14 +765,20 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       }
     }
 
+    const windowCheck = inspectScheduleWindow(target.windowStart, target.windowEnd, target.timezone, target.is24Hours);
+
     setCampaigns(prev =>
       prev.map(c => {
         if (c.id !== id) return c;
-        const nextStatus = c.status === 'in_progress' || c.status === 'sending' ? 'paused' : 'in_progress';
-        if (nextStatus === 'in_progress') {
-          setTimeout(() => handleSendBatchSimulation(id), 200);
+        if (c.status === 'in_progress' || c.status === 'sending' || c.status === 'scheduled') {
+          return { ...c, status: 'paused' };
+        } else {
+          const nextStatus = windowCheck.inWindow ? 'in_progress' : 'scheduled';
+          if (nextStatus === 'in_progress') {
+            setTimeout(() => handleSendBatchSimulation(id), 200);
+          }
+          return { ...c, status: nextStatus };
         }
-        return { ...c, status: nextStatus };
       })
     );
   };
@@ -820,6 +798,13 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     try {
       const targetCamp = campaignOverride || campaigns.find(c => c.id === id);
       if (!targetCamp) return;
+
+      // Strict Schedule & Timezone Sync Guard: Never fire if outside target window
+      const windowCheck = inspectScheduleWindow(targetCamp.windowStart, targetCamp.windowEnd, targetCamp.timezone, targetCamp.is24Hours);
+      if (!windowCheck.inWindow) {
+        setCampaigns(prev => prev.map(c => c.id === id ? { ...c, status: 'scheduled' } : c));
+        return;
+      }
 
       const pendingRecips = targetCamp.recipients.filter(r => r.status === 'pending');
       if (!pendingRecips.length) {
@@ -1293,37 +1278,79 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   />
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Target Timezone</label>
-                  <select
-                    value={timezone}
-                    onChange={e => setTimezone(e.target.value)}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs text-slate-900"
-                  >
-                    <option value="America/New_York (EST)">America/New_York (EST / EDT)</option>
-                    <option value="America/Chicago (CST)">America/Chicago (CST / CDT)</option>
-                    <option value="America/Los_Angeles (PST)">America/Los_Angeles (PST / PDT)</option>
-                    <option value="Europe/London (GMT)">Europe/London (GMT / BST)</option>
-                    <option value="Asia/Kolkata (IST)">Asia/Kolkata (IST)</option>
-                  </select>
-                </div>
+                {/* Target Timezone & 24/7 Dispatch Schedule Component */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-100/90 border border-slate-200 space-y-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                      <span className="text-xs font-black text-slate-900 flex items-center gap-1.5">
+                        <Clock className="w-4 h-4 text-indigo-600" />
+                        Target Timezone &amp; Dispatch Schedule
+                      </span>
+                      <p className="text-[11px] text-slate-500">
+                        Emails trigger only when target local time is strictly inside your configured schedule window.
+                      </p>
+                    </div>
 
-                <div className="space-y-1.5 sm:col-span-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Sending Hours (Window)</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="time"
-                      value={windowStart}
-                      onChange={e => setWindowStart(e.target.value)}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono w-full"
-                    />
-                    <span className="text-slate-400 text-xs font-bold">to</span>
-                    <input
-                      type="time"
-                      value={windowEnd}
-                      onChange={e => setWindowEnd(e.target.value)}
-                      className="bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono w-full"
-                    />
+                    {/* 24/7 Sending Mode Toggle */}
+                    <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-indigo-200 shadow-2xs hover:border-indigo-400 transition-colors shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={is24Hours}
+                        onChange={e => setIs24Hours(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-bold text-indigo-950 flex items-center gap-1">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" /> Send 24/7 Continuous (Around the Clock)
+                      </span>
+                    </label>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                    <div className="space-y-1.5">
+                      <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Target Timezone</label>
+                      <select
+                        value={timezone}
+                        onChange={e => setTimezone(e.target.value)}
+                        className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:border-indigo-500"
+                      >
+                        {GLOBAL_TIMEZONES.map(tz => (
+                          <option key={tz.value} value={tz.value}>
+                            {tz.label} ({tz.offset})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    {is24Hours ? (
+                      <div className="flex items-center justify-center p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 text-xs font-bold gap-2">
+                        <Zap className="w-4 h-4 text-emerald-600 fill-emerald-600" />
+                        <span>24/7 Active: Dispatching continuously in {extractIanaTimezone(timezone)}</span>
+                      </div>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Sending Hours (Window)</label>
+                          <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-50 px-2 py-0.5 rounded-md">
+                            Target Clock: {getTargetLocalTime(timezone).timeString12}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="time"
+                            value={windowStart}
+                            onChange={e => setWindowStart(e.target.value)}
+                            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono w-full focus:border-indigo-500"
+                          />
+                          <span className="text-slate-400 text-xs font-bold">to</span>
+                          <input
+                            type="time"
+                            value={windowEnd}
+                            onChange={e => setWindowEnd(e.target.value)}
+                            className="bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono w-full focus:border-indigo-500"
+                          />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1334,7 +1361,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       <BarChart3 className="w-4 h-4 text-indigo-600" /> Deliverability &amp; Tracking Options
                     </span>
                     <span className="text-[10px] font-mono font-bold text-indigo-600 bg-indigo-100 px-2 py-0.5 rounded-full">
-                      VPS Engine
+                      Cloud Engine
                     </span>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
@@ -2225,11 +2252,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
                     {/* Timing Pill */}
                     <div className="flex flex-wrap items-center gap-3 text-[11px] text-slate-500 pt-1">
-                      <span className="flex items-center gap-1 font-mono">
-                        <Clock className="w-3 h-3 text-amber-600" /> {camp.windowStart}–{camp.windowEnd} ({camp.timezone.split(' ')[0]})
-                      </span>
+                      {camp.is24Hours ? (
+                        <span className="flex items-center gap-1 font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                          <Zap className="w-3 h-3 text-emerald-600 fill-emerald-600" /> 24/7 Continuous ({extractIanaTimezone(camp.timezone)})
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 font-mono font-bold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+                          <Clock className="w-3 h-3 text-amber-600" /> {camp.windowStart}–{camp.windowEnd} ({extractIanaTimezone(camp.timezone)})
+                        </span>
+                      )}
                       <span>•</span>
                       <span className="font-mono">Delay: {camp.delaySeconds}s</span>
+                      <span>•</span>
+                      <span className="font-mono">Limit: {camp.dailyLimit}/day</span>
                       <span>•</span>
                       <span className="font-mono">{camp.steps.length} Steps</span>
                     </div>

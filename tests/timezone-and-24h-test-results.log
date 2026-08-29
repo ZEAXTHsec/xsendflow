@@ -1,0 +1,41 @@
+=== XSENDFLOW TIMEZONE & 24/7 SCHEDULING AUDIT LOG ===
+
+[2026-08-29T09:52:51.601Z] [Test 001] [PASS] [Timezone Engine] IANA Resolution: America/New_York | Condition: Returns valid 24h clock (05:52) 
+[2026-08-29T09:52:51.602Z] [Test 002] [PASS] [Timezone Engine] IANA Resolution: America/Chicago | Condition: Returns valid 24h clock (04:52) 
+[2026-08-29T09:52:51.603Z] [Test 003] [PASS] [Timezone Engine] IANA Resolution: America/Denver | Condition: Returns valid 24h clock (03:52) 
+[2026-08-29T09:52:51.603Z] [Test 004] [PASS] [Timezone Engine] IANA Resolution: America/Los_Angeles | Condition: Returns valid 24h clock (02:52) 
+[2026-08-29T09:52:51.604Z] [Test 005] [PASS] [Timezone Engine] IANA Resolution: America/Sao_Paulo | Condition: Returns valid 24h clock (06:52) 
+[2026-08-29T09:52:51.604Z] [Test 006] [PASS] [Timezone Engine] IANA Resolution: Europe/London | Condition: Returns valid 24h clock (10:52) 
+[2026-08-29T09:52:51.605Z] [Test 007] [PASS] [Timezone Engine] IANA Resolution: Europe/Paris | Condition: Returns valid 24h clock (11:52) 
+[2026-08-29T09:52:51.605Z] [Test 008] [PASS] [Timezone Engine] IANA Resolution: Europe/Helsinki | Condition: Returns valid 24h clock (12:52) 
+[2026-08-29T09:52:51.606Z] [Test 009] [PASS] [Timezone Engine] IANA Resolution: Asia/Dubai | Condition: Returns valid 24h clock (13:52) 
+[2026-08-29T09:52:51.606Z] [Test 010] [PASS] [Timezone Engine] IANA Resolution: Asia/Kolkata | Condition: Returns valid 24h clock (15:22) 
+[2026-08-29T09:52:51.606Z] [Test 011] [PASS] [Timezone Engine] IANA Resolution: Asia/Singapore | Condition: Returns valid 24h clock (17:52) 
+[2026-08-29T09:52:51.607Z] [Test 012] [PASS] [Timezone Engine] IANA Resolution: Asia/Tokyo | Condition: Returns valid 24h clock (18:52) 
+[2026-08-29T09:52:51.607Z] [Test 013] [PASS] [Timezone Engine] IANA Resolution: Australia/Sydney | Condition: Returns valid 24h clock (19:52) 
+[2026-08-29T09:52:51.607Z] [Test 014] [PASS] [Timezone Engine] IANA Resolution: Pacific/Auckland | Condition: Returns valid 24h clock (21:52) 
+[2026-08-29T09:52:51.608Z] [Test 015] [PASS] [Timezone Engine] IANA Resolution: UTC | Condition: Returns valid 24h clock (09:52) 
+[2026-08-29T09:52:51.609Z] [Test 016] [PASS] [Schedule Sync] UTC Daytime Window @ 14:00 | Condition: Inside 09:00-17:00 window 
+[2026-08-29T09:52:51.609Z] [Test 017] [PASS] [Schedule Sync] UTC Daytime Window @ 06:00 | Condition: Outside window, blocks dispatch 
+[2026-08-29T09:52:51.610Z] [Test 018] [PASS] [Schedule Sync] UTC Daytime Window @ 20:00 | Condition: Outside window, blocks dispatch 
+[2026-08-29T09:52:51.610Z] [Test 019] [PASS] [Schedule Sync] Overnight Window 22:00-06:00 @ 23:30 | Condition: Inside overnight window 
+[2026-08-29T09:52:51.610Z] [Test 020] [PASS] [Schedule Sync] Overnight Window 22:00-06:00 @ 03:00 | Condition: Inside overnight window 
+[2026-08-29T09:52:51.611Z] [Test 021] [PASS] [Schedule Sync] Overnight Window 22:00-06:00 @ 12:00 | Condition: Outside window, blocks dispatch 
+[2026-08-29T09:52:51.612Z] [Test 022] [PASS] [Schedule Sync] New York Target @ UTC 14:00 (NY 10:00) | Condition: In 09:00-17:00 window 
+[2026-08-29T09:52:51.612Z] [Test 023] [PASS] [Schedule Sync] London Target @ UTC 14:00 (London 15:00) | Condition: In 09:00-17:00 window 
+[2026-08-29T09:52:51.612Z] [Test 024] [PASS] [Schedule Sync] Tokyo Target @ UTC 14:00 (Tokyo 23:00) | Condition: Outside 09:00-17:00 window, pauses dispatch 
+[2026-08-29T09:52:51.612Z] [Test 025] [PASS] [24/7 Mode] 24/7 NY Continuous Dispatch | Condition: Allows dispatch at 3:00 AM 
+[2026-08-29T09:52:51.613Z] [Test 026] [PASS] [24/7 Mode] 24/7 Tokyo Continuous Dispatch | Condition: Allows dispatch at 11:00 PM 
+[2026-08-29T09:52:51.613Z] [Test 027] [PASS] [24/7 Mode] 24/7 Kolkata Continuous Dispatch | Condition: Allows dispatch around the clock 
+[2026-08-29T09:52:53.417Z] [Test 028] [PASS] [GUI Verification] Wizard Step 1 Open | Condition: Opens Campaign Creation Wizard 
+[2026-08-29T09:52:53.448Z] [Test 029] [PASS] [GUI Verification] Campaign Name Input | Condition: Sets campaign name 
+[2026-08-29T09:52:53.472Z] [Test 030] [PASS] [GUI Verification] Global Timezone Dropdown | Condition: Renders all 15 global timezone options 
+[2026-08-29T09:52:53.708Z] [Test 031] [PASS] [GUI Verification] Timezone Selection | Condition: Selects Asia/Kolkata (IST) 
+[2026-08-29T09:52:54.105Z] [Test 032] [PASS] [GUI Verification] 24/7 Mode Toggle ON | Condition: Displays glowing 24/7 Continuous badge 
+[2026-08-29T09:52:54.497Z] [Test 033] [PASS] [GUI Verification] 24/7 Mode Toggle OFF | Condition: Restores custom time window inputs 
+[2026-08-29T09:52:54.998Z] [Test 034] [PASS] [GUI Verification] Wizard Step 2 (Contacts) | Condition: Advances to Step 2 
+[2026-08-29T09:52:55.466Z] [Test 035] [PASS] [GUI Verification] Load Catchall Test Leads | Condition: Populates contacts table 
+[2026-08-29T09:52:55.976Z] [Test 036] [PASS] [GUI Verification] Wizard Step 3 (Sequence) | Condition: Advances to Step 3 
+[2026-08-29T09:52:56.482Z] [Test 037] [PASS] [GUI Verification] Wizard Step 4 (Review) | Condition: Advances to Step 4 Final Review 
+[2026-08-29T09:52:57.301Z] [Test 038] [PASS] [GUI Verification] Campaign Launched in Fleet | Condition: Campaign mounted in active fleet list 
+[2026-08-29T09:52:57.307Z] [Test 039] [PASS] [GUI Verification] Fleet Timing & Timezone Pill | Condition: Renders exact target timezone badge in fleet 
