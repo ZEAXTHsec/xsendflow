@@ -159,15 +159,15 @@ export default function UserProfileMenu({
         {/* User Info (Hidden on small mobile) */}
         <div className="hidden md:flex flex-col text-left pr-1">
           <div className="flex items-center gap-1.5">
-            <span className="text-xs font-extrabold text-slate-900 leading-tight truncate max-w-[120px]">
+            <span className="text-[13px] font-extrabold text-slate-900 leading-tight truncate max-w-[130px] tracking-tight">
               {displayName}
             </span>
-            <span className={`w-1.5 h-1.5 rounded-full ${
-              currentPlan === 'agency' ? 'bg-amber-500' : currentPlan === 'pro' ? 'bg-indigo-500' : 'bg-emerald-500'
+            <span className={`w-2 h-2 rounded-full ${
+              currentPlan === 'agency' ? 'bg-amber-500 ring-2 ring-amber-400/30' : currentPlan === 'pro' ? 'bg-indigo-500 ring-2 ring-indigo-400/30' : 'bg-emerald-500 ring-2 ring-emerald-400/30'
             }`} />
           </div>
-          <span className="text-[10px] font-mono text-slate-500 leading-tight">
-            {currentPlan === 'agency' ? 'Agency Scale' : currentPlan === 'pro' ? 'Pro Unlimited' : 'Free Plan'}
+          <span className="text-[11px] font-bold text-slate-500 leading-tight tracking-tight mt-0.5">
+            {currentPlan === 'agency' ? 'Agency Scale' : currentPlan === 'pro' ? 'Pro Plan' : 'Free Tier'}
           </span>
         </div>
 
