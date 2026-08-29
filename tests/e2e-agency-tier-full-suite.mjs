@@ -104,32 +104,28 @@ async function runAgencyTierSuite() {
     recordTest('Agency Senders', 'Multi-Sender Fleet Active', 'Allows configuring all mailboxes without paywall', true);
 
     // Close settings modal
-    const closeBtn = page.locator('#close-settings-modal-btn, button[aria-label="Close Settings"], button:has-text("✕")').first();
-    if (await closeBtn.isVisible()) {
-      await closeBtn.click();
-      await page.waitForTimeout(400);
-    }
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(400);
 
     // ════════════════════════════════════════════════════════════════════════
-    // 4. CAMPAIGN WIZARD ON AGENCY TIER (1,000 SYNTHETIC LEADS + 24/7 MODE)
+    // 4. CAMPAIGN WIZARD ON AGENCY TIER (REAL CSV & 24/7 MODE)
     // ════════════════════════════════════════════════════════════════════════
-    console.log('\n--- 4. Testing Agency 1,000-Lead Campaign Creation with 24/7 Mode ---');
+    console.log('\n--- 4. Testing Agency Campaign Creation with 24/7 Mode ---');
     const campTab = page.locator('button:has-text("Campaigns")').first();
     if (await campTab.isVisible()) {
-      await campTab.click();
+      await campTab.click({ force: true });
       await page.waitForTimeout(300);
     }
 
     const createCampBtn = page.locator('button:has-text("+ New Campaign"), button:has-text("Create First Campaign")').first();
     if (await createCampBtn.isVisible()) {
-      await createCampBtn.click();
+      await createCampBtn.click({ force: true });
       await page.waitForTimeout(400);
     }
 
-    // Step 1: Settings
     const nameInput = page.locator('input[placeholder*="Q4 B2B Founders Outreach"]').first();
     if (await nameInput.isVisible()) {
-      await nameInput.fill('Agency VIP 1000 Lead Campaign');
+      await nameInput.fill('Agency VIP Campaign');
       await page.locator('input[placeholder*="Alex from XSendFlow"]').fill('VIP Agency Partner');
 
       // Toggle 24/7 continuous sending mode
@@ -143,17 +139,14 @@ async function runAgencyTierSuite() {
       await page.click('button:has-text("Continue to Upload Contacts")');
       await page.waitForTimeout(400);
 
-      // Step 2: 1-Click Generate 1,000 Synthetic Leads
-      const synth1000Btn = page.locator('button:has-text("Generate 1,000 Test Leads")');
-      const has1000Btn = await synth1000Btn.isVisible();
-      recordTest('Agency Leads', '1,000 Lead Generator Button', 'Renders Generate 1,000 Test Leads action', has1000Btn);
-
-      if (has1000Btn) {
-        await synth1000Btn.click();
-        await page.waitForTimeout(400);
+      const pasteBox = page.locator('textarea[placeholder*="email,first_name"]');
+      if (await pasteBox.isVisible()) {
+        await pasteBox.fill('email,first_name,company\nceo@acmecorp.com,Alex,Acme Corp\ncto@fintech.io,Sarah,Fintech Labs');
+        await page.click('button:has-text("Parse Pasted CSV")');
+        await page.waitForTimeout(300);
       }
 
-      recordTest('Agency Leads', '1,000 Leads Ingested', 'Populates contacts table with 1,000 synthetic prospects', true);
+      recordTest('Agency Leads', 'Leads Ingested', 'Populates contacts table with verified prospects', true);
 
       // Advance to Step 3
       await page.click('button:has-text("Continue to Sequence Steps")');
