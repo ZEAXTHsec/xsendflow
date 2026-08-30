@@ -2174,9 +2174,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
               {/* ═══ MODE 2: AI SEQUENCE GENERATOR (ANTI-SLOP & ANTI-BURN) ═══ */}
               {sequenceMode === 'ai_builder' && (
                 <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white p-5 rounded-2xl border border-indigo-200/90 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  {/* HEADER ROW */}
+                  <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                      <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600 to-purple-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
                         <Sparkles className="w-4 h-4 text-purple-200" />
                       </div>
                       <div>
@@ -2187,17 +2188,18 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                           </span>
                         </h4>
                         <p className="text-[11px] text-slate-500">
-                          Trained on top 1% cold email frameworks. Generates unique, under-50-word, high-deliverability sequences with threaded follow-ups.
+                          Trained on top 1% cold email frameworks. Generates under-50-word high-deliverability sequences with threaded follow-ups.
                         </p>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-1.5 overflow-x-auto bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs">
+                    {/* ANGLE SELECTOR PILLS */}
+                    <div className="flex flex-wrap items-center gap-1 bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs shrink-0">
                       <button
                         type="button"
                         onClick={() => setAiFramework('value_teardown')}
                         className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                          aiFramework === 'value_teardown' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          aiFramework === 'value_teardown' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
                         🎯 Angle A: Value Teardown
@@ -2206,7 +2208,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         type="button"
                         onClick={() => setAiFramework('case_study_proof')}
                         className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                          aiFramework === 'case_study_proof' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          aiFramework === 'case_study_proof' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
                         📊 Angle B: Peer Case Study
@@ -2215,7 +2217,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         type="button"
                         onClick={() => setAiFramework('3_sentence_hook')}
                         className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
-                          aiFramework === '3_sentence_hook' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                          aiFramework === '3_sentence_hook' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
                         ⚡ Angle C: 3-Sentence Hook
@@ -2223,15 +2225,16 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     </div>
                   </div>
 
+                  {/* INJECTED CSV TAGS BADGE */}
                   {rawHeaders.length > 0 && (
-                    <div className="p-2.5 bg-white/90 border border-indigo-100 rounded-xl flex items-center justify-between gap-2 text-[11px]">
+                    <div className="p-2.5 bg-white/95 border border-indigo-100 rounded-xl flex flex-wrap items-center justify-between gap-2 text-[11px] shadow-2xs">
                       <span className="font-bold text-indigo-900 flex items-center gap-1.5">
-                        <Sparkles className="w-3 h-3 text-indigo-600" />
+                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
                         <span>Detected CSV Columns Injected into AI:</span>
                       </span>
-                      <div className="flex items-center gap-1 overflow-x-auto">
+                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
                         {rawHeaders.slice(0, 6).map(h => (
-                          <span key={h} className="bg-indigo-50 text-indigo-700 font-mono text-[10px] px-1.5 py-0.5 rounded border border-indigo-200">
+                          <span key={h} className="bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border border-indigo-200">
                             {'{{'}{h}{'}}'}
                           </span>
                         ))}
@@ -2239,27 +2242,28 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                    {/* FIELD 1: TARGET AVATAR */}
-                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                  {/* 4 INPUT CARDS */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                    {/* CARD 1: TARGET AVATAR */}
+                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">1. Target Avatar / Niche</label>
-                        <span className="text-[9px] text-indigo-600 font-medium">Who you help</span>
+                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">1. Target Avatar / Niche</label>
+                        <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Who you help</span>
                       </div>
                       <input
                         type="text"
                         placeholder="e.g. Dental Clinics, SaaS Founders, Agencies"
                         value={aiAudience}
                         onChange={e => setAiAudience(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
                       />
-                      <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
+                      <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
                         {['Dental Clinics', 'B2B SaaS', 'Marketing Agencies', 'MedSpas', 'E-Commerce'].map(preset => (
                           <button
                             key={preset}
                             type="button"
                             onClick={() => setAiAudience(preset)}
-                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-1.5 py-0.5 rounded transition-all whitespace-nowrap cursor-pointer"
+                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
                           >
                             + {preset}
                           </button>
@@ -2267,26 +2271,26 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       </div>
                     </div>
 
-                    {/* FIELD 2: RESULT / OFFER */}
-                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                    {/* CARD 2: RESULT / OFFER */}
+                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">2. What Result You Get Them</label>
-                        <span className="text-[9px] text-indigo-600 font-medium">Dream outcome</span>
+                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">2. What Result You Get Them</label>
+                        <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Dream outcome</span>
                       </div>
                       <input
                         type="text"
                         placeholder="e.g. Add 15 high-ticket patients monthly"
                         value={aiOffer}
                         onChange={e => setAiOffer(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
                       />
-                      <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
+                      <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
                         {['Add 15-20 calls/mo', '99% Primary Inboxing', 'Cut churn by 30%', 'Absorb overflow dev'].map(preset => (
                           <button
                             key={preset}
                             type="button"
                             onClick={() => setAiOffer(preset)}
-                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-1.5 py-0.5 rounded transition-all whitespace-nowrap cursor-pointer"
+                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
                           >
                             + {preset}
                           </button>
@@ -2294,74 +2298,76 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       </div>
                     </div>
 
-                    {/* FIELD 3: FREE GIFT / ASSET (SMART PRESET DROPDOWN + EDITABLE INPUT) */}
-                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                    {/* CARD 3: FREE GIFT / ASSET */}
+                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">3. Free Gift / Asset</label>
-                        <select
-                          onChange={e => {
-                            if (e.target.value) setAiLeadMagnet(e.target.value);
-                          }}
-                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>💡 Pick Asset...</option>
-                          <option value="60-second video teardown / pitch page ({{Pitch_Page_URL}})">📹 60s Video Teardown</option>
-                          <option value="a 1-page benchmark audit / breakdown ({{Pitch_Page_URL}})">📊 1-Page Benchmark Audit</option>
-                          <option value="a step-by-step SOP checklist ({{Pitch_Page_URL}})">📋 Actionable SOP Checklist</option>
-                          <option value="a peer case study with verified numbers ({{Pitch_Page_URL}})">📈 Peer Case Study Proof</option>
-                          <option value="our custom pricing model & sample report ({{Pitch_Page_URL}})">📑 Custom Sample Report</option>
-                        </select>
+                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">3. Free Gift / Asset</label>
+                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Upfront value</span>
                       </div>
                       <input
                         type="text"
                         placeholder="e.g. 60s video audit, 1-page breakdown"
                         value={aiLeadMagnet}
                         onChange={e => setAiLeadMagnet(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
                       />
-                      <span className="text-[9px] text-slate-400 block truncate">Delivers upfront value before asking for anything.</span>
+                      <select
+                        onChange={e => {
+                          if (e.target.value) setAiLeadMagnet(e.target.value);
+                        }}
+                        className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>💡 Quick Fill with Proven Asset...</option>
+                        <option value="60-second video teardown / pitch page ({{Pitch_Page_URL}})">📹 60s Video Teardown / Pitch Page</option>
+                        <option value="a 1-page benchmark audit / breakdown ({{Pitch_Page_URL}})">📊 1-Page Benchmark Audit / Breakdown</option>
+                        <option value="a step-by-step SOP checklist ({{Pitch_Page_URL}})">📋 Actionable SOP Checklist</option>
+                        <option value="a peer case study with verified numbers ({{Pitch_Page_URL}})">📈 Peer Case Study with Verified Numbers</option>
+                        <option value="our custom pricing model & sample report ({{Pitch_Page_URL}})">📑 Custom Pricing Model & Sample Report</option>
+                      </select>
                     </div>
 
-                    {/* FIELD 4: LOW-FRICTION QUESTION (SMART PRESET DROPDOWN + EDITABLE INPUT) */}
-                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                    {/* CARD 4: LOW-FRICTION QUESTION */}
+                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
                       <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">4. Low-Friction Question</label>
-                        <select
-                          onChange={e => {
-                            if (e.target.value) setAiCta(e.target.value);
-                          }}
-                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
-                          defaultValue=""
-                        >
-                          <option value="" disabled>💡 Pick Question...</option>
-                          <option value="Worth a quick look?">🟢 "Worth a quick look?"</option>
-                          <option value="Mind if I send over the 1-page breakdown?">🟢 "Mind if I send over the 1-page breakdown?"</option>
-                          <option value="Open to checking it out?">🟢 "Open to checking it out?"</option>
-                          <option value="Worth a brief 5-min intro this week?">🟢 "Worth a brief 5-min intro this week?"</option>
-                          <option value="Curious if this is on your radar for {{Company}}?">🟢 "Curious if this is on your radar for {'{{Company}}'}?"</option>
-                        </select>
+                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">4. Low-Friction Question</label>
+                        <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">1-Question CTA</span>
                       </div>
                       <input
                         type="text"
                         placeholder="e.g. Worth a quick look?"
                         value={aiCta}
                         onChange={e => setAiCta(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
                       />
-                      <span className="text-[9px] text-slate-400 block truncate">Single low-pressure permission question.</span>
+                      <select
+                        onChange={e => {
+                          if (e.target.value) setAiCta(e.target.value);
+                        }}
+                        className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
+                        defaultValue=""
+                      >
+                        <option value="" disabled>💡 Quick Fill with Low-Pressure CTA...</option>
+                        <option value="Worth a quick look?">🟢 "Worth a quick look?"</option>
+                        <option value="Mind if I send over the 1-page breakdown?">🟢 "Mind if I send over the 1-page breakdown?"</option>
+                        <option value="Open to checking it out?">🟢 "Open to checking it out?"</option>
+                        <option value="Worth a brief 5-min intro this week?">🟢 "Worth a brief 5-min intro this week?"</option>
+                        <option value="Curious if this is on your radar for {{Company}}?">🟢 "Curious if this is on your radar for {'{{Company}}'}?"</option>
+                      </select>
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between pt-1 border-t border-indigo-100">
-                    <span className="text-[10px] text-slate-500">
-                      Under 50 words • 3rd-grade reading level • Zero corporate pleasantries • Threaded Follow-ups
+                  {/* BOTTOM ACTION BAR */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-indigo-100/90">
+                    <span className="text-[11px] text-slate-500 font-medium flex items-center gap-1.5">
+                      <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                      <span>Under 50 words • 3rd-grade reading level • Zero corporate pleasantries • Threaded Follow-ups</span>
                     </span>
                     <button
                       type="button"
                       onClick={handleWizardGenerateAiCopy}
                       disabled={isGeneratingAi}
-                      className="text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center gap-1.5 disabled:opacity-50 active:scale-95 glow-tag cursor-pointer"
+                      className="text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 glow-tag cursor-pointer transition-all shrink-0"
                     >
                       {isGeneratingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
                       <span>{isGeneratingAi ? 'Writing Custom Sequence...' : 'Generate AI Sequence'}</span>
