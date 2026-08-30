@@ -243,10 +243,7 @@ export default function CampaignsTab({ leads }: Props) {
   ]);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
 
-  // Step 3: Sequence Modes, Hormozi Framework & Templates
-  const [sequenceMode, setSequenceMode] = useState<'playbooks' | 'ai_builder' | 'manual'>('playbooks');
-  const [selectedPlaybookKey, setSelectedPlaybookKey] = useState<string>('seo_recovery');
-  const [playbookShuffleIndex, setPlaybookShuffleIndex] = useState<number>(0);
+  // Step 3: AI Sequence Generator & Saved Templates
   const [savedCustomTemplates, setSavedCustomTemplates] = useState<Array<{ id: string; name: string; steps: CampaignStep[] }>>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -260,10 +257,8 @@ export default function CampaignsTab({ leads }: Props) {
   });
   const [isSaveTemplateOpen, setIsSaveTemplateOpen] = useState(false);
   const [newTemplateName, setNewTemplateName] = useState('');
-  const [activeVariantMap, setActiveVariantMap] = useState<Record<number, 'A' | 'B'>>({ 0: 'A' });
-  const [variantBMap, setVariantBMap] = useState<Record<number, { subject: string; body: string }>>({});
 
-  // Step 3 AI Copywriting generator state (Hormozi $100M Leads Framework)
+  // Step 3 AI Sequence Generator state (Trained on top 1% cold email frameworks)
   const [aiOffer, setAiOffer] = useState('');
   const [aiAudience, setAiAudience] = useState('');
   const [aiPainPoint, setAiPainPoint] = useState('');
@@ -850,181 +845,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     }
   };
 
-  const PROVEN_PLAYBOOKS = [
-    {
-      id: 'seo_recovery',
-      title: '🔍 SEO & Google Ranking Recovery',
-      tag: 'Trained SEO Track',
-      badge: 'Page-2 Recovery',
-      description: 'Pinpoints commercial search terms where the prospect is sitting on Page 2 and offers a 60-second video audit.',
-      variations: [
-        {
-          angle: 'Page-2 Ranking Opportunity',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nNoticed {{Company}} is ranking on page 2 for high-intent commercial search terms in your area.\n\nPut together a 60-second video teardown showing 3 search ranking bottlenecks here: {{Pitch_Page_URL}}\n\n{{Worth a quick look?|Open to checking it out?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: 'Hi {{First_Name}},\n\nQuick follow up on the SEO breakdown for {{Company}}. Recently helped a similar team capture 40% more organic inquiries in 30 days.\n\nDid you get a chance to review the 60s teardown?\n\nBest,\nYour Name'
-            },
-            {
-              id: 3,
-              dayDelay: 7,
-              subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: 'Hi {{First_Name}},\n\nAssuming SEO ranking recovery isn\'t a priority for {{Company}} right now, so I won\'t follow up again.\n\nIf capturing organic search traffic becomes a focus later, feel free to reach back out.\n\nBest,\nYour Name'
-            }
-          ]
-        },
-        {
-          angle: 'Competitor Traffic Leak',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: 'Competitor search gap for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nSaw that 2 of your main local competitors are capturing search traffic for high-value terms in your space.\n\nRecorded a quick teardown on how {{Company}} can recover that lost traffic: {{Pitch_Page_URL}}\n\nMind if I send over the 1-page summary?\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: Competitor search gap for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nFloating this note to the top of your inbox. Curious if organic traffic growth is a priority for {{Company}} this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'web_dev_agency',
-      title: '💻 White-Label Web & Software Dev',
-      tag: 'Trained Dev Track',
-      badge: 'Agency Overflow',
-      description: 'Positions you as a high-speed engineering partner to absorb client overflow with zero full-time overhead.',
-      variations: [
-        {
-          angle: 'Agency Dev Overflow',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{White-label dev|Engineering partner} for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\nWe provide white-label full-stack development for agencies scaling client delivery with zero full-time overhead.\n\nSample work and portfolio builds here: {{Pitch_Page_URL}}\n\n{{Worth a quick 5-min intro this week?|Open to connecting?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {White-label dev|Engineering partner} for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nQuick follow-up on my note below—we recently helped an agency partner deliver 4 client web apps in 3 weeks with 100% white-label confidentiality.\n\nCurious if dev overflow is on your radar this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'video_pitch',
-      title: '📹 1-to-1 Video Teardown Pitch',
-      tag: 'High Engagement',
-      badge: '60s Teardown',
-      description: 'Offers a personalized 60-second video walkthrough directly addressing company bottlenecks.',
-      variations: [
-        {
-          angle: 'Personalized 60-Second Walkthrough',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '60s video for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nRecorded a quick 60-second walkthrough specifically for {{Company}} showing 3 actionable growth fixes: {{Pitch_Page_URL}}\n\n{{Worth a quick look?|Let me know what you think!}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: 60s video for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nJust wanted to make sure the video link worked: {{Pitch_Page_URL}}\n\nOpen to discussing if this makes sense for {{Company}}?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: '3_sentence_hook',
-      title: '⚡ 3-Sentence Brevity Hook',
-      tag: 'Predictable Revenue',
-      badge: 'Under 40 Words',
-      description: 'Ultra-concise, conversational founder-to-founder outreach with zero pleasantries.',
-      variations: [
-        {
-          angle: 'Direct Value-First',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{{Company}} + growth',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nWe help teams in your space achieve guaranteed 99% inbox placement without domain burn.\n\nMind if I send over a quick 1-pager?\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {{Company}} + growth',
-              body: 'Hi {{First_Name}},\n\nQuick bump on this—worth exploring for {{Company}}?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'case_study',
-      title: '📊 Case Study & Proof Drop',
-      tag: 'Proof-Driven',
-      badge: 'Metric Proof',
-      description: 'Leads with specific performance numbers and a concrete case study from a similar client.',
-      variations: [
-        {
-          angle: 'Peer Case Study',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: 'How a team like {{Company}} added 28 calls',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nRecently helped a B2B partner scale outbound pipeline to 28 qualified discovery calls in 14 days without spam penalties: {{Pitch_Page_URL}}\n\n{{Open to seeing the numbers?|Worth a quick look?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: How a team like {{Company}} added 28 calls',
-              body: 'Hi {{First_Name}},\n\nQuick follow-up on the case study—curious if pipeline velocity is a focus for {{Company}} this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    }
-  ];
 
-  const handleSelectPlaybook = (playbookId: string, varIndex = 0) => {
-    setSelectedPlaybookKey(playbookId);
-    setPlaybookShuffleIndex(varIndex);
-    const pb = PROVEN_PLAYBOOKS.find(p => p.id === playbookId);
-    if (!pb || !pb.variations[varIndex]) return;
-    const chosenVar = pb.variations[varIndex];
-    setSteps(chosenVar.steps);
-    try { confetti({ particleCount: 45, spread: 50, origin: { y: 0.6 } }); } catch {}
-  };
-
-  const handleShufflePlaybook = (playbookId: string) => {
-    const pb = PROVEN_PLAYBOOKS.find(p => p.id === playbookId);
-    if (!pb || pb.variations.length <= 1) {
-      handleSelectPlaybook(playbookId, 0);
-      return;
-    }
-    const nextIdx = (playbookShuffleIndex + 1) % pb.variations.length;
-    handleSelectPlaybook(playbookId, nextIdx);
-  };
 
   const handleSaveCustomTemplate = () => {
     if (!newTemplateName.trim()) {
@@ -2289,261 +2110,130 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           {/* STEP 3: MULTI-TOUCH SEQUENCE STUDIO & AI ENGINE */}
           {wizardStep === 3 && (
             <div className="space-y-5">
-              {/* ═══ 3-MODE SEQUENCE CREATOR SELECTOR ═══ */}
-              <div className="p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-1.5 shadow-2xs">
-                <button
-                  type="button"
-                  onClick={() => setSequenceMode('playbooks')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-                    sequenceMode === 'playbooks'
-                      ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-black text-[13px]">
-                    <span>🚀 Ready-to-Send Playbooks</span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-normal">Pre-trained for SEO, Web Dev &amp; B2B</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSequenceMode('ai_builder')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-                    sequenceMode === 'ai_builder'
-                      ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-black text-[13px]">
-                    <Sparkles className="w-3.5 h-3.5 text-purple-600" />
-                    <span>✨ AI Campaign Writer</span>
-                  </span>
-                  <span className="text-[10px] text-purple-700 font-normal">Hormozi $100M Leads Framework</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSequenceMode('manual')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 ${
-                    sequenceMode === 'manual'
-                      ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-black text-[13px]">
-                    <span>✍️ Write Your Own Message</span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-normal">Full control + Dynamic CSV Tags</span>
-                </button>
-              </div>
-
-              {/* ═══ MODE 1: PROVEN PLAYBOOKS CAROUSEL ═══ */}
-              {sequenceMode === 'playbooks' && (
-                <div className="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-white p-5 rounded-2xl border border-indigo-200 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* ═══ AI SEQUENCE GENERATOR PANEL (ANTI-SLOP & ANTI-BURN) ═══ */}
+              <div className="bg-gradient-to-br from-indigo-50/80 via-purple-50/40 to-white p-5 rounded-2xl border border-indigo-200/90 space-y-4 shadow-xs">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center font-bold shadow-xs shrink-0">
+                      <Sparkles className="w-4 h-4 text-purple-200" />
+                    </div>
                     <div>
                       <h4 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Battle-Tested Cold Outreach Playbooks</span>
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                          Zero-Fluff • Proven Inboxing
+                        <span>AI Sequence Generator</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                          Zero AI-Slop • Anti-Burn Spintax
                         </span>
                       </h4>
                       <p className="text-[11px] text-slate-500">
-                        Pick a specialized strategy below. Includes built-in Spintax and threaded follow-ups.
+                        Trained on top 1% cold email frameworks. Generates unique, under-50-word, high-deliverability sequences with threaded follow-ups.
                       </p>
                     </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleShufflePlaybook(selectedPlaybookKey)}
-                        className="text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 active:scale-95"
-                      >
-                        <Dices className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>🎲 Shuffle Angles</span>
-                      </button>
-                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    {PROVEN_PLAYBOOKS.map(pb => (
-                      <button
-                        key={pb.id}
-                        type="button"
-                        onClick={() => handleSelectPlaybook(pb.id, 0)}
-                        className={`text-left p-3.5 rounded-xl border transition-all space-y-1.5 ${
-                          selectedPlaybookKey === pb.id
-                            ? 'bg-white border-indigo-600 shadow-sm ring-1 ring-indigo-500'
-                            : 'bg-white/80 border-slate-200 hover:border-indigo-300 hover:bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900">{pb.title}</span>
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono">
-                            {pb.badge}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
-                          {pb.description}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* ═══ MODE 2: HORMOZI $100M LEADS AI GENERATOR ═══ */}
-              {sequenceMode === 'ai_builder' && (
-                <div className="bg-gradient-to-br from-purple-50/80 via-indigo-50/50 to-white p-5 rounded-2xl border border-purple-200 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5">
-                      <div className="w-8 h-8 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold shadow-xs">
-                        <Sparkles className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h4 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-2">
-                          <span>Hormozi $100M Leads Sequence Architect</span>
-                          <span className="px-2 py-0.5 rounded-full bg-purple-100 text-purple-800 text-[10px] font-bold">
-                            Value-First • 3rd-Grade Reading Level
-                          </span>
-                        </h4>
-                        <p className="text-[10px] text-slate-500">
-                          Enforces Grand Slam Value Equation: High Dream Outcome, Zero Pleasantries, and Free Gift Upfront.
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1.5 overflow-x-auto bg-white p-1 rounded-xl border border-purple-100 shadow-2xs">
-                      <button
-                        type="button"
-                        onClick={() => setAiFramework('hormozi_grand_slam')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                          aiFramework === 'hormozi_grand_slam' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        👑 Grand Slam Offer
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAiFramework('seo_recovery')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                          aiFramework === 'seo_recovery' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        🔍 SEO Ranking
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAiFramework('web_dev_agency')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                          aiFramework === 'web_dev_agency' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        💻 Web Dev Partner
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAiFramework('3_sentence_hook')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
-                          aiFramework === '3_sentence_hook' ? 'bg-purple-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        ⚡ 3-Sentence Hook
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">1. Target Avatar</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dental clinic owners, MedSpas, SaaS founders"
-                        value={aiAudience}
-                        onChange={e => setAiAudience(e.target.value)}
-                        className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-medium"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">2. Dream Outcome (Result)</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Add 20 Invisalign patients / mo"
-                        value={aiOffer}
-                        onChange={e => setAiOffer(e.target.value)}
-                        className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-medium"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">3. Free Gift / Lead Magnet</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. 60s video audit, 1-page playbook"
-                        value={aiLeadMagnet}
-                        onChange={e => setAiLeadMagnet(e.target.value)}
-                        className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-medium"
-                      />
-                    </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">4. Low-Friction CTA</label>
-                      <input
-                        type="text"
-                        placeholder="e.g. Worth a quick look?"
-                        value={aiCta}
-                        onChange={e => setAiCta(e.target.value)}
-                        className="w-full bg-white border border-purple-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-purple-500 font-medium"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="flex items-center justify-between pt-1 border-t border-purple-100">
-                    <span className="text-[10px] text-slate-500">
-                      Under 50 words • 3rd-grade reading level • Zero corporate pleasantries • Threaded Follow-ups
-                    </span>
+                  <div className="flex items-center gap-1.5 overflow-x-auto bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs">
                     <button
                       type="button"
-                      onClick={handleWizardGenerateAiCopy}
-                      disabled={isGeneratingAi}
-                      className="text-xs font-bold bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-md shadow-purple-500/20 flex items-center gap-1.5 disabled:opacity-50 active:scale-95 glow-tag"
+                      onClick={() => setAiFramework('hormozi_grand_slam')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        aiFramework === 'hormozi_grand_slam' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
                     >
-                      {isGeneratingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                      <span>{isGeneratingAi ? 'Crafting Hormozi Sequence...' : 'Generate $100M Sequence'}</span>
+                      👑 Value-First
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiFramework('video_pitch')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        aiFramework === 'video_pitch' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📹 1-to-1 Video
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiFramework('3_sentence_hook')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        aiFramework === '3_sentence_hook' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      ⚡ 3-Sentence Hook
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiFramework('case_study')}
+                      className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all ${
+                        aiFramework === 'case_study' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                      }`}
+                    >
+                      📊 Case Study
                     </button>
                   </div>
                 </div>
-              )}
 
-              {/* ═══ MODE 3: WRITE YOUR OWN MESSAGE & CSV TAG PALETTE ═══ */}
-              {sequenceMode === 'manual' && (
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h4 className="text-xs font-bold text-slate-900">Dynamic CSV Tags Palette</h4>
-                      <p className="text-[11px] text-slate-500">Click any tag chip below to insert it at your cursor in the active email step.</p>
-                    </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">1. Target Avatar / Niche</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. B2B SaaS, Dental Clinics, MedSpas, Agencies"
+                      value={aiAudience}
+                      onChange={e => setAiAudience(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
                   </div>
-
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    {['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL', ...rawHeaders.filter(h => !['email', 'first_name', 'firstname', 'name', 'company', 'title', 'website', 'icebreaker', 'pitch_url'].includes(h.toLowerCase()))].map(tag => (
-                      <button
-                        key={tag}
-                        type="button"
-                        onClick={() => handleInsertTagAtCursor(tag)}
-                        className="text-xs font-mono font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-2.5 py-1 rounded-lg shadow-2xs transition-all active:scale-95"
-                      >
-                        + {'{{'}{tag}{'}}'}
-                      </button>
-                    ))}
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">2. What Result You Get Them</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Guaranteed 99% primary inbox deliverability"
+                      value={aiOffer}
+                      onChange={e => setAiOffer(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">3. Free Gift / Asset</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. 60s video audit, 1-page breakdown"
+                      value={aiLeadMagnet}
+                      onChange={e => setAiLeadMagnet(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">4. Low-Friction Question</label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Worth a quick look?"
+                      value={aiCta}
+                      onChange={e => setAiCta(e.target.value)}
+                      className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                    />
                   </div>
                 </div>
-              )}
+
+                <div className="flex items-center justify-between pt-1 border-t border-indigo-100">
+                  <span className="text-[10px] text-slate-500">
+                    Under 50 words • 3rd-grade reading level • Zero corporate pleasantries • Threaded Follow-ups
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleWizardGenerateAiCopy}
+                    disabled={isGeneratingAi}
+                    className="text-xs font-bold bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 flex items-center gap-1.5 disabled:opacity-50 active:scale-95 glow-tag"
+                  >
+                    {isGeneratingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                    <span>{isGeneratingAi ? 'Writing Custom Sequence...' : 'Generate AI Sequence'}</span>
+                  </button>
+                </div>
+              </div>
 
               {/* ═══ SAVED CUSTOM TEMPLATES BAR ═══ */}
               {savedCustomTemplates.length > 0 && (
                 <div className="p-3 bg-white border border-slate-200 rounded-xl flex items-center justify-between gap-3 shadow-2xs">
                   <div className="flex items-center gap-2 overflow-x-auto">
-                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Your Saved Templates:</span>
+                    <span className="text-xs font-bold text-slate-700 whitespace-nowrap">Saved Templates:</span>
                     {savedCustomTemplates.map(tmpl => (
                       <div key={tmpl.id} className="flex items-center gap-1 bg-slate-100 px-2.5 py-1 rounded-lg text-xs font-medium text-slate-800">
                         <button
@@ -2677,11 +2367,26 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     />
                   </div>
 
+                  {/* ═══ DYNAMIC CSV TAG PALETTE (CLICKABLE CHIPS) ═══ */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Email Body &amp; Merge Tags</label>
-                      <span className="text-[11px] text-indigo-600 font-mono">Available: {'{{First_Name}}'}, {'{{Company}}'}, {'{{Icebreaker}}'}, {'{{Pitch_Page_URL}}'}</span>
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Email Body</label>
+                      <span className="text-[10px] text-slate-500">Click tag below to insert:</span>
                     </div>
+
+                    <div className="flex flex-wrap items-center gap-1.5 pb-1">
+                      {['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL', ...rawHeaders.filter(h => !['email', 'first_name', 'firstname', 'name', 'company', 'title', 'website', 'icebreaker', 'pitch_url'].includes(h.toLowerCase()))].map(tag => (
+                        <button
+                          key={tag}
+                          type="button"
+                          onClick={() => handleInsertTagAtCursor(tag)}
+                          className="text-[11px] font-mono font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-2 py-0.5 rounded-lg shadow-2xs transition-all active:scale-95"
+                        >
+                          + {'{{'}{tag}{'}}'}
+                        </button>
+                      ))}
+                    </div>
+
                     <textarea
                       rows={6}
                       value={steps[activeStepIndex].body}
@@ -2717,6 +2422,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   )}
                 </div>
               )}
+
 
               {/* ═══ SAVE TEMPLATE MODAL ═══ */}
               {isSaveTemplateOpen && (
