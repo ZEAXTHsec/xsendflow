@@ -8,6 +8,7 @@ import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
 import { DEFAULT_USER_SENDERS } from '../settings/ProfileSettingsModal';
 import { calculateSpintaxPermutations, generateSpintaxSamples } from '@/lib/engine/spintaxFSM';
+import { calculateReadability } from '@/lib/readability';
 import { deSpamifyText } from '@/lib/spamWords';
 import { autoWrapSpintax } from '@/lib/spintax';
 import UpgradeProModal from '../modals/UpgradeProModal';
@@ -265,7 +266,7 @@ export default function CampaignsTab({ leads }: Props) {
   const [aiPainPoint, setAiPainPoint] = useState('');
   const [aiLeadMagnet, setAiLeadMagnet] = useState('60-second video teardown / pitch page ({{Pitch_Page_URL}})');
   const [aiCta, setAiCta] = useState('Worth a quick look?');
-  const [aiFramework, setAiFramework] = useState<'hormozi_grand_slam' | 'seo_recovery' | 'web_dev_agency' | '3_sentence_hook' | 'video_pitch' | 'case_study' | 'founder_intro'>('hormozi_grand_slam');
+  const [aiFramework, setAiFramework] = useState<'value_teardown' | 'case_study_proof' | '3_sentence_hook'>('value_teardown');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [wizardSpintaxSamples, setWizardSpintaxSamples] = useState<string[]>([]);
 
@@ -910,7 +911,9 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           painPoint: aiPainPoint || 'spam placement and low response rates',
           leadMagnet: aiLeadMagnet || 'a 60-second video teardown ({{Pitch_Page_URL}})',
           cta: aiCta || 'Worth a quick look?',
+          angle: aiFramework,
           framework: aiFramework,
+          csvVariables: rawHeaders.length > 0 ? rawHeaders : ['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL'],
           apiKey
         })
       });
@@ -2192,42 +2195,49 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     <div className="flex items-center gap-1.5 overflow-x-auto bg-white p-1 rounded-xl border border-indigo-100 shadow-2xs">
                       <button
                         type="button"
-                        onClick={() => setAiFramework('hormozi_grand_slam')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                          aiFramework === 'hormozi_grand_slam' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        onClick={() => setAiFramework('value_teardown')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          aiFramework === 'value_teardown' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        👑 Value-First
+                        🎯 Angle A: Value Teardown
                       </button>
                       <button
                         type="button"
-                        onClick={() => setAiFramework('video_pitch')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                          aiFramework === 'video_pitch' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
+                        onClick={() => setAiFramework('case_study_proof')}
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                          aiFramework === 'case_study_proof' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        📹 1-to-1 Video
+                        📊 Angle B: Peer Case Study
                       </button>
                       <button
                         type="button"
                         onClick={() => setAiFramework('3_sentence_hook')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
                           aiFramework === '3_sentence_hook' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
                         }`}
                       >
-                        ⚡ 3-Sentence Hook
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setAiFramework('case_study')}
-                        className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-all cursor-pointer ${
-                          aiFramework === 'case_study' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'
-                        }`}
-                      >
-                        📊 Case Study
+                        ⚡ Angle C: 3-Sentence Hook
                       </button>
                     </div>
                   </div>
+
+                  {rawHeaders.length > 0 && (
+                    <div className="p-2.5 bg-white/90 border border-indigo-100 rounded-xl flex items-center justify-between gap-2 text-[11px]">
+                      <span className="font-bold text-indigo-900 flex items-center gap-1.5">
+                        <Sparkles className="w-3 h-3 text-indigo-600" />
+                        <span>Detected CSV Columns Injected into AI:</span>
+                      </span>
+                      <div className="flex items-center gap-1 overflow-x-auto">
+                        {rawHeaders.slice(0, 6).map(h => (
+                          <span key={h} className="bg-indigo-50 text-indigo-700 font-mono text-[10px] px-1.5 py-0.5 rounded border border-indigo-200">
+                            {'{{'}{h}{'}}'}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
                     <div className="space-y-1">
@@ -2403,14 +2413,49 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
               {steps[activeStepIndex] && (
                 <div className="bg-slate-50/70 p-5 rounded-2xl border border-slate-200 space-y-4">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <span className="text-xs font-bold uppercase tracking-wider text-slate-700">
-                        Step {activeStepIndex + 1} Configuration
+                        Step {activeStepIndex + 1}
                       </span>
-                      <span className="text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <Layers className="w-3 h-3" />
-                        <span>{calculateSpintaxPermutations(`${steps[activeStepIndex].subject} ${steps[activeStepIndex].body}`).toLocaleString()} Permutations</span>
-                      </span>
+
+                      {/* ═══ REAL-TIME FLESCH-KINCAID READABILITY & BREVITY METRICS ═══ */}
+                      {(() => {
+                        const metrics = calculateReadability(steps[activeStepIndex].body);
+                        return (
+                          <div className="flex flex-wrap items-center gap-1.5">
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                              metrics.gradeStatus === 'optimal'
+                                ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                : metrics.gradeStatus === 'acceptable'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}>
+                              <span>📖 {metrics.gradeLabel}</span>
+                              <span className="text-[9px] font-medium opacity-80 font-sans">
+                                ({metrics.gradeStatus === 'optimal' ? '3rd-Grade Simplicity' : metrics.gradeStatus === 'acceptable' ? 'Clear' : 'Too Complex'})
+                              </span>
+                            </span>
+
+                            <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border flex items-center gap-1 ${
+                              metrics.wordCountStatus === 'optimal'
+                                ? 'bg-blue-50 text-blue-700 border-blue-200'
+                                : metrics.wordCountStatus === 'acceptable'
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-rose-50 text-rose-700 border-rose-200'
+                            }`}>
+                              <span>📏 {metrics.wordCount}w</span>
+                              <span className="text-[9px] font-medium opacity-80 font-sans">
+                                ({metrics.wordCountStatus === 'optimal' ? '<50w Optimal' : metrics.wordCountStatus === 'acceptable' ? '<65w' : 'Too Long'})
+                              </span>
+                            </span>
+
+                            <span className="text-[10px] font-mono font-bold bg-purple-50 text-purple-700 border border-purple-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                              <Layers className="w-3 h-3" />
+                              <span>{calculateSpintaxPermutations(`${steps[activeStepIndex].subject} ${steps[activeStepIndex].body}`).toLocaleString()} Permutations</span>
+                            </span>
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     {activeStepIndex > 0 && (

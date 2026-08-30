@@ -8,7 +8,9 @@ interface GenerateRequest {
   painPoint?: string;
   leadMagnet?: string;
   cta?: string;
-  framework?: 'seo_recovery' | 'web_dev_agency' | 'hormozi_grand_slam' | '3_sentence_hook' | 'video_pitch' | 'founder_intro' | 'case_study';
+  angle?: 'value_teardown' | 'case_study_proof' | '3_sentence_hook' | 'hormozi_grand_slam' | 'video_pitch' | 'case_study' | string;
+  framework?: string;
+  csvVariables?: string[];
   apiKey?: string;
 }
 
@@ -19,12 +21,15 @@ export async function POST(req: NextRequest) {
       offer, 
       audience, 
       painPoint, 
-      leadMagnet,
-      cta,
-      framework = 'hormozi_grand_slam', 
+      leadMagnet, 
+      cta, 
+      angle,
+      framework = 'value_teardown', 
+      csvVariables = ['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL'],
       apiKey 
     } = body;
 
+    const selectedAngle = angle || framework || 'value_teardown';
     const targetOffer = offer?.trim() || 'guaranteed 99% cold email primary inbox deliverability';
     const targetAudience = audience?.trim() || 'B2B founders & agency owners';
     const targetPain = painPoint?.trim() || 'emails landing in spam and burned domain reputations';
@@ -35,23 +40,28 @@ export async function POST(req: NextRequest) {
 
     let generatedSequence: SequenceStep[] | null = null;
 
+    // Available Dynamic CSV tags from prospect lead list
+    const availableTagsList = Array.from(new Set(['First_Name', 'Company', 'Pitch_Page_URL', 'Icebreaker', ...csvVariables])).map(t => `{{${t}}}`).join(', ');
+
     // Try generating with Google Gemini 2.0 Flash with strict Hormozi & Cold Email Mastery rules
     if (effectiveApiKey) {
       try {
-        const systemPrompt = `You are a cold email copywriter trained on Alex Hormozi's $100M Offers, $100M Leads, and Aaron Ross's Predictable Revenue.
+        const systemPrompt = `You are an elite cold email copywriter trained on Alex Hormozi's $100M Offers, $100M Leads, and Aaron Ross's Predictable Revenue.
 
 STRICT COLD OUTREACH RULES:
 1. THIRD-GRADE READING LEVEL: Simple, direct words. No fancy corporate jargon.
 2. BREVITY: Touch 1 strictly UNDER 50 words. Touch 2 strictly UNDER 40 words. Touch 3 strictly UNDER 30 words.
-3. BAN ALL PLEASANTRIES: Never use "I hope you are well", "In today's fast-paced world", "revolutionary", "synergy", "unlock".
+3. BAN ALL PLEASANTRIES: Never use "I hope you are well", "In today's fast-paced world", "revolutionary", "synergy", "unlock", "game-changer".
 4. VALUE-FIRST LEAD MAGNET: Deliver upfront value (${targetMagnet}) before asking for anything.
 5. LOW-FRICTION 1-QUESTION CTA: End with 1 single low-pressure permission question (e.g. "${targetCta}").
-6. MERGE TAGS PRESERVED: {{First_Name}}, {{Company}}, {{Pitch_Page_URL}}, {{Icebreaker}}, {{city}}, {{keyword}}.
-7. DEEP SPINTAX: Wrap greetings and phrases with {Option 1|Option 2|Option 3} syntax.
+6. CONTEXT-AWARE DYNAMIC CSV VARIABLES: Naturally weave in relevant tags where appropriate from: ${availableTagsList}.
+7. DEEP SPINTAX: Wrap greetings and phrases with {Option 1|Option 2|Option 3} syntax for anti-burn deliverability.
 8. RETURN 3-TOUCH SEQUENCE in JSON format:
    - Touch 1 (Day 1): Observation + {{Icebreaker}} + Dream Outcome + Free Asset Link (${targetMagnet}) + 1-Question CTA.
    - Touch 2 (Day 3): Threaded follow-up starting with "Re:" + specific case study proof point.
    - Touch 3 (Day 7): Permission-based graceful breakup (leaving door open).
+
+Selected Copywriting Angle: ${selectedAngle}
 
 JSON Structure:
 {
