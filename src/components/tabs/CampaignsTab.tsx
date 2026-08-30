@@ -392,8 +392,15 @@ export default function CampaignsTab({ leads }: Props) {
     const handleResumeDraftEvent = () => {
       handleResumeDraft();
     };
+    const handleDiscardDraftEvent = () => {
+      setDraftInfo(null);
+    };
     window.addEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
-    return () => window.removeEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
+    window.addEventListener('xsendflow_draft_discarded', handleDiscardDraftEvent);
+    return () => {
+      window.removeEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
+      window.removeEventListener('xsendflow_draft_discarded', handleDiscardDraftEvent);
+    };
   }, []);
 
   const handleDiscardDraft = () => {
@@ -401,6 +408,7 @@ export default function CampaignsTab({ leads }: Props) {
     try {
       localStorage.removeItem('xsendflow_wizard_draft');
       setDraftInfo(null);
+      window.dispatchEvent(new Event('xsendflow_draft_discarded'));
     } catch {}
   };
 

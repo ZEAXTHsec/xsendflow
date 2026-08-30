@@ -244,10 +244,12 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
     window.addEventListener('storage', handleSync);
     window.addEventListener('xsendflow_campaigns_updated', handleSync);
     window.addEventListener('xsendflow_senders_updated', handleSync);
+    window.addEventListener('xsendflow_draft_discarded', () => setDraftInfo(null));
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('xsendflow_campaigns_updated', handleSync);
       window.removeEventListener('xsendflow_senders_updated', handleSync);
+      window.removeEventListener('xsendflow_draft_discarded', () => setDraftInfo(null));
     };
   }, []);
 
@@ -508,29 +510,46 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-white">{draftInfo.name}</span>
-                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.2 rounded-full">
+                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full">
                   Step {draftInfo.step} Draft
                 </span>
               </div>
               <p className="text-[11px] text-slate-300">
-                You have an unfinished campaign auto-saved in your vault. Click resume to finish and launch.
+                You have an unfinished campaign auto-saved in your vault. Click resume to finish or discard to start fresh.
               </p>
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={() => {
-              onNavigateTab?.('campaigns');
-              setTimeout(() => {
-                window.dispatchEvent(new Event('xsendflow_resume_draft'));
-              }, 100);
-            }}
-            className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all shrink-0 font-mono"
-          >
-            <span>Resume Draft ➔</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
+          <div className="flex items-center gap-2.5 shrink-0">
+            <button
+              type="button"
+              onClick={() => {
+                if (!confirm('Are you sure you want to discard this unfinished draft?')) return;
+                try {
+                  localStorage.removeItem('xsendflow_wizard_draft');
+                  setDraftInfo(null);
+                  window.dispatchEvent(new Event('xsendflow_draft_discarded'));
+                } catch {}
+              }}
+              className="text-xs font-bold text-rose-300 hover:text-white bg-rose-500/20 hover:bg-rose-600/40 border border-rose-500/40 px-3.5 py-2.5 rounded-xl transition-all flex items-center justify-center gap-1.5 active:scale-95 shadow-xs cursor-pointer"
+            >
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Discard Draft</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onNavigateTab?.('campaigns');
+                setTimeout(() => {
+                  window.dispatchEvent(new Event('xsendflow_resume_draft'));
+                }, 100);
+              }}
+              className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all font-mono cursor-pointer"
+            >
+              <span>Resume Draft ➔</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
         </div>
       )}
 
