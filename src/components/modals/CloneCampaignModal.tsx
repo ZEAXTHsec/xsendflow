@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { X, Copy, Clock, Calendar, ShieldCheck, Sparkles, RefreshCw, Layers } from 'lucide-react';
 import { Campaign } from '../tabs/CampaignsTab';
-import { GLOBAL_TIMEZONES } from '@/lib/engine/timeZoneScheduler';
+import { GLOBAL_TIMEZONES, getDefaultDynamicWindow } from '@/lib/engine/timeZoneScheduler';
 import { UserPlan } from '@/lib/planLimits';
 
 interface Props {
@@ -21,23 +21,23 @@ export default function CloneCampaignModal({
 }: Props) {
   if (!isOpen || !campaign) return null;
 
-  const now = new Date();
-  const currentHour = now.getHours();
-  const currentMin = now.getMinutes();
-  const nextStartHour = String(currentHour).padStart(2, '0');
-  const nextStartMin = String(Math.min(55, currentMin + 5)).padStart(2, '0');
-  const nextEndHour = String((currentHour + 2) % 24).padStart(2, '0');
-  const defaultStartTime = `${nextStartHour}:${nextStartMin}`;
-  const defaultEndTime = `${nextEndHour}:00`;
+  const initialDynamic = getDefaultDynamicWindow(campaign.timezone);
 
   const [newName, setNewName] = useState(`${campaign.name} (Copy)`);
-  const [timezone, setTimezone] = useState(campaign.timezone || 'Asia/Kolkata (IST)');
+  const [timezone, setTimezone] = useState(campaign.timezone || initialDynamic.detectedTimezone);
   const [is24Hours, setIs24Hours] = useState(campaign.is24Hours || false);
-  const [windowStart, setWindowStart] = useState(defaultStartTime);
-  const [windowEnd, setWindowEnd] = useState(defaultEndTime);
+  const [windowStart, setWindowStart] = useState(initialDynamic.windowStart);
+  const [windowEnd, setWindowEnd] = useState(initialDynamic.windowEnd);
   const [resetLeadStatus, setResetLeadStatus] = useState(true);
   const [dailyLimit, setDailyLimit] = useState(campaign.dailyLimit || 100);
   const [delaySeconds, setDelaySeconds] = useState(campaign.delaySeconds || 45);
+
+  const handleTimezoneChange = (newTz: string) => {
+    setTimezone(newTz);
+    const dynamic = getDefaultDynamicWindow(newTz);
+    setWindowStart(dynamic.windowStart);
+    setWindowEnd(dynamic.windowEnd);
+  };
 
   const handleConfirm = () => {
     if (!newName.trim()) {
@@ -132,7 +132,7 @@ export default function CloneCampaignModal({
               <label className="text-[11px] font-bold text-slate-500">Target Audience Timezone</label>
               <select
                 value={timezone}
-                onChange={e => setTimezone(e.target.value)}
+                onChange={e => handleTimezoneChange(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800"
               >
                 {GLOBAL_TIMEZONES.map(tz => (

@@ -57,6 +57,66 @@ export function extractIanaTimezone(tzString?: string): string {
 }
 
 /**
+ * Detects the user's browser timezone and maps it to the closest supported GLOBAL_TIMEZONES entry.
+ */
+export function detectUserTimezone(): string {
+  try {
+    const userIana = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    if (userIana) {
+      // 1. Direct match on iana
+      const exact = GLOBAL_TIMEZONES.find(t => t.iana.toLowerCase() === userIana.toLowerCase());
+      if (exact) return exact.value;
+
+      // 2. Partial match on city / country
+      const city = userIana.split('/')[1] || userIana;
+      const partial = GLOBAL_TIMEZONES.find(t => t.iana.toLowerCase().includes(city.toLowerCase()) || t.value.toLowerCase().includes(city.toLowerCase()));
+      if (partial) return partial.value;
+
+      // 3. Match on offset
+      const now = new Date();
+      const userOffsetMin = -now.getTimezoneOffset();
+      const userOffsetHours = userOffsetMin / 60;
+      const offsetMatch = GLOBAL_TIMEZONES.find(t => {
+        if (t.offset.includes(`${userOffsetHours > 0 ? '+' : ''}${userOffsetHours}`)) return true;
+        return false;
+      });
+      if (offsetMatch) return offsetMatch.value;
+    }
+  } catch {}
+  return 'Asia/Kolkata (IST)';
+}
+
+/**
+ * Computes dynamic default sending window:
+ * - Start time: current target clock + 2 minutes
+ * - End time: current target clock + 3 hours
+ */
+export function getDefaultDynamicWindow(timezoneStr?: string): {
+  windowStart: string;
+  windowEnd: string;
+  detectedTimezone: string;
+} {
+  const detectedTimezone = timezoneStr || detectUserTimezone();
+  const targetTime = getTargetLocalTime(detectedTimezone);
+
+  const startTotalMinutes = (targetTime.hour * 60 + targetTime.minute + 2) % 1440;
+  const startHour = Math.floor(startTotalMinutes / 60);
+  const startMin = startTotalMinutes % 60;
+  const windowStart = `${String(startHour).padStart(2, '0')}:${String(startMin).padStart(2, '0')}`;
+
+  const endTotalMinutes = (targetTime.hour * 60 + targetTime.minute + 180) % 1440;
+  const endHour = Math.floor(endTotalMinutes / 60);
+  const endMin = endTotalMinutes % 60;
+  const windowEnd = `${String(endHour).padStart(2, '0')}:${String(endMin).padStart(2, '0')}`;
+
+  return {
+    windowStart,
+    windowEnd,
+    detectedTimezone
+  };
+}
+
+/**
  * Gets exact current time in the target timezone
  */
 export function getTargetLocalTime(timezoneStr?: string, referenceDate: Date = new Date()): {

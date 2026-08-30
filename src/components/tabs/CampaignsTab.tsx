@@ -14,7 +14,7 @@ import UpgradeProModal from '../modals/UpgradeProModal';
 import CloneCampaignModal from '../modals/CloneCampaignModal';
 import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimits';
 
-import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone } from '@/lib/engine/timeZoneScheduler';
+import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone, detectUserTimezone, getDefaultDynamicWindow } from '@/lib/engine/timeZoneScheduler';
 import { getAgencyMockCampaigns, getHighVolumeMockCampaigns } from '@/lib/mockData/agencyMockData';
 
 export interface CampaignStep {
@@ -162,11 +162,44 @@ export default function CampaignsTab({ leads }: Props) {
   const [selectedSenderIds, setSelectedSenderIds] = useState<string[]>([]);
   const [delaySeconds, setDelaySeconds] = useState(45);
   const [dailyLimit, setDailyLimit] = useState(100);
-  const [windowStart, setWindowStart] = useState('09:00');
-  const [windowEnd, setWindowEnd] = useState('17:00');
-  const [timezone, setTimezone] = useState('America/New_York (EST)');
+
+  const initialDynamicWindow = typeof window !== 'undefined' ? getDefaultDynamicWindow() : { windowStart: '09:02', windowEnd: '12:00', detectedTimezone: 'Asia/Kolkata (IST)' };
+  const [windowStart, setWindowStart] = useState(initialDynamicWindow.windowStart);
+  const [windowEnd, setWindowEnd] = useState(initialDynamicWindow.windowEnd);
+  const [timezone, setTimezone] = useState(initialDynamicWindow.detectedTimezone);
   const [is24Hours, setIs24Hours] = useState(false);
   const [isSandboxMode, setIsSandboxMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const dynamic = getDefaultDynamicWindow();
+      setTimezone(dynamic.detectedTimezone);
+      setWindowStart(dynamic.windowStart);
+      setWindowEnd(dynamic.windowEnd);
+    }
+  }, []);
+
+  const handleTimezoneChange = (newTz: string) => {
+    setTimezone(newTz);
+    const dynamic = getDefaultDynamicWindow(newTz);
+    setWindowStart(dynamic.windowStart);
+    setWindowEnd(dynamic.windowEnd);
+  };
+
+  const handleOpenCreateWizard = () => {
+    const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    if (plan === 'free' && campaigns.length >= 1) {
+      setUpgradeReason('campaign_limit');
+      setIsUpgradeOpen(true);
+      return;
+    }
+    const dynamic = getDefaultDynamicWindow();
+    setTimezone(dynamic.detectedTimezone);
+    setWindowStart(dynamic.windowStart);
+    setWindowEnd(dynamic.windowEnd);
+    setIsCreating(true);
+    setWizardStep(1);
+  };
 
   // Tracking & Unsubscribe Preferences
   const [trackOpens, setTrackOpens] = useState(true);
@@ -1197,16 +1230,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
           <div className="flex flex-wrap items-center gap-2.5">
             <button
-              onClick={() => {
-                const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-                if (plan === 'free' && campaigns.length >= 1) {
-                  setUpgradeReason('campaign_limit');
-                  setIsUpgradeOpen(true);
-                  return;
-                }
-                setIsCreating(true);
-                setWizardStep(1);
-              }}
+              onClick={handleOpenCreateWizard}
               className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold text-xs px-5 py-3 rounded-xl shadow-lg shadow-indigo-500/25 flex items-center gap-2 active:scale-95 transition-all"
             >
               <Plus className="w-4 h-4" />
@@ -1482,7 +1506,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       <label className="text-[11px] font-bold uppercase tracking-wider text-slate-600">Target Timezone</label>
                       <select
                         value={timezone}
-                        onChange={e => setTimezone(e.target.value)}
+                        onChange={e => handleTimezoneChange(e.target.value)}
                         className="w-full bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-medium focus:border-indigo-500"
                       >
                         {GLOBAL_TIMEZONES.map(tz => (
@@ -2440,7 +2464,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             </p>
             <div className="flex justify-center gap-3 pt-2">
               <button
-                onClick={() => { setIsCreating(true); setWizardStep(1); }}
+                onClick={handleOpenCreateWizard}
                 className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-md shadow-indigo-500/20 active:scale-95 transition-all"
               >
                 + Create First Campaign
