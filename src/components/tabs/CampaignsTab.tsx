@@ -2239,46 +2239,117 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2.5">
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">1. Target Avatar / Niche</label>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    {/* FIELD 1: TARGET AVATAR */}
+                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">1. Target Avatar / Niche</label>
+                        <span className="text-[9px] text-indigo-600 font-medium">Who you help</span>
+                      </div>
                       <input
                         type="text"
-                        placeholder="e.g. B2B SaaS, Dental Clinics, MedSpas, Agencies"
+                        placeholder="e.g. Dental Clinics, SaaS Founders, Agencies"
                         value={aiAudience}
                         onChange={e => setAiAudience(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
                       />
+                      <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
+                        {['Dental Clinics', 'B2B SaaS', 'Marketing Agencies', 'MedSpas', 'E-Commerce'].map(preset => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setAiAudience(preset)}
+                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-1.5 py-0.5 rounded transition-all whitespace-nowrap cursor-pointer"
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">2. What Result You Get Them</label>
+
+                    {/* FIELD 2: RESULT / OFFER */}
+                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">2. What Result You Get Them</label>
+                        <span className="text-[9px] text-indigo-600 font-medium">Dream outcome</span>
+                      </div>
                       <input
                         type="text"
-                        placeholder="e.g. Guaranteed 99% primary inbox deliverability"
+                        placeholder="e.g. Add 15 high-ticket patients monthly"
                         value={aiOffer}
                         onChange={e => setAiOffer(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
                       />
+                      <div className="flex items-center gap-1 overflow-x-auto pt-0.5">
+                        {['Add 15-20 calls/mo', '99% Primary Inboxing', 'Cut churn by 30%', 'Absorb overflow dev'].map(preset => (
+                          <button
+                            key={preset}
+                            type="button"
+                            onClick={() => setAiOffer(preset)}
+                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-1.5 py-0.5 rounded transition-all whitespace-nowrap cursor-pointer"
+                          >
+                            + {preset}
+                          </button>
+                        ))}
+                      </div>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">3. Free Gift / Asset</label>
+
+                    {/* FIELD 3: FREE GIFT / ASSET (SMART PRESET DROPDOWN + EDITABLE INPUT) */}
+                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">3. Free Gift / Asset</label>
+                        <select
+                          onChange={e => {
+                            if (e.target.value) setAiLeadMagnet(e.target.value);
+                          }}
+                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💡 Pick Asset...</option>
+                          <option value="60-second video teardown / pitch page ({{Pitch_Page_URL}})">📹 60s Video Teardown</option>
+                          <option value="a 1-page benchmark audit / breakdown ({{Pitch_Page_URL}})">📊 1-Page Benchmark Audit</option>
+                          <option value="a step-by-step SOP checklist ({{Pitch_Page_URL}})">📋 Actionable SOP Checklist</option>
+                          <option value="a peer case study with verified numbers ({{Pitch_Page_URL}})">📈 Peer Case Study Proof</option>
+                          <option value="our custom pricing model & sample report ({{Pitch_Page_URL}})">📑 Custom Sample Report</option>
+                        </select>
+                      </div>
                       <input
                         type="text"
                         placeholder="e.g. 60s video audit, 1-page breakdown"
                         value={aiLeadMagnet}
                         onChange={e => setAiLeadMagnet(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
                       />
+                      <span className="text-[9px] text-slate-400 block truncate">Delivers upfront value before asking for anything.</span>
                     </div>
-                    <div className="space-y-1">
-                      <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">4. Low-Friction Question</label>
+
+                    {/* FIELD 4: LOW-FRICTION QUESTION (SMART PRESET DROPDOWN + EDITABLE INPUT) */}
+                    <div className="space-y-1.5 bg-white/90 p-3 rounded-xl border border-indigo-100/80 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <label className="text-[10px] font-bold text-slate-700 uppercase tracking-wider">4. Low-Friction Question</label>
+                        <select
+                          onChange={e => {
+                            if (e.target.value) setAiCta(e.target.value);
+                          }}
+                          className="text-[10px] font-bold text-indigo-600 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5 cursor-pointer focus:outline-none"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💡 Pick Question...</option>
+                          <option value="Worth a quick look?">🟢 "Worth a quick look?"</option>
+                          <option value="Mind if I send over the 1-page breakdown?">🟢 "Mind if I send over the 1-page breakdown?"</option>
+                          <option value="Open to checking it out?">🟢 "Open to checking it out?"</option>
+                          <option value="Worth a brief 5-min intro this week?">🟢 "Worth a brief 5-min intro this week?"</option>
+                          <option value="Curious if this is on your radar for {{Company}}?">🟢 "Curious if this is on your radar for {'{{Company}}'}?"</option>
+                        </select>
+                      </div>
                       <input
                         type="text"
                         placeholder="e.g. Worth a quick look?"
                         value={aiCta}
                         onChange={e => setAiCta(e.target.value)}
-                        className="w-full bg-white border border-indigo-200 rounded-xl px-3 py-2 text-xs text-slate-900 placeholder-slate-400 focus:outline-none focus:border-indigo-500 font-medium"
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium"
                       />
+                      <span className="text-[9px] text-slate-400 block truncate">Single low-pressure permission question.</span>
                     </div>
                   </div>
 
