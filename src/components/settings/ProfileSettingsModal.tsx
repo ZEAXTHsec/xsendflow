@@ -254,7 +254,8 @@ export default function ProfileSettingsModal({
       const res = await fetch('/api/ai/test-key', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider, apiKey: key.trim() })
+        body: JSON.stringify({ provider, apiKey: key.trim() }),
+        signal: AbortSignal.timeout(10000)
       });
       const data = await res.json();
       if (res.ok && data.success) {

@@ -30,9 +30,9 @@ export async function POST(req: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              contents: [{ parts: [{ text: 'Respond with exactly: OK' }] }],
-              generationConfig: { maxOutputTokens: 10 }
-            })
+              contents: [{ parts: [{ text: 'Respond with OK' }] }]
+            }),
+            signal: AbortSignal.timeout(8000)
           });
 
           if (res.ok) {
