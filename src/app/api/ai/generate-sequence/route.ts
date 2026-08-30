@@ -3,6 +3,7 @@ import { analyzeSpamRisk } from '@/lib/spamWords';
 import { SequenceStep } from '@/lib/types';
 
 interface GenerateRequest {
+  roughSketch?: string;
   offer?: string;
   audience?: string;
   painPoint?: string;
@@ -22,6 +23,7 @@ export async function POST(req: NextRequest) {
   try {
     const body: GenerateRequest = await req.json();
     const { 
+      roughSketch,
       offer, 
       audience, 
       painPoint, 
@@ -38,9 +40,9 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const selectedAngle = angle || framework || 'value_teardown';
-    const targetAudience = audience?.trim() || 'B2B founders & growth leaders';
-    const targetOffer = offer?.trim() || 'guaranteed 99% cold email primary inbox deliverability';
-    const targetPain = painPoint?.trim() || 'emails landing in spam and burned domain reputations';
+    const targetAudience = audience?.trim() || 'target prospect';
+    const targetOffer = offer?.trim() || '';
+    const targetPain = painPoint?.trim() || '';
     const targetMagnet = leadMagnet?.trim() || 'a 60-second video teardown / pitch page ({{Pitch_Page_URL}})';
     const targetCta = cta?.trim() || 'Worth a quick look?';
 
@@ -81,7 +83,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Available Dynamic CSV tags from prospect lead list
-    const availableTagsList = Array.from(new Set(['First_Name', 'Company', 'Pitch_Page_URL', 'Icebreaker', ...csvVariables])).map(t => `{{${t}}}`).join(', ');
+    const availableTagsList = Array.from(new Set(['First_Name', 'Company', 'Pitch_Page_URL', ...csvVariables])).map(t => `{{${t}}}`).join(', ');
 
     const systemPrompt = `You are an elite cold email copywriter trained on Alex Hormozi's $100M Offers, $100M Leads, and Aaron Ross's Predictable Revenue.
 
@@ -91,11 +93,11 @@ STRICT COLD OUTREACH RULES:
 3. BAN ALL PLEASANTRIES: Never use "I hope you are well", "In today's fast-paced world", "revolutionary", "synergy", "unlock", "game-changer".
 4. VALUE-FIRST LEAD MAGNET: Deliver upfront value (${targetMagnet}) before asking for anything.
 5. LOW-FRICTION 1-QUESTION CTA: End with 1 single low-pressure permission question (e.g. "${targetCta}").
-6. CONTEXT-AWARE DYNAMIC CSV VARIABLES: Naturally weave in relevant tags where appropriate from: ${availableTagsList}.
-7. DEEP SPINTAX: Wrap greetings and phrases with {Option 1|Option 2|Option 3} syntax for anti-burn deliverability.
+6. NATURAL VARIABLE USAGE: Weave in {{First_Name}} and {{Company}} naturally. Do NOT force an {{Icebreaker}} tag unless it makes total sense. Available prospect tags: ${availableTagsList}.
+7. DEEP SPINTAX: Wrap greetings and key phrases with {Option 1|Option 2|Option 3} syntax for anti-burn deliverability (e.g. {{Hey|Hi}} {{First_Name}}).
 8. TYPO & GRAMMAR REPAIR: Automatically fix any user typos, slang, or awkward phrases into natural professional English.
 9. RETURN A 3-TOUCH SEQUENCE strictly in valid JSON format:
-   - Touch 1 (Day 1): Observation + {{Icebreaker}} + Dream Outcome + Free Asset Link (${targetMagnet}) + 1-Question CTA.
+   - Touch 1 (Day 1): Direct value hook + Dream Outcome + Free Asset Link (${targetMagnet}) + 1-Question CTA.
    - Touch 2 (Day 3): Threaded follow-up starting with "Re:" + specific case study proof point.
    - Touch 3 (Day 7): Permission-based graceful breakup (leaving door open).
 
@@ -110,9 +112,16 @@ JSON Structure:
   ]
 }`;
 
-    const userPrompt = `Target Avatar: ${targetAudience}
-Grand Slam Dream Outcome: ${targetOffer}
-Core Problem Solved: ${targetPain}
+    const userPrompt = roughSketch?.trim() 
+      ? `User's Rough Sketch & Pitch Brief:
+"${roughSketch.trim()}"
+
+Analyze what they do, who they target, and their service/offer from the brief above, and synthesize a high-converting cold email sequence following the selected angle: ${selectedAngle}.
+Asset Link: ${targetMagnet}
+CTA: ${targetCta}`
+      : `Target Avatar: ${targetAudience}
+Grand Slam Dream Outcome: ${targetOffer || 'help them scale with zero overhead'}
+Core Problem Solved: ${targetPain || 'wasting time on low-converting methods'}
 Lead Magnet / Free Asset: ${targetMagnet}
 CTA: ${targetCta}
 Framework Strategy: ${selectedAngle}`;

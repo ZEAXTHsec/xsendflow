@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3, Copy, AlertCircle, Key } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3, Copy, AlertCircle, Key, Target, RotateCcw, FileText, Check } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
@@ -274,6 +274,8 @@ export default function CampaignsTab({ leads }: Props) {
   const [newTemplateName, setNewTemplateName] = useState('');
 
   // Step 3 AI Sequence Generator state (Trained on top 1% cold email frameworks)
+  const [aiPromptMode, setAiPromptMode] = useState<'rough_sketch' | 'guided_fields'>('rough_sketch');
+  const [aiRoughSketch, setAiRoughSketch] = useState('');
   const [aiOffer, setAiOffer] = useState('');
   const [aiAudience, setAiAudience] = useState('');
   const [aiPainPoint, setAiPainPoint] = useState('');
@@ -944,6 +946,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          roughSketch: aiPromptMode === 'rough_sketch' ? aiRoughSketch : undefined,
           offer: aiOffer || 'automated cold email deliverability engine',
           audience: aiAudience || 'B2B founders & growth leaders',
           painPoint: aiPainPoint || 'spam placement and low response rates',
@@ -2247,29 +2250,32 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       <button
                         type="button"
                         onClick={() => setAiFramework('value_teardown')}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                           aiFramework === 'value_teardown' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        🎯 Angle A: Value Teardown
+                        <Target className={`w-3.5 h-3.5 ${aiFramework === 'value_teardown' ? 'text-white' : 'text-indigo-600'}`} />
+                        <span>Angle A: Value Teardown</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setAiFramework('case_study_proof')}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                           aiFramework === 'case_study_proof' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        📊 Angle B: Peer Case Study
+                        <BarChart3 className={`w-3.5 h-3.5 ${aiFramework === 'case_study_proof' ? 'text-white' : 'text-blue-600'}`} />
+                        <span>Angle B: Peer Case Study</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setAiFramework('3_sentence_hook')}
-                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap ${
+                        className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition-all cursor-pointer whitespace-nowrap flex items-center gap-1.5 ${
                           aiFramework === '3_sentence_hook' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900 hover:bg-slate-50'
                         }`}
                       >
-                        ⚡ Angle C: 3-Sentence Hook
+                        <Zap className={`w-3.5 h-3.5 ${aiFramework === '3_sentence_hook' ? 'text-white' : 'text-amber-500'}`} />
+                        <span>Angle C: 3-Sentence Hook</span>
                       </button>
                     </div>
                   </div>
@@ -2321,137 +2327,194 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     </div>
                   )}
 
-                  {/* INJECTED CSV TAGS BADGE */}
-                  {rawHeaders.length > 0 && (
-                    <div className="p-2.5 bg-white/95 border border-indigo-100 rounded-xl flex flex-wrap items-center justify-between gap-2 text-[11px] shadow-2xs">
-                      <span className="font-bold text-indigo-900 flex items-center gap-1.5">
-                        <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>Detected CSV Columns Injected into AI:</span>
-                      </span>
-                      <div className="flex items-center gap-1.5 overflow-x-auto max-w-full">
-                        {rawHeaders.slice(0, 6).map(h => (
-                          <span key={h} className="bg-indigo-50 text-indigo-700 font-mono text-[10px] font-bold px-2 py-0.5 rounded-md border border-indigo-200">
-                            {'{{'}{h}{'}}'}
-                          </span>
+                  {/* INPUT MODE SUB-NAV */}
+                  <div className="flex items-center gap-2 border-b border-indigo-100/90 pb-2">
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptMode('rough_sketch')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                        aiPromptMode === 'rough_sketch' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                      }`}
+                    >
+                      <FileText className="w-3.5 h-3.5" />
+                      <span>✨ Quick Pitch / Rough Sketch (Recommended)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setAiPromptMode('guided_fields')}
+                      className={`text-xs font-bold px-3 py-1.5 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
+                        aiPromptMode === 'guided_fields' ? 'bg-indigo-600 text-white shadow-2xs' : 'text-slate-600 hover:text-slate-900 hover:bg-white'
+                      }`}
+                    >
+                      <Layers className="w-3.5 h-3.5" />
+                      <span>🎛️ 4 Guided Step Fields</span>
+                    </button>
+                  </div>
+
+                  {/* ═══ VIEW 1: ROUGH SKETCH / QUICK PITCH ═══ */}
+                  {aiPromptMode === 'rough_sketch' && (
+                    <div className="bg-white/95 p-4 rounded-xl border border-slate-200/90 space-y-3 shadow-2xs">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <label className="text-xs font-bold text-slate-800">
+                            Tell AI what you do, who you target, and your service (in plain English):
+                          </label>
+                          <p className="text-[11px] text-slate-500 mt-0.5">
+                            Give a rough sketch — AI will fix grammar, sharpen your offer, and craft a 3-touch high-converting sequence.
+                          </p>
+                        </div>
+                        <span className="text-[10px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100 shrink-0">
+                          Auto-Polished by AI
+                        </span>
+                      </div>
+
+                      <textarea
+                        rows={3}
+                        value={aiRoughSketch}
+                        onChange={e => setAiRoughSketch(e.target.value)}
+                        placeholder="e.g. We are a B2B agency helping dental clinics add 15 to 20 Invisalign patients every month using a free 60-second video audit instead of expensive Facebook ads."
+                        className="w-full bg-slate-50/70 border border-slate-200 rounded-xl p-3 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all resize-none leading-relaxed"
+                      />
+
+                      {/* QUICK FILL INSPIRATION CHIPS */}
+                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                        <span className="text-[10px] font-bold text-slate-500 mr-1">Quick Inspiration:</span>
+                        {[
+                          { label: 'Dental Clinics', text: 'We help dental clinics add 15+ Invisalign patients monthly using 60s video teardowns instead of paid ads.' },
+                          { label: 'B2B SaaS Growth', text: 'We help B2B SaaS founders guarantee 99% cold email inboxing with zero spam placement and automated warmups.' },
+                          { label: 'Marketing Agency', text: 'We help digital agencies absorb overflow design and dev work on white-label terms with 48h turnaround.' },
+                          { label: 'MedSpa Client Acq', text: 'We help MedSpas fill empty appointment slots with high-ticket Botox & dermal filler bookings.' },
+                          { label: 'Real Estate Leads', text: 'We build automated seller lead funnels for real estate brokers to close 5 extra listings every month.' }
+                        ].map(chip => (
+                          <button
+                            key={chip.label}
+                            type="button"
+                            onClick={() => setAiRoughSketch(chip.text)}
+                            className="text-[10px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2.5 py-1 rounded-lg border border-slate-200 hover:border-indigo-200 transition-all cursor-pointer"
+                          >
+                            + {chip.label}
+                          </button>
                         ))}
                       </div>
                     </div>
                   )}
 
-                  {/* 4 INPUT CARDS */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
-                    {/* CARD 1: TARGET AVATAR */}
-                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">1. Target Avatar / Niche</label>
-                        <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Who you help</span>
+                  {/* ═══ VIEW 2: 4 GUIDED FIELDS ═══ */}
+                  {aiPromptMode === 'guided_fields' && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-3">
+                      {/* CARD 1: TARGET AVATAR */}
+                      <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">1. Target Avatar / Niche</label>
+                          <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Who you help</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. Dental Clinics, SaaS Founders, Agencies"
+                          value={aiAudience}
+                          onChange={e => setAiAudience(e.target.value)}
+                          className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
+                        />
+                        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                          {['Dental Clinics', 'B2B SaaS', 'Marketing Agencies', 'MedSpas', 'E-Commerce'].map(preset => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setAiAudience(preset)}
+                              className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
+                            >
+                              + {preset}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. Dental Clinics, SaaS Founders, Agencies"
-                        value={aiAudience}
-                        onChange={e => setAiAudience(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
-                      />
-                      <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                        {['Dental Clinics', 'B2B SaaS', 'Marketing Agencies', 'MedSpas', 'E-Commerce'].map(preset => (
-                          <button
-                            key={preset}
-                            type="button"
-                            onClick={() => setAiAudience(preset)}
-                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
-                          >
-                            + {preset}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
 
-                    {/* CARD 2: RESULT / OFFER */}
-                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">2. What Result You Get Them</label>
-                        <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Dream outcome</span>
+                      {/* CARD 2: RESULT / OFFER */}
+                      <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">2. What Result You Get Them</label>
+                          <span className="text-[9px] font-bold text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded border border-indigo-100">Dream outcome</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. Add 15 high-ticket patients monthly"
+                          value={aiOffer}
+                          onChange={e => setAiOffer(e.target.value)}
+                          className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
+                        />
+                        <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
+                          {['Add 15-20 calls/mo', '99% Primary Inboxing', 'Cut churn by 30%', 'Absorb overflow dev'].map(preset => (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => setAiOffer(preset)}
+                              className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
+                            >
+                              + {preset}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. Add 15 high-ticket patients monthly"
-                        value={aiOffer}
-                        onChange={e => setAiOffer(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
-                      />
-                      <div className="flex items-center gap-1 overflow-x-auto pb-0.5">
-                        {['Add 15-20 calls/mo', '99% Primary Inboxing', 'Cut churn by 30%', 'Absorb overflow dev'].map(preset => (
-                          <button
-                            key={preset}
-                            type="button"
-                            onClick={() => setAiOffer(preset)}
-                            className="text-[9px] font-medium bg-slate-100 hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-1 rounded transition-all whitespace-nowrap cursor-pointer shrink-0"
-                          >
-                            + {preset}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
 
-                    {/* CARD 3: FREE GIFT / ASSET */}
-                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">3. Free Gift / Asset</label>
-                        <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Upfront value</span>
+                      {/* CARD 3: FREE GIFT / ASSET */}
+                      <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">3. Free Gift / Asset</label>
+                          <span className="text-[9px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-100">Upfront value</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. 60s video audit, 1-page breakdown"
+                          value={aiLeadMagnet}
+                          onChange={e => setAiLeadMagnet(e.target.value)}
+                          className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
+                        />
+                        <select
+                          onChange={e => {
+                            if (e.target.value) setAiLeadMagnet(e.target.value);
+                          }}
+                          className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💡 Quick Fill with Proven Asset...</option>
+                          <option value="60-second video teardown / pitch page ({{Pitch_Page_URL}})">📹 60s Video Teardown / Pitch Page</option>
+                          <option value="a 1-page benchmark audit / breakdown ({{Pitch_Page_URL}})">📊 1-Page Benchmark Audit / Breakdown</option>
+                          <option value="a step-by-step SOP checklist ({{Pitch_Page_URL}})">📋 Actionable SOP Checklist</option>
+                          <option value="a peer case study with verified numbers ({{Pitch_Page_URL}})">📈 Peer Case Study with Verified Numbers</option>
+                          <option value="our custom pricing model & sample report ({{Pitch_Page_URL}})">📑 Custom Pricing Model & Sample Report</option>
+                        </select>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. 60s video audit, 1-page breakdown"
-                        value={aiLeadMagnet}
-                        onChange={e => setAiLeadMagnet(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
-                      />
-                      <select
-                        onChange={e => {
-                          if (e.target.value) setAiLeadMagnet(e.target.value);
-                        }}
-                        className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>💡 Quick Fill with Proven Asset...</option>
-                        <option value="60-second video teardown / pitch page ({{Pitch_Page_URL}})">📹 60s Video Teardown / Pitch Page</option>
-                        <option value="a 1-page benchmark audit / breakdown ({{Pitch_Page_URL}})">📊 1-Page Benchmark Audit / Breakdown</option>
-                        <option value="a step-by-step SOP checklist ({{Pitch_Page_URL}})">📋 Actionable SOP Checklist</option>
-                        <option value="a peer case study with verified numbers ({{Pitch_Page_URL}})">📈 Peer Case Study with Verified Numbers</option>
-                        <option value="our custom pricing model & sample report ({{Pitch_Page_URL}})">📑 Custom Pricing Model & Sample Report</option>
-                      </select>
-                    </div>
 
-                    {/* CARD 4: LOW-FRICTION QUESTION */}
-                    <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
-                      <div className="flex items-center justify-between">
-                        <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">4. Low-Friction Question</label>
-                        <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">1-Question CTA</span>
+                      {/* CARD 4: LOW-FRICTION QUESTION */}
+                      <div className="bg-white/95 p-3.5 rounded-xl border border-slate-200/90 flex flex-col justify-between space-y-2.5 shadow-2xs min-w-0 overflow-hidden">
+                        <div className="flex items-center justify-between">
+                          <label className="text-[10px] font-bold text-slate-800 uppercase tracking-wider">4. Low-Friction Question</label>
+                          <span className="text-[9px] font-bold text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded border border-purple-100">1-Question CTA</span>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="e.g. Worth a quick look?"
+                          value={aiCta}
+                          onChange={e => setAiCta(e.target.value)}
+                          className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
+                        />
+                        <select
+                          onChange={e => {
+                            if (e.target.value) setAiCta(e.target.value);
+                          }}
+                          className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
+                          defaultValue=""
+                        >
+                          <option value="" disabled>💡 Quick Fill with Low-Pressure CTA...</option>
+                          <option value="Worth a quick look?">🟢 "Worth a quick look?"</option>
+                          <option value="Mind if I send over the 1-page breakdown?">🟢 "Mind if I send over the 1-page breakdown?"</option>
+                          <option value="Open to checking it out?">🟢 "Open to checking it out?"</option>
+                          <option value="Worth a brief 5-min intro this week?">🟢 "Worth a brief 5-min intro this week?"</option>
+                          <option value="Curious if this is on your radar for {{Company}}?">🟢 "Curious if this is on your radar for {'{{Company}}'}?"</option>
+                        </select>
                       </div>
-                      <input
-                        type="text"
-                        placeholder="e.g. Worth a quick look?"
-                        value={aiCta}
-                        onChange={e => setAiCta(e.target.value)}
-                        className="w-full bg-slate-50/70 border border-slate-200 rounded-lg px-2.5 py-2 text-xs text-slate-900 placeholder-slate-400 focus:bg-white focus:outline-none focus:border-indigo-500 font-medium transition-all"
-                      />
-                      <select
-                        onChange={e => {
-                          if (e.target.value) setAiCta(e.target.value);
-                        }}
-                        className="w-full text-[10px] font-bold text-indigo-700 bg-indigo-50/70 hover:bg-indigo-50 border border-indigo-200/80 rounded-lg px-2 py-1.5 cursor-pointer focus:outline-none transition-all truncate"
-                        defaultValue=""
-                      >
-                        <option value="" disabled>💡 Quick Fill with Low-Pressure CTA...</option>
-                        <option value="Worth a quick look?">🟢 "Worth a quick look?"</option>
-                        <option value="Mind if I send over the 1-page breakdown?">🟢 "Mind if I send over the 1-page breakdown?"</option>
-                        <option value="Open to checking it out?">🟢 "Open to checking it out?"</option>
-                        <option value="Worth a brief 5-min intro this week?">🟢 "Worth a brief 5-min intro this week?"</option>
-                        <option value="Curious if this is on your radar for {{Company}}?">🟢 "Curious if this is on your radar for {'{{Company}}'}?"</option>
-                      </select>
                     </div>
-                  </div>
+                  )}
 
                   {/* BOTTOM ACTION BAR */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-2 border-t border-indigo-100/90">
@@ -2459,15 +2522,28 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
                       <span>Under 50 words • 3rd-grade reading level • Zero corporate pleasantries • Threaded Follow-ups</span>
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleWizardGenerateAiCopy}
-                      disabled={isGeneratingAi}
-                      className="text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 glow-tag cursor-pointer transition-all shrink-0"
-                    >
-                      {isGeneratingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
-                      <span>{isGeneratingAi ? 'Writing Custom Sequence...' : 'Generate AI Sequence'}</span>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      {steps.length > 0 && steps[0].body.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handleWizardGenerateAiCopy}
+                          disabled={isGeneratingAi}
+                          className="text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-4 py-2.5 rounded-xl shadow-2xs flex items-center gap-1.5 cursor-pointer transition-all active:scale-95 disabled:opacity-50"
+                        >
+                          <RotateCcw className={`w-3.5 h-3.5 ${isGeneratingAi ? 'animate-spin' : ''}`} />
+                          <span>Regenerate Variation</span>
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={handleWizardGenerateAiCopy}
+                        disabled={isGeneratingAi}
+                        className="text-xs font-bold bg-gradient-to-r from-indigo-600 via-purple-600 to-indigo-700 hover:from-indigo-500 hover:to-purple-500 text-white px-6 py-2.5 rounded-xl shadow-md shadow-indigo-500/25 flex items-center justify-center gap-2 disabled:opacity-50 active:scale-95 glow-tag cursor-pointer transition-all shrink-0"
+                      >
+                        {isGeneratingAi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Wand2 className="w-3.5 h-3.5" />}
+                        <span>{isGeneratingAi ? 'Writing Custom Sequence...' : 'Generate AI Sequence'}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
               )}
