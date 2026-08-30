@@ -283,6 +283,7 @@ export default function CampaignsTab({ leads }: Props) {
   const [aiCta, setAiCta] = useState('');
   const [aiFramework, setAiFramework] = useState<'value_teardown' | 'case_study_proof' | '3_sentence_hook'>('value_teardown');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [isRegeneratingPart, setIsRegeneratingPart] = useState<'subject' | 'body' | null>(null);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
   const [connectedAiModel, setConnectedAiModel] = useState<string>(() => {
     if (typeof window === 'undefined') return '';
@@ -984,6 +985,49 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       setAiErrorMessage('Network or server error while connecting to AI model. Please try again.');
     } finally {
       setIsGeneratingAi(false);
+    }
+  };
+
+  const handleRegenerateIndividualPart = async (part: 'subject' | 'body', stepIndex: number) => {
+    setIsRegeneratingPart(part);
+    try {
+      const geminiKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_gemini_key') || '' : '';
+      const openaiKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_openai_key') || '' : '';
+      const deepseekKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_deepseek_key') || '' : '';
+      const provider = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_active_ai_provider') || 'gemini' : 'gemini';
+
+      const res = await fetch('/api/ai/regenerate-part', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          part,
+          stepIndex,
+          currentStep: steps[stepIndex],
+          roughSketch: aiPromptMode === 'rough_sketch' ? aiRoughSketch : undefined,
+          offer: aiPromptMode === 'guided_fields' ? (aiOffer || undefined) : undefined,
+          audience: aiPromptMode === 'guided_fields' ? (aiAudience || undefined) : undefined,
+          angle: aiFramework,
+          csvVariables: rawHeaders.length > 0 ? rawHeaders : ['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL'],
+          provider,
+          geminiKey,
+          openaiKey,
+          deepseekKey
+        })
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        if (part === 'subject' && data.subject) {
+          setSteps(steps.map((st, i) => i === stepIndex ? { ...st, subject: data.subject } : st));
+        } else if (part === 'body' && data.body) {
+          setSteps(steps.map((st, i) => i === stepIndex ? { ...st, body: data.body } : st));
+        }
+        try { confetti({ particleCount: 35, spread: 45, origin: { y: 0.6 } }); } catch {}
+      }
+    } catch (err) {
+      console.error('Error regenerating part:', err);
+    } finally {
+      setIsRegeneratingPart(null);
     }
   };
 
@@ -2734,7 +2778,18 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   </div>
 
                   <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Subject Line (Spintax Supported)</label>
+                    <div className="flex items-center justify-between">
+                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Subject Line (Spintax Supported)</label>
+                      <button
+                        type="button"
+                        onClick={() => handleRegenerateIndividualPart('subject', activeStepIndex)}
+                        disabled={isRegeneratingPart === 'subject'}
+                        className="text-[10px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                      >
+                        <RotateCcw className={`w-3 h-3 ${isRegeneratingPart === 'subject' ? 'animate-spin text-indigo-600' : 'text-indigo-600'}`} />
+                        <span>{isRegeneratingPart === 'subject' ? 'Re-writing...' : 'Re-write Subject Only'}</span>
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={steps[activeStepIndex].subject}
@@ -2749,7 +2804,18 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   {/* ═══ DYNAMIC CSV TAG PALETTE (CLICKABLE CHIPS) ═══ */}
                   <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Email Body</label>
+                      <div className="flex items-center gap-2">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Email Body</label>
+                        <button
+                          type="button"
+                          onClick={() => handleRegenerateIndividualPart('body', activeStepIndex)}
+                          disabled={isRegeneratingPart === 'body'}
+                          className="text-[10px] font-bold text-indigo-700 hover:text-indigo-800 bg-indigo-50/80 hover:bg-indigo-100/90 border border-indigo-200 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all cursor-pointer shadow-2xs active:scale-95 disabled:opacity-50"
+                        >
+                          <RotateCcw className={`w-3 h-3 ${isRegeneratingPart === 'body' ? 'animate-spin text-indigo-600' : 'text-indigo-600'}`} />
+                          <span>{isRegeneratingPart === 'body' ? 'Re-writing...' : 'Re-write Body Only'}</span>
+                        </button>
+                      </div>
                       <span className="text-[10px] text-slate-500">Click tag below to insert:</span>
                     </div>
 
