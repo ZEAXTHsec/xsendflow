@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { analyzeSpamRisk } from '@/lib/spamWords';
 import { SequenceStep } from '@/lib/types';
+import { generateDynamicSequence, normalizeTargetAudience, normalizeOfferGrammar, normalizePainPointGrammar } from '@/lib/engine/nlpNormalizer';
 
 interface GenerateRequest {
   offer?: string;
@@ -30,9 +31,15 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const selectedAngle = angle || framework || 'value_teardown';
-    const targetOffer = offer?.trim() || 'guaranteed 99% cold email primary inbox deliverability';
-    const targetAudience = audience?.trim() || 'B2B founders & agency owners';
-    const targetPain = painPoint?.trim() || 'emails landing in spam and burned domain reputations';
+    
+    // Normalize raw user inputs (fixes typos like "dentistal clinics" -> "dental practices" and conjugates verbs)
+    const rawAudience = audience?.trim() || 'B2B founders & growth leaders';
+    const rawOffer = offer?.trim() || 'guaranteed 99% cold email primary inbox deliverability';
+    const rawPain = painPoint?.trim() || 'emails landing in spam and burned domain reputations';
+
+    const targetAudience = normalizeTargetAudience(rawAudience);
+    const targetOffer = normalizeOfferGrammar(rawOffer);
+    const targetPain = normalizePainPointGrammar(rawPain);
     const targetMagnet = leadMagnet?.trim() || 'a 60-second video teardown / pitch page ({{Pitch_Page_URL}})';
     const targetCta = cta?.trim() || 'Worth a quick look?';
 
@@ -56,7 +63,8 @@ STRICT COLD OUTREACH RULES:
 5. LOW-FRICTION 1-QUESTION CTA: End with 1 single low-pressure permission question (e.g. "${targetCta}").
 6. CONTEXT-AWARE DYNAMIC CSV VARIABLES: Naturally weave in relevant tags where appropriate from: ${availableTagsList}.
 7. DEEP SPINTAX: Wrap greetings and phrases with {Option 1|Option 2|Option 3} syntax for anti-burn deliverability.
-8. RETURN 3-TOUCH SEQUENCE in JSON format:
+8. TYPO & GRAMMAR REFINEMENT: Fix any awkward slang or phrasing seamlessly into natural English.
+9. RETURN 3-TOUCH SEQUENCE in JSON format:
    - Touch 1 (Day 1): Observation + {{Icebreaker}} + Dream Outcome + Free Asset Link (${targetMagnet}) + 1-Question CTA.
    - Touch 2 (Day 3): Threaded follow-up starting with "Re:" + specific case study proof point.
    - Touch 3 (Day 7): Permission-based graceful breakup (leaving door open).
@@ -77,7 +85,7 @@ Grand Slam Dream Outcome: ${targetOffer}
 Core Problem Solved: ${targetPain}
 Lead Magnet / Free Asset: ${targetMagnet}
 CTA: ${targetCta}
-Framework Strategy: ${framework}`;
+Framework Strategy: ${selectedAngle}`;
 
         const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveApiKey}`, {
           method: 'POST',
@@ -91,7 +99,7 @@ Framework Strategy: ${framework}`;
             ],
             generationConfig: {
               responseMimeType: 'application/json',
-              temperature: 0.6
+              temperature: 0.7
             }
           })
         });
@@ -125,118 +133,31 @@ Framework Strategy: ${framework}`;
           }
         }
       } catch (err) {
-        console.warn('Gemini API call failed, falling back to local Hormozi framework:', err);
+        console.warn('Gemini API call failed, falling back to autonomous NLP engine:', err);
       }
     }
 
-    // Fallback: 100% Battle-Tested Hormozi & Predictable Revenue Framework
+    // Dynamic Fallback: Autonomous Multi-Variation NLP Engine with Typo Normalization
     if (!generatedSequence) {
-      if (framework === 'seo_recovery') {
-        generatedSequence = [
-          {
-            id: 1,
-            day: 1,
-            type: 'initial' as const,
-            title: 'Step 1: SEO Page-2 Opportunity',
-            subject: '{Quick question|Brief inquiry} re: {{Company}} search rankings',
-            body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nNoticed {{Company}} is ranking on page 2 for high-intent commercial search terms in your space.\n\nPut together a 60-second video teardown showing 3 search ranking bottlenecks here: {{Pitch_Page_URL}}\n\n{{Worth a quick look?|Open to checking it out?}}\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 2,
-            day: 3,
-            type: 'followup' as const,
-            title: 'Step 2: Competitor Traffic Proof',
-            subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-            body: 'Hi {{First_Name}},\n\nQuick follow up on the SEO breakdown for {{Company}}. Recently helped a similar team capture 40% more organic inquiries in 30 days.\n\nDid you get a chance to review the 60s teardown?\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 3,
-            day: 7,
-            type: 'breakup' as const,
-            title: 'Step 3: Polite Breakup',
-            subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-            body: 'Hi {{First_Name}},\n\nAssuming SEO ranking recovery isn\'t a priority for {{Company}} right now, so I won\'t follow up again.\n\nIf capturing organic search traffic becomes a focus later, feel free to reach back out.\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          }
-        ];
-      } else if (framework === 'web_dev_agency') {
-        generatedSequence = [
-          {
-            id: 1,
-            day: 1,
-            type: 'initial' as const,
-            title: 'Step 1: White-Label Dev Overflow',
-            subject: '{White-label dev|Engineering partner} for {{Company}}',
-            body: '{{Hey|Hi}} {{First_Name}},\n\nWe provide white-label full-stack development for agencies scaling client delivery with zero full-time overhead.\n\nSample work and portfolio builds here: {{Pitch_Page_URL}}\n\n{{Worth a quick 5-min intro this week?|Open to connecting?}}\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 2,
-            day: 3,
-            type: 'followup' as const,
-            title: 'Step 2: Speed & Scale Proof',
-            subject: 'Re: {White-label dev|Engineering partner} for {{Company}}',
-            body: 'Hi {{First_Name}},\n\nQuick follow-up on my note below—we recently helped an agency partner deliver 4 client web apps in 3 weeks with 100% white-label confidentiality.\n\nCurious if dev overflow is on your radar this quarter?\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 3,
-            day: 7,
-            type: 'breakup' as const,
-            title: 'Step 3: Polite Breakup',
-            subject: 'Re: {White-label dev|Engineering partner} for {{Company}}',
-            body: 'Hey {{First_Name}},\n\nClosing the loop on engineering partnerships so I don\'t clutter your inbox.\n\nIf you ever need high-speed dev backup down the road, feel free to reach back out.\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          }
-        ];
-      } else {
-        generatedSequence = [
-          {
-            id: 1,
-            day: 1,
-            type: 'initial' as const,
-            title: 'Step 1: Value Hook & Free Gift',
-            subject: '{Quick question|Brief inquiry} re: {{Company}}',
-            body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nWe help ' + targetAudience + ' ' + targetOffer + ' without ' + targetPain + '.\n\nPut together a quick 60-second video walkthrough for {{Company}} here: {{Pitch_Page_URL}}\n\n' + targetCta + '\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 2,
-            day: 3,
-            type: 'followup' as const,
-            title: 'Step 2: Proof & Case Study',
-            subject: 'Re: {Quick question|Brief inquiry} re: {{Company}}',
-            body: 'Hi {{First_Name}},\n\nQuick follow-up on my note below—recently helped a team in your space add 28 qualified discovery calls in under 14 days without domain burn.\n\nDid you get a chance to check out the custom walkthrough?\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          },
-          {
-            id: 3,
-            day: 7,
-            type: 'breakup' as const,
-            title: 'Step 3: Polite Breakup',
-            subject: 'Re: {Quick question|Brief inquiry} re: {{Company}}',
-            body: 'Hey {{First_Name}},\n\nAssuming solving ' + targetPain + ' isn\'t a priority for {{Company}} right now, so I won\'t follow up again.\n\nIf anything changes down the line, feel free to reach back out.\n\nBest,\nYour Name',
-            spamScore: 100,
-            spamWordsFound: []
-          }
-        ];
-      }
+      const dynamicSteps = generateDynamicSequence(
+        rawAudience,
+        rawOffer,
+        rawPain,
+        targetMagnet,
+        targetCta,
+        selectedAngle
+      );
 
-      generatedSequence = generatedSequence.map(s => {
+      generatedSequence = dynamicSteps.map(s => {
         const fullText = `${s.subject} ${s.body}`;
         const spamAnalysis = analyzeSpamRisk(fullText);
         return {
-          ...s,
+          id: s.id,
+          day: s.day,
+          type: s.type,
+          title: s.title,
+          subject: s.subject,
+          body: s.body,
           spamScore: spamAnalysis.score,
           spamWordsFound: spamAnalysis.wordsFound
         };
@@ -246,7 +167,7 @@ Framework Strategy: ${framework}`;
     return NextResponse.json({
       success: true,
       sequence: generatedSequence,
-      engine: effectiveApiKey ? 'gemini-2.0-flash-hormozi' : 'hormozi-100m-leads-framework'
+      engine: effectiveApiKey ? 'gemini-2.0-flash-ai' : 'autonomous-nlp-engine'
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : 'Failed to generate sequence';
