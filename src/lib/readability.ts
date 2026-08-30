@@ -42,8 +42,9 @@ export function calculateReadability(text: string): ReadabilityMetrics {
     };
   }
 
-  // Strip merge tags (e.g. {{First_Name}}) and spintax markers before calculating
+  // Strip URLs, merge tags (e.g. {{First_Name}}) and spintax markers before calculating
   const cleanText = text
+    .replace(/https?:\/\/\S+/gi, '')
     .replace(/\{\{[^}]+\}\}/g, 'John')
     .replace(/\{[^}]+\}/g, (match) => {
       const parts = match.slice(1, -1).split('|');
@@ -54,8 +55,12 @@ export function calculateReadability(text: string): ReadabilityMetrics {
   const words = cleanText.match(/\b[a-zA-Z0-9'-]+\b/g) || [];
   const wordCount = words.length;
 
-  // Split by sentence terminators
-  const sentences = cleanText.split(/[.!?]+/).filter(s => s.trim().length > 0);
+  // Split by sentence terminators AND line breaks / colons (conversational boundaries)
+  const sentences = cleanText
+    .split(/[\r\n]+|[.!?:]+/)
+    .map(s => s.trim())
+    .filter(s => s.length > 0 && /\w/.test(s));
+
   const sentenceCount = Math.max(1, sentences.length);
 
   let syllableCount = 0;
