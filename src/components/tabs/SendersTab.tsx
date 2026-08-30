@@ -436,7 +436,7 @@ export default function SendersTab() {
                   camps.forEach((c: any) => {
                     const uses = (c.selectedSenderIds && c.selectedSenderIds.includes(sender.id)) ||
                                  c.senderId === sender.id ||
-                                 (!c.selectedSenderIds?.length && !c.senderId);
+                                 senders.length === 1; // If user has 1 mailbox connected, all workspace dispatches flow through it
                     if (uses && Array.isArray(c.recipients)) {
                       actualSentToday += c.recipients.filter((r: any) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
                     }

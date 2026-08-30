@@ -861,7 +861,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
               campaigns.forEach(camp => {
                 const usesSender = (camp.selectedSenderIds && camp.selectedSenderIds.includes(sender.id)) ||
                                    camp.senderId === sender.id ||
-                                   (!camp.selectedSenderIds?.length && !camp.senderId);
+                                   senders.length === 1; // If user has 1 mailbox connected, all workspace dispatches flow through it
                 if (usesSender && Array.isArray(camp.recipients)) {
                   const count = camp.recipients.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
                   actualSentToday += count;
