@@ -239,6 +239,37 @@ export default function ProfileSettingsModal({
     } catch {}
   };
 
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [keyTestResult, setKeyTestResult] = useState<{ provider: string; ok: boolean; msg: string } | null>(null);
+
+  const handleTestApiKey = async (provider: 'gemini' | 'openai' | 'deepseek') => {
+    const key = provider === 'gemini' ? geminiKey : provider === 'openai' ? openaiKey : deepseekKey;
+    if (!key.trim()) {
+      setKeyTestResult({ provider, ok: false, msg: `Please enter a ${provider.toUpperCase()} API key to test.` });
+      return;
+    }
+    setTestingProvider(provider);
+    setKeyTestResult(null);
+    try {
+      const res = await fetch('/api/ai/test-key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, apiKey: key.trim() })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setKeyTestResult({ provider, ok: true, msg: data.message || 'Connection verified successfully!' });
+        try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
+      } else {
+        setKeyTestResult({ provider, ok: false, msg: data.error || 'Connection failed.' });
+      }
+    } catch (err: any) {
+      setKeyTestResult({ provider, ok: false, msg: err.message || 'Network connection failed.' });
+    } finally {
+      setTestingProvider(null);
+    }
+  };
+
   const handleSaveApiKeys = () => {
     try {
       localStorage.setItem('xsendflow_active_ai_provider', activeAiProvider);
@@ -1002,7 +1033,7 @@ export default function ProfileSettingsModal({
                   </div>
 
                   {/* GOOGLE GEMINI KEY CARD */}
-                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                  <div className={`p-4 rounded-2xl border space-y-3 transition-all ${
                     activeAiProvider === 'gemini' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
                   }`}>
                     <div className="flex items-center justify-between">
@@ -1025,11 +1056,30 @@ export default function ProfileSettingsModal({
                       placeholder="AIzaSy..."
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-500">Free tier quota from Google AI Studio. Powers real-time cold outreach sequences and icebreaker synthesis.</span>
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-500">Free tier quota from Google AI Studio. Supports gemini-1.5-flash &amp; gemini-2.5-flash.</span>
+                      <button
+                        type="button"
+                        onClick={() => handleTestApiKey('gemini')}
+                        disabled={testingProvider === 'gemini'}
+                        className="text-[10px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {testingProvider === 'gemini' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3 text-emerald-600" />}
+                        <span>{testingProvider === 'gemini' ? 'Testing Handshake...' : 'Test Gemini Connection'}</span>
+                      </button>
+                    </div>
+                    {keyTestResult?.provider === 'gemini' && (
+                      <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                        keyTestResult.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}>
+                        {keyTestResult.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+                        <span className="font-medium">{keyTestResult.msg}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* OPENAI KEY CARD */}
-                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                  <div className={`p-4 rounded-2xl border space-y-3 transition-all ${
                     activeAiProvider === 'openai' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
                   }`}>
                     <div className="flex items-center justify-between">
@@ -1052,10 +1102,30 @@ export default function ProfileSettingsModal({
                       placeholder="sk-proj-..."
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-500">Connects to OpenAI API using gpt-4o-mini &amp; gpt-4o models.</span>
+                      <button
+                        type="button"
+                        onClick={() => handleTestApiKey('openai')}
+                        disabled={testingProvider === 'openai'}
+                        className="text-[10px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {testingProvider === 'openai' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3 text-emerald-600" />}
+                        <span>{testingProvider === 'openai' ? 'Testing...' : 'Test OpenAI Connection'}</span>
+                      </button>
+                    </div>
+                    {keyTestResult?.provider === 'openai' && (
+                      <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                        keyTestResult.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}>
+                        {keyTestResult.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+                        <span className="font-medium">{keyTestResult.msg}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* DEEPSEEK KEY CARD */}
-                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                  <div className={`p-4 rounded-2xl border space-y-3 transition-all ${
                     activeAiProvider === 'deepseek' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
                   }`}>
                     <div className="flex items-center justify-between">
@@ -1078,6 +1148,26 @@ export default function ProfileSettingsModal({
                       placeholder="sk-..."
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
+                    <div className="flex items-center justify-between pt-1">
+                      <span className="text-[10px] text-slate-500">Connects to DeepSeek Chat API for high-speed sequence synthesis.</span>
+                      <button
+                        type="button"
+                        onClick={() => handleTestApiKey('deepseek')}
+                        disabled={testingProvider === 'deepseek'}
+                        className="text-[10px] font-bold bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 px-3 py-1.5 rounded-lg shadow-2xs flex items-center gap-1 cursor-pointer shrink-0 disabled:opacity-50"
+                      >
+                        {testingProvider === 'deepseek' ? <RefreshCw className="w-3 h-3 animate-spin" /> : <ShieldCheck className="w-3 h-3 text-emerald-600" />}
+                        <span>{testingProvider === 'deepseek' ? 'Testing...' : 'Test DeepSeek Connection'}</span>
+                      </button>
+                    </div>
+                    {keyTestResult?.provider === 'deepseek' && (
+                      <div className={`p-2.5 rounded-xl text-xs flex items-center gap-2 ${
+                        keyTestResult.ok ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                      }`}>
+                        {keyTestResult.ok ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" /> : <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />}
+                        <span className="font-medium">{keyTestResult.msg}</span>
+                      </div>
+                    )}
                   </div>
 
                   {savedKeySuccess && (

@@ -119,33 +119,55 @@ Framework Strategy: ${selectedAngle}`;
 
     let rawJsonText = '';
 
-    // PROVIDER 1: Google Gemini 2.0 Flash
+    // PROVIDER 1: Google Gemini (Resilient Model Fallback Chain)
     if (effectiveProvider === 'gemini') {
-      const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${effectiveKey}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [
-            {
-              role: 'user',
-              parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
-            }
-          ],
-          generationConfig: {
-            responseMimeType: 'application/json',
-            temperature: 0.7
-          }
-        })
-      });
+      const geminiModels = [
+        'gemini-1.5-flash',
+        'gemini-2.5-flash',
+        'gemini-1.5-pro',
+        'gemini-2.0-flash-exp',
+        'gemini-3.6-flash'
+      ];
 
-      if (!geminiRes.ok) {
-        const errData = await geminiRes.json().catch(() => ({}));
-        const errMsg = errData.error?.message || `Google Gemini API error (Status ${geminiRes.status})`;
-        return NextResponse.json({ error: errMsg, provider: 'gemini' }, { status: 400 });
+      let lastErr = '';
+      for (const model of geminiModels) {
+        try {
+          const geminiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${effectiveKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              contents: [
+                {
+                  role: 'user',
+                  parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }]
+                }
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.7
+              }
+            })
+          });
+
+          if (geminiRes.ok) {
+            const geminiData = await geminiRes.json();
+            rawJsonText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+            if (rawJsonText) break;
+          } else {
+            const errData = await geminiRes.json().catch(() => ({}));
+            lastErr = errData.error?.message || `Google Gemini API error (Status ${geminiRes.status})`;
+            if (geminiRes.status === 400 && lastErr.includes('API_KEY_INVALID')) {
+              break;
+            }
+          }
+        } catch (err: any) {
+          lastErr = err.message || 'Gemini connection failed';
+        }
       }
 
-      const geminiData = await geminiRes.json();
-      rawJsonText = geminiData.candidates?.[0]?.content?.parts?.[0]?.text || '';
+      if (!rawJsonText) {
+        return NextResponse.json({ error: lastErr || 'Google Gemini API request failed.', provider: 'gemini' }, { status: 400 });
+      }
     }
 
     // PROVIDER 2: OpenAI (gpt-4o-mini)
