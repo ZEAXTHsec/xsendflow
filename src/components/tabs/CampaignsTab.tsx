@@ -16,6 +16,7 @@ import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimit
 
 import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone, detectUserTimezone, getDefaultDynamicWindow } from '@/lib/engine/timeZoneScheduler';
 import { getAgencyMockCampaigns, getHighVolumeMockCampaigns } from '@/lib/mockData/agencyMockData';
+import { sanitizeEmailBatch, validateSingleEmail } from '@/lib/engine/leadValidator';
 
 export interface CampaignStep {
   id: number;
@@ -211,7 +212,10 @@ export default function CampaignsTab({ leads }: Props) {
   const [upgradeReason, setUpgradeReason] = useState<'mailbox_limit' | 'campaign_limit' | 'pro_campaign_limit' | 'contact_limit' | 'vps_daemon'>('mailbox_limit');
 
   // Step 2: CSV & Contacts
+  const [rawUploadedRecipients, setRawUploadedRecipients] = useState<CampaignRecipient[]>([]);
   const [uploadedRecipients, setUploadedRecipients] = useState<CampaignRecipient[]>([]);
+  const [autoFilterDisposable, setAutoFilterDisposable] = useState<boolean>(true);
+  const [filterStats, setFilterStats] = useState<{ disposable: number; roleBased: number; invalidSyntax: number; totalRemoved: number; totalOriginal: number } | null>(null);
   const [columnMapping, setColumnMapping] = useState<{ emailCol: string; nameCol: string; companyCol: string; titleCol: string; siteCol: string }>({
     emailCol: '',
     nameCol: '',
@@ -473,15 +477,30 @@ export default function CampaignsTab({ leads }: Props) {
           };
         }).filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email));
 
-        const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
-        if (userPlan === 'free' && recips.length > 250) {
-          alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
-          setUploadedRecipients(recips.slice(0, 250));
-        } else {
-          setUploadedRecipients(recips);
-        }
+        processAndSetRecipients(recips, autoFilterDisposable);
       }
     });
+  };
+
+  const processAndSetRecipients = (rawRecips: CampaignRecipient[], filterEnabled: boolean) => {
+    setRawUploadedRecipients(rawRecips);
+    const sanitized = sanitizeEmailBatch(rawRecips, filterEnabled);
+    setFilterStats(sanitized.removedStats);
+
+    const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
+    if (userPlan === 'free' && sanitized.validItems.length > 250) {
+      alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 verified contacts per campaign. The first 250 clean contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
+      setUploadedRecipients(sanitized.validItems.slice(0, 250));
+    } else {
+      setUploadedRecipients(sanitized.validItems);
+    }
+  };
+
+  const handleToggleAutoFilter = (newVal: boolean) => {
+    setAutoFilterDisposable(newVal);
+    if (rawUploadedRecipients.length > 0) {
+      processAndSetRecipients(rawUploadedRecipients, newVal);
+    }
   };
 
   const handleParsePastedCsv = () => {
@@ -514,13 +533,7 @@ export default function CampaignsTab({ leads }: Props) {
           status: 'pending' as const
         })).filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email));
 
-        const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
-        if (userPlan === 'free' && recips.length > 250) {
-          alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
-          setUploadedRecipients(recips.slice(0, 250));
-        } else {
-          setUploadedRecipients(recips);
-        }
+        processAndSetRecipients(recips, autoFilterDisposable);
       }
     } catch {
       alert('Could not parse pasted CSV.');
@@ -543,13 +556,7 @@ export default function CampaignsTab({ leads }: Props) {
       status: 'pending'
     }));
 
-    const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
-    if (userPlan === 'free' && recips.length > 250) {
-      alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
-      setUploadedRecipients(recips.slice(0, 250));
-    } else {
-      setUploadedRecipients(recips);
-    }
+    processAndSetRecipients(recips, autoFilterDisposable);
   };
 
   const handleLoadCatchallSample = () => {
@@ -1879,6 +1886,42 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 </div>
               )}
 
+              {/* ═══ SMART LEAD SANITIZER & SPAM SHIELD BANNER ═══ */}
+              {(rawUploadedRecipients.length > 0 || uploadedRecipients.length > 0) && (
+                <div className="p-4 bg-gradient-to-r from-indigo-50/80 via-purple-50/50 to-white border border-indigo-200/80 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-indigo-600 text-white flex items-center justify-center shadow-xs shrink-0">
+                      <ShieldCheck className="w-4 h-4" />
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                        <span>Smart Lead Sanitizer &amp; Spam Trap Shield</span>
+                        {filterStats && filterStats.totalRemoved > 0 && autoFilterDisposable && (
+                          <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 text-[10px] font-bold font-mono">
+                            {filterStats.totalRemoved} Fake / Disposable Filtered
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-[11px] text-slate-500">
+                        Automatically drops disposable domains (mailinator, tempmail, yopmail), spam traps (abuse@, postmaster@), and broken emails.
+                      </p>
+                    </div>
+                  </div>
+
+                  <label className="flex items-center gap-2 cursor-pointer bg-white px-3.5 py-1.5 rounded-xl border border-indigo-200 shadow-2xs hover:border-indigo-400 transition-colors shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={autoFilterDisposable}
+                      onChange={e => handleToggleAutoFilter(e.target.checked)}
+                      className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer"
+                    />
+                    <span className="text-xs font-bold text-indigo-900">
+                      Auto-Remove Fake &amp; Disposable
+                    </span>
+                  </label>
+                </div>
+              )}
+
               {/* ═══ DATA UPLOAD PREVIEW INSPECTOR TABLE ═══ */}
               {uploadedRecipients.length > 0 ? (
                 <div className="border border-slate-200 rounded-2xl overflow-hidden bg-white shadow-xs space-y-0">
@@ -1889,9 +1932,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                         <CheckCircle2 className="w-4 h-4 text-emerald-600" />
                         <span>Uploaded Leads Preview</span>
                       </span>
-                      <span className="text-[11px] font-mono bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full font-bold">
-                        {uploadedRecipients.length} Contacts Ready
+                      <span className="text-[11px] font-mono bg-emerald-100 text-emerald-800 px-2.5 py-0.5 rounded-full font-bold">
+                        {uploadedRecipients.length} Verified Leads Ready
                       </span>
+                      {rawUploadedRecipients.length > uploadedRecipients.length && (
+                        <span className="text-[10px] text-slate-500 font-mono">
+                          (from {rawUploadedRecipients.length} total rows)
+                        </span>
+                      )}
                     </div>
 
                     <div className="flex items-center gap-2">
@@ -1907,7 +1955,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       </div>
                       <button
                         type="button"
-                        onClick={() => { setUploadedRecipients([]); setRawHeaders([]); setPastedCsv(''); }}
+                        onClick={() => { setUploadedRecipients([]); setRawUploadedRecipients([]); setFilterStats(null); setRawHeaders([]); setPastedCsv(''); }}
                         className="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3 py-1.5 rounded-xl transition-all"
                       >
                         Clear All
