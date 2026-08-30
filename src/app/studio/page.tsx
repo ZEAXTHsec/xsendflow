@@ -80,11 +80,19 @@ export default function StudioPage() {
       setLicense(getStoredLicense());
     };
 
+    const handleOpenSettings = (e: any) => {
+      const tab = e?.detail?.tab || 'api';
+      setSettingsTab(tab);
+      setIsSettingsOpen(true);
+    };
+
     window.addEventListener('xsendflow_plan_updated', handlePlanUpdate);
     window.addEventListener('xsendflow_license_updated', handlePlanUpdate);
+    window.addEventListener('xsendflow_open_settings', handleOpenSettings);
     return () => {
       window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
       window.removeEventListener('xsendflow_license_updated', handlePlanUpdate);
+      window.removeEventListener('xsendflow_open_settings', handleOpenSettings);
     };
   }, []);
 

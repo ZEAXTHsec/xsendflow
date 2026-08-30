@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
-import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3, Copy } from 'lucide-react';
+import { Mail, Plus, Play, Pause, Trash2, Clock, CheckCircle2, Send, ShieldCheck, Filter, UploadCloud, Sparkles, ChevronRight, ChevronLeft, ArrowLeft, Search, Eye, Download, Dices, Wand2, Layers, RefreshCw, Zap, BarChart3, Copy, AlertCircle, Key } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Lead } from '@/lib/types';
 import { SenderAccount } from './SendersTab';
@@ -125,6 +125,17 @@ export default function CampaignsTab({ leads }: Props) {
         }
         const plan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
         setUserPlan(plan);
+
+        const g = localStorage.getItem('xsendflow_gemini_key');
+        const o = localStorage.getItem('xsendflow_openai_key');
+        const d = localStorage.getItem('xsendflow_deepseek_key');
+        const p = localStorage.getItem('xsendflow_active_ai_provider') || 'gemini';
+        if (p === 'openai' && o) setConnectedAiModel('OpenAI (GPT-4o)');
+        else if (p === 'deepseek' && d) setConnectedAiModel('DeepSeek (V3)');
+        else if (g) setConnectedAiModel('Google Gemini 2.0');
+        else if (o) setConnectedAiModel('OpenAI (GPT-4o)');
+        else if (d) setConnectedAiModel('DeepSeek (V3)');
+        else setConnectedAiModel('');
       } catch {
         // Ignore
       }
@@ -133,11 +144,13 @@ export default function CampaignsTab({ leads }: Props) {
     window.addEventListener('xsendflow_campaigns_updated', handleSync);
     window.addEventListener('xsendflow_senders_updated', handleSync);
     window.addEventListener('xsendflow_plan_updated', handleSync);
+    window.addEventListener('xsendflow_keys_updated', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('xsendflow_campaigns_updated', handleSync);
       window.removeEventListener('xsendflow_senders_updated', handleSync);
       window.removeEventListener('xsendflow_plan_updated', handleSync);
+      window.removeEventListener('xsendflow_keys_updated', handleSync);
     };
   }, []);
 
@@ -268,6 +281,20 @@ export default function CampaignsTab({ leads }: Props) {
   const [aiCta, setAiCta] = useState('Worth a quick look?');
   const [aiFramework, setAiFramework] = useState<'value_teardown' | 'case_study_proof' | '3_sentence_hook'>('value_teardown');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
+  const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
+  const [connectedAiModel, setConnectedAiModel] = useState<string>(() => {
+    if (typeof window === 'undefined') return '';
+    const g = localStorage.getItem('xsendflow_gemini_key');
+    const o = localStorage.getItem('xsendflow_openai_key');
+    const d = localStorage.getItem('xsendflow_deepseek_key');
+    const p = localStorage.getItem('xsendflow_active_ai_provider') || 'gemini';
+    if (p === 'openai' && o) return 'OpenAI (GPT-4o)';
+    if (p === 'deepseek' && d) return 'DeepSeek (V3)';
+    if (g) return 'Google Gemini 2.0';
+    if (o) return 'OpenAI (GPT-4o)';
+    if (d) return 'DeepSeek (V3)';
+    return '';
+  });
   const [wizardSpintaxSamples, setWizardSpintaxSamples] = useState<string[]>([]);
 
   // Inspector & Virtual Sandbox state
@@ -900,8 +927,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
   const handleWizardGenerateAiCopy = async () => {
     setIsGeneratingAi(true);
+    setAiErrorMessage(null);
     try {
-      const apiKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_gemini_key') || '' : '';
+      const geminiKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_gemini_key') || '' : '';
+      const openaiKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_openai_key') || '' : '';
+      const deepseekKey = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_deepseek_key') || '' : '';
+      const provider = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_active_ai_provider') || 'gemini' : 'gemini';
+
+      if (!geminiKey && !openaiKey && !deepseekKey) {
+        setAiErrorMessage('No AI API key found. Please click "Connect API Key" below to add your Google Gemini (Free), OpenAI, or DeepSeek API key in Settings (or switch to the "Write Your Own Message" tab).');
+        setIsGeneratingAi(false);
+        return;
+      }
+
       const res = await fetch('/api/ai/generate-sequence', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -914,10 +952,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           angle: aiFramework,
           framework: aiFramework,
           csvVariables: rawHeaders.length > 0 ? rawHeaders : ['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL'],
-          apiKey
+          provider,
+          geminiKey,
+          openaiKey,
+          deepseekKey
         })
       });
+
       const data = await res.json();
+      if (!res.ok || !data.success) {
+        setAiErrorMessage(data.error || 'Failed to generate AI sequence. Please check your API key.');
+        return;
+      }
+
       if (data.sequence && Array.isArray(data.sequence)) {
         const mappedSteps: CampaignStep[] = data.sequence.map((s: { day: number; subject: string; body: string }, i: number) => ({
           id: i + 1,
@@ -926,10 +973,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           body: s.body
         }));
         setSteps(mappedSteps);
+        setAiErrorMessage(null);
         try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } }); } catch {}
       }
     } catch (err) {
       console.error('Wizard AI generate error:', err);
+      setAiErrorMessage('Network or server error while connecting to AI model. Please try again.');
     } finally {
       setIsGeneratingAi(false);
     }
@@ -2224,6 +2273,53 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       </button>
                     </div>
                   </div>
+
+                  {/* AI MODEL STATUS & API KEY BANNER */}
+                  {aiErrorMessage ? (
+                    <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-900 font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                        <span>{aiErrorMessage}</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('xsendflow_open_settings', { detail: { tab: 'api' } }))}
+                        className="text-[11px] font-bold bg-rose-600 hover:bg-rose-700 text-white px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer shadow-2xs"
+                      >
+                        ⚙️ Connect API Key in Settings
+                      </button>
+                    </div>
+                  ) : !connectedAiModel ? (
+                    <div className="p-3 bg-amber-50/80 border border-amber-200 rounded-xl text-xs text-amber-900 flex flex-col sm:flex-row sm:items-center justify-between gap-2 shadow-2xs">
+                      <div className="flex items-center gap-2">
+                        <Key className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span className="font-medium">
+                          <strong>AI API Key Required:</strong> Connect your Google Gemini (Free), OpenAI, or DeepSeek key to generate live AI copy.
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('xsendflow_open_settings', { detail: { tab: 'api' } }))}
+                        className="text-[11px] font-bold bg-amber-600 hover:bg-amber-700 text-white px-3 py-1.5 rounded-lg shrink-0 transition-all cursor-pointer shadow-2xs"
+                      >
+                        ⚙️ Connect Free API Key
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="px-3 py-2 bg-emerald-50/70 border border-emerald-200 rounded-xl text-xs text-emerald-900 flex items-center justify-between shadow-2xs">
+                      <span className="flex items-center gap-1.5 font-bold">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                        <span>AI Engine Active: {connectedAiModel}</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('xsendflow_open_settings', { detail: { tab: 'api' } }))}
+                        className="text-[10px] font-bold text-emerald-700 hover:underline cursor-pointer"
+                      >
+                        Change Model / Key ↗
+                      </button>
+                    </div>
+                  )}
 
                   {/* INJECTED CSV TAGS BADGE */}
                   {rawHeaders.length > 0 && (

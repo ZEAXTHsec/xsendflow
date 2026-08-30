@@ -96,6 +96,14 @@ export default function ProfileSettingsModal({
     if (typeof window === 'undefined') return '';
     try { return localStorage.getItem('xsendflow_openai_key') || ''; } catch { return ''; }
   });
+  const [activeAiProvider, setActiveAiProvider] = useState<'gemini' | 'openai' | 'deepseek'>(() => {
+    if (typeof window === 'undefined') return 'gemini';
+    try {
+      return (localStorage.getItem('xsendflow_active_ai_provider') as 'gemini' | 'openai' | 'deepseek') || 'gemini';
+    } catch {
+      return 'gemini';
+    }
+  });
   const [savedKeySuccess, setSavedKeySuccess] = useState(false);
 
   // Preferences state
@@ -233,9 +241,11 @@ export default function ProfileSettingsModal({
 
   const handleSaveApiKeys = () => {
     try {
+      localStorage.setItem('xsendflow_active_ai_provider', activeAiProvider);
       localStorage.setItem('xsendflow_gemini_key', geminiKey.trim());
       localStorage.setItem('xsendflow_deepseek_key', deepseekKey.trim());
       localStorage.setItem('xsendflow_openai_key', openaiKey.trim());
+      window.dispatchEvent(new Event('xsendflow_keys_updated'));
       setSavedKeySuccess(true);
       setTimeout(() => setSavedKeySuccess(false), 2500);
     } catch {}
@@ -937,51 +947,143 @@ export default function ProfileSettingsModal({
                 </div>
 
                 <div className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-indigo-50/60 border border-indigo-100 space-y-2">
+                  {/* ACTIVE PROVIDER SELECTOR */}
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-slate-700">Active AI Model Engine</label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setActiveAiProvider('gemini')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          activeAiProvider === 'gemini'
+                            ? 'bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-slate-900">Google Gemini</span>
+                          <span className="text-[9px] font-bold text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded">Recommended</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">Gemini 2.0 Flash • Ultra fast</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveAiProvider('openai')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          activeAiProvider === 'openai'
+                            ? 'bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-slate-900">OpenAI</span>
+                          <span className="text-[9px] font-bold text-slate-600 bg-slate-100 px-1.5 py-0.2 rounded">GPT-4o</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">GPT-4o-mini &amp; GPT-4o</p>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setActiveAiProvider('deepseek')}
+                        className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                          activeAiProvider === 'deepseek'
+                            ? 'bg-indigo-50/80 border-indigo-300 ring-2 ring-indigo-500/20'
+                            : 'bg-white border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-extrabold text-slate-900">DeepSeek</span>
+                          <span className="text-[9px] font-bold text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded">V3</span>
+                        </div>
+                        <p className="text-[10px] text-slate-500 mt-1">DeepSeek Chat API</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* GOOGLE GEMINI KEY CARD */}
+                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                    activeAiProvider === 'gemini' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
+                  }`}>
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-extrabold text-indigo-900 flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-indigo-600" /> Google Gemini API Key (Recommended)
+                      <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-indigo-600" /> Google Gemini API Key
                       </span>
-                      <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded-full">
-                        Free High-Speed Quota
-                      </span>
+                      <a 
+                        href="https://aistudio.google.com/app/apikey" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-indigo-600 hover:underline"
+                      >
+                        Get Free Gemini Key ↗
+                      </a>
                     </div>
                     <input
                       type="password"
                       value={geminiKey}
                       onChange={e => setGeminiKey(e.target.value)}
                       placeholder="AIzaSy..."
-                      className="w-full bg-white border border-indigo-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
-                    <span className="text-[10px] text-slate-500">Powers real-time spam trigger detection and dynamic icebreaker synthesis with 0 token delay.</span>
+                    <span className="text-[10px] text-slate-500">Free tier quota from Google AI Studio. Powers real-time cold outreach sequences and icebreaker synthesis.</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">OpenAI API Key (Optional)</label>
+                  {/* OPENAI KEY CARD */}
+                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                    activeAiProvider === 'openai' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <Zap className="w-4 h-4 text-emerald-600" /> OpenAI API Key
+                      </span>
+                      <a 
+                        href="https://platform.openai.com/api-keys" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-indigo-600 hover:underline"
+                      >
+                        Get OpenAI Key ↗
+                      </a>
+                    </div>
                     <input
                       type="password"
                       value={openaiKey}
                       onChange={e => setOpenaiKey(e.target.value)}
                       placeholder="sk-proj-..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">DeepSeek API Key (Optional)</label>
+                  {/* DEEPSEEK KEY CARD */}
+                  <div className={`p-4 rounded-2xl border space-y-2 transition-all ${
+                    activeAiProvider === 'deepseek' ? 'bg-indigo-50/60 border-indigo-200' : 'bg-slate-50/50 border-slate-200'
+                  }`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <Sparkles className="w-4 h-4 text-blue-600" /> DeepSeek API Key
+                      </span>
+                      <a 
+                        href="https://platform.deepseek.com/api_keys" 
+                        target="_blank" 
+                        rel="noreferrer"
+                        className="text-[10px] font-bold text-indigo-600 hover:underline"
+                      >
+                        Get DeepSeek Key ↗
+                      </a>
+                    </div>
                     <input
                       type="password"
                       value={deepseekKey}
                       onChange={e => setDeepseekKey(e.target.value)}
                       placeholder="sk-..."
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500"
                     />
                   </div>
 
                   {savedKeySuccess && (
                     <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
                       <Check className="w-4 h-4 text-emerald-600" />
-                      <span>API keys securely saved to your local browser vault!</span>
+                      <span>API credentials securely saved to your local browser vault!</span>
                     </div>
                   )}
 
@@ -989,7 +1091,7 @@ export default function ProfileSettingsModal({
                     <button
                       type="button"
                       onClick={handleSaveApiKeys}
-                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95 transition-all"
+                      className="text-xs font-bold bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl shadow-xs active:scale-95 transition-all cursor-pointer"
                     >
                       Save API Keys
                     </button>
