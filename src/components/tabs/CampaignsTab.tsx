@@ -243,10 +243,8 @@ export default function CampaignsTab({ leads }: Props) {
   ]);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
 
-  // Step 3: Sequence Modes, AI Writer & Saved Templates
-  const [sequenceMode, setSequenceMode] = useState<'ai_builder' | 'playbooks' | 'manual'>('ai_builder');
-  const [selectedPlaybookKey, setSelectedPlaybookKey] = useState<string>('seo_recovery');
-  const [playbookShuffleIndex, setPlaybookShuffleIndex] = useState<number>(0);
+  // Step 3: Sequence Modes (AI Writer or Manual with Dynamic CSV Tags)
+  const [sequenceMode, setSequenceMode] = useState<'ai_builder' | 'manual'>('ai_builder');
   const [savedCustomTemplates, setSavedCustomTemplates] = useState<Array<{ id: string; name: string; steps: CampaignStep[] }>>(() => {
     if (typeof window === 'undefined') return [];
     try {
@@ -854,182 +852,6 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     } catch {
       // Ignore
     }
-  };
-
-  const PROVEN_PLAYBOOKS = [
-    {
-      id: 'seo_recovery',
-      title: '🔍 SEO & Google Ranking Recovery',
-      tag: 'Trained SEO Track',
-      badge: 'Page-2 Recovery',
-      description: 'Pinpoints commercial search terms where the prospect is sitting on Page 2 and offers a 60-second video audit.',
-      variations: [
-        {
-          angle: 'Page-2 Ranking Opportunity',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nNoticed {{Company}} is ranking on page 2 for high-intent commercial search terms in your area.\n\nPut together a 60-second video teardown showing 3 search ranking bottlenecks here: {{Pitch_Page_URL}}\n\n{{Worth a quick look?|Open to checking it out?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: 'Hi {{First_Name}},\n\nQuick follow up on the SEO breakdown for {{Company}}. Recently helped a similar team capture 40% more organic inquiries in 30 days.\n\nDid you get a chance to review the 60s teardown?\n\nBest,\nYour Name'
-            },
-            {
-              id: 3,
-              dayDelay: 7,
-              subject: 'Re: {Quick question|Brief inquiry} re: {{Company}} search rankings',
-              body: 'Hi {{First_Name}},\n\nAssuming SEO ranking recovery isn\'t a priority for {{Company}} right now, so I won\'t follow up again.\n\nIf capturing organic search traffic becomes a focus later, feel free to reach back out.\n\nBest,\nYour Name'
-            }
-          ]
-        },
-        {
-          angle: 'Competitor Traffic Leak',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: 'Competitor search gap for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nSaw that 2 of your main local competitors are capturing search traffic for high-value terms in your space.\n\nRecorded a quick teardown on how {{Company}} can recover that lost traffic: {{Pitch_Page_URL}}\n\nMind if I send over the 1-page summary?\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: Competitor search gap for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nFloating this note to the top of your inbox. Curious if organic traffic growth is a priority for {{Company}} this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'web_dev_agency',
-      title: '💻 White-Label Web & Software Dev',
-      tag: 'Trained Dev Track',
-      badge: 'Agency Overflow',
-      description: 'Positions you as a high-speed engineering partner to absorb client overflow with zero full-time overhead.',
-      variations: [
-        {
-          angle: 'Agency Dev Overflow',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{White-label dev|Engineering partner} for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\nWe provide white-label full-stack development for agencies scaling client delivery with zero full-time overhead.\n\nSample work and portfolio builds here: {{Pitch_Page_URL}}\n\n{{Worth a quick 5-min intro this week?|Open to connecting?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {White-label dev|Engineering partner} for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nQuick follow-up on my note below—we recently helped an agency partner deliver 4 client web apps in 3 weeks with 100% white-label confidentiality.\n\nCurious if dev overflow is on your radar this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'video_pitch',
-      title: '📹 1-to-1 Video Teardown Pitch',
-      tag: 'High Engagement',
-      badge: '60s Teardown',
-      description: 'Offers a personalized 60-second video walkthrough directly addressing company bottlenecks.',
-      variations: [
-        {
-          angle: 'Personalized 60-Second Walkthrough',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '60s video for {{Company}}',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nRecorded a quick 60-second walkthrough specifically for {{Company}} showing 3 actionable growth fixes: {{Pitch_Page_URL}}\n\n{{Worth a quick look?|Let me know what you think!}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: 60s video for {{Company}}',
-              body: 'Hi {{First_Name}},\n\nJust wanted to make sure the video link worked: {{Pitch_Page_URL}}\n\nOpen to discussing if this makes sense for {{Company}}?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: '3_sentence_hook',
-      title: '⚡ 3-Sentence Brevity Hook',
-      tag: 'Predictable Revenue',
-      badge: 'Under 40 Words',
-      description: 'Ultra-concise, conversational founder-to-founder outreach with zero pleasantries.',
-      variations: [
-        {
-          angle: 'Direct Value-First',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: '{{Company}} + growth',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nWe help teams in your space achieve guaranteed 99% inbox placement without domain burn.\n\nMind if I send over a quick 1-pager?\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: {{Company}} + growth',
-              body: 'Hi {{First_Name}},\n\nQuick bump on this—worth exploring for {{Company}}?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    },
-    {
-      id: 'case_study',
-      title: '📊 Case Study & Proof Drop',
-      tag: 'Proof-Driven',
-      badge: 'Metric Proof',
-      description: 'Leads with specific performance numbers and a concrete case study from a similar client.',
-      variations: [
-        {
-          angle: 'Peer Case Study',
-          steps: [
-            {
-              id: 1,
-              dayDelay: 0,
-              subject: 'How a team like {{Company}} added 28 calls',
-              body: '{{Hey|Hi}} {{First_Name}},\n\n{{Icebreaker}}\n\nRecently helped a B2B partner scale outbound pipeline to 28 qualified discovery calls in 14 days without spam penalties: {{Pitch_Page_URL}}\n\n{{Open to seeing the numbers?|Worth a quick look?}}\n\nBest,\nYour Name'
-            },
-            {
-              id: 2,
-              dayDelay: 3,
-              subject: 'Re: How a team like {{Company}} added 28 calls',
-              body: 'Hi {{First_Name}},\n\nQuick follow-up on the case study—curious if pipeline velocity is a focus for {{Company}} this quarter?\n\nBest,\nYour Name'
-            }
-          ]
-        }
-      ]
-    }
-  ];
-
-  const handleSelectPlaybook = (playbookId: string, varIndex = 0) => {
-    setSelectedPlaybookKey(playbookId);
-    setPlaybookShuffleIndex(varIndex);
-    const pb = PROVEN_PLAYBOOKS.find(p => p.id === playbookId);
-    if (!pb || !pb.variations[varIndex]) return;
-    const chosenVar = pb.variations[varIndex];
-    setSteps(chosenVar.steps);
-    try { confetti({ particleCount: 45, spread: 50, origin: { y: 0.6 } }); } catch {}
-  };
-
-  const handleShufflePlaybook = (playbookId: string) => {
-    const pb = PROVEN_PLAYBOOKS.find(p => p.id === playbookId);
-    if (!pb || pb.variations.length <= 1) {
-      handleSelectPlaybook(playbookId, 0);
-      return;
-    }
-    const nextIdx = (playbookShuffleIndex + 1) % pb.variations.length;
-    handleSelectPlaybook(playbookId, nextIdx);
   };
 
   const handleSaveCustomTemplate = () => {
@@ -2312,43 +2134,28 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           {/* STEP 3: MULTI-TOUCH SEQUENCE STUDIO & AI ENGINE */}
           {wizardStep === 3 && (
             <div className="space-y-5">
-              {/* ═══ 3-MODE SEQUENCE CREATOR SELECTOR ═══ */}
-              <div className="p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl grid grid-cols-1 sm:grid-cols-3 gap-1.5 shadow-2xs">
+              {/* ═══ 2-MODE SEQUENCE CREATOR SELECTOR ═══ */}
+              <div className="p-1.5 bg-slate-100/80 border border-slate-200 rounded-2xl grid grid-cols-1 sm:grid-cols-2 gap-1.5 shadow-2xs">
                 <button
                   type="button"
                   onClick={() => setSequenceMode('ai_builder')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-3.5 px-5 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
                     sequenceMode === 'ai_builder'
                       ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
                   }`}
                 >
                   <span className="flex items-center gap-1.5 font-black text-[13px]">
-                    <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+                    <Sparkles className="w-4 h-4 text-indigo-600" />
                     <span>✨ AI Campaign Writer</span>
                   </span>
-                  <span className="text-[10px] text-indigo-600 font-medium">Trained on Top 1% Frameworks</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setSequenceMode('playbooks')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
-                    sequenceMode === 'playbooks'
-                      ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
-                  }`}
-                >
-                  <span className="flex items-center gap-1.5 font-black text-[13px]">
-                    <span>🚀 Ready-to-Send Playbooks</span>
-                  </span>
-                  <span className="text-[10px] text-slate-500 font-medium">Pre-trained for SEO, Web Dev &amp; B2B</span>
+                  <span className="text-[10px] text-indigo-600 font-medium">Trained on Top 1% Cold Email Frameworks • Anti-Burn</span>
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setSequenceMode('manual')}
-                  className={`py-3 px-4 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
+                  className={`py-3.5 px-5 rounded-xl text-xs font-bold transition-all flex flex-col items-center justify-center gap-1 cursor-pointer ${
                     sequenceMode === 'manual'
                       ? 'bg-white text-indigo-900 shadow-xs border border-indigo-100 ring-2 ring-indigo-500/20'
                       : 'text-slate-600 hover:text-slate-900 hover:bg-white/50'
@@ -2357,64 +2164,9 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   <span className="flex items-center gap-1.5 font-black text-[13px]">
                     <span>✍️ Write Your Own Message</span>
                   </span>
-                  <span className="text-[10px] text-slate-500 font-medium">Full control + Dynamic CSV Tags</span>
+                  <span className="text-[10px] text-slate-500 font-medium">Full Manual Control + Dynamic CSV Tags</span>
                 </button>
               </div>
-
-              {/* ═══ MODE 1: PROVEN PLAYBOOKS CAROUSEL ═══ */}
-              {sequenceMode === 'playbooks' && (
-                <div className="bg-gradient-to-br from-indigo-50/70 via-blue-50/40 to-white p-5 rounded-2xl border border-indigo-200 space-y-4 shadow-xs">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div>
-                      <h4 className="text-xs font-black text-slate-900 tracking-tight flex items-center gap-2">
-                        <span>Battle-Tested Cold Outreach Playbooks</span>
-                        <span className="px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-800 text-[10px] font-bold">
-                          Zero-Fluff • Proven Inboxing
-                        </span>
-                      </h4>
-                      <p className="text-[11px] text-slate-500">
-                        Pick a specialized strategy below. Includes built-in Spintax and threaded follow-ups.
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <button
-                        type="button"
-                        onClick={() => handleShufflePlaybook(selectedPlaybookKey)}
-                        className="text-xs font-bold bg-white hover:bg-indigo-50 text-indigo-700 border border-indigo-200 px-3.5 py-1.5 rounded-xl shadow-2xs transition-all flex items-center gap-1.5 active:scale-95 cursor-pointer"
-                      >
-                        <Dices className="w-3.5 h-3.5 text-indigo-600" />
-                        <span>🎲 Shuffle Angles</span>
-                      </button>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
-                    {PROVEN_PLAYBOOKS.map(pb => (
-                      <button
-                        key={pb.id}
-                        type="button"
-                        onClick={() => handleSelectPlaybook(pb.id, 0)}
-                        className={`text-left p-3.5 rounded-xl border transition-all space-y-1.5 cursor-pointer ${
-                          selectedPlaybookKey === pb.id
-                            ? 'bg-white border-indigo-600 shadow-sm ring-1 ring-indigo-500'
-                            : 'bg-white/80 border-slate-200 hover:border-indigo-300 hover:bg-white'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <span className="text-xs font-bold text-slate-900">{pb.title}</span>
-                          <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 font-mono">
-                            {pb.badge}
-                          </span>
-                        </div>
-                        <p className="text-[10px] text-slate-500 line-clamp-2 leading-relaxed">
-                          {pb.description}
-                        </p>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
 
               {/* ═══ MODE 2: AI SEQUENCE GENERATOR (ANTI-SLOP & ANTI-BURN) ═══ */}
               {sequenceMode === 'ai_builder' && (
