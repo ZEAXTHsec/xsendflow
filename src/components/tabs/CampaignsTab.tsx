@@ -279,8 +279,8 @@ export default function CampaignsTab({ leads }: Props) {
   const [aiOffer, setAiOffer] = useState('');
   const [aiAudience, setAiAudience] = useState('');
   const [aiPainPoint, setAiPainPoint] = useState('');
-  const [aiLeadMagnet, setAiLeadMagnet] = useState('60-second video teardown / pitch page ({{Pitch_Page_URL}})');
-  const [aiCta, setAiCta] = useState('Worth a quick look?');
+  const [aiLeadMagnet, setAiLeadMagnet] = useState('');
+  const [aiCta, setAiCta] = useState('');
   const [aiFramework, setAiFramework] = useState<'value_teardown' | 'case_study_proof' | '3_sentence_hook'>('value_teardown');
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [aiErrorMessage, setAiErrorMessage] = useState<string | null>(null);
@@ -947,11 +947,11 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           roughSketch: aiPromptMode === 'rough_sketch' ? aiRoughSketch : undefined,
-          offer: aiOffer || 'automated cold email deliverability engine',
-          audience: aiAudience || 'B2B founders & growth leaders',
-          painPoint: aiPainPoint || 'spam placement and low response rates',
-          leadMagnet: aiLeadMagnet || 'a 60-second video teardown ({{Pitch_Page_URL}})',
-          cta: aiCta || 'Worth a quick look?',
+          offer: aiPromptMode === 'guided_fields' ? (aiOffer || undefined) : undefined,
+          audience: aiPromptMode === 'guided_fields' ? (aiAudience || undefined) : undefined,
+          painPoint: aiPromptMode === 'guided_fields' ? (aiPainPoint || undefined) : undefined,
+          leadMagnet: aiPromptMode === 'guided_fields' ? (aiLeadMagnet || undefined) : undefined,
+          cta: aiPromptMode === 'guided_fields' ? (aiCta || undefined) : undefined,
           angle: aiFramework,
           framework: aiFramework,
           csvVariables: rawHeaders.length > 0 ? rawHeaders : ['First_Name', 'Company', 'Title', 'City', 'Website', 'Icebreaker', 'Pitch_Page_URL'],

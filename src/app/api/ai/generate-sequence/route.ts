@@ -40,11 +40,11 @@ export async function POST(req: NextRequest) {
     } = body;
 
     const selectedAngle = angle || framework || 'value_teardown';
-    const targetAudience = audience?.trim() || 'target prospect';
+    const targetAudience = audience?.trim() || '';
     const targetOffer = offer?.trim() || '';
     const targetPain = painPoint?.trim() || '';
-    const targetMagnet = leadMagnet?.trim() || 'a 60-second video teardown / pitch page ({{Pitch_Page_URL}})';
-    const targetCta = cta?.trim() || 'Worth a quick look?';
+    const targetMagnet = leadMagnet?.trim() || '';
+    const targetCta = cta?.trim() || '';
 
     // Determine the active API key and provider
     let effectiveProvider: 'gemini' | 'openai' | 'deepseek' = 'gemini';
@@ -92,15 +92,20 @@ You operate via a strict 3-Stage Internal Pipeline:
 🧠 STAGE 1: INTENT & COMMERCIAL BUYER DISCOVERY
 - Classify the user's business, service, or product from their brief.
 - Identify the highest-ROI B2B decision-maker who actually hires/buys this service over email:
-  * Local/Trade Services (AC/HVAC, Roofing, Cleaning, Electrical): Target Commercial Property Managers, Facility Ops Directors, Retail/Restaurant Building Managers.
+  * Local/Trade Services (AC/HVAC, Plumbing, Roofing, Cleaning, Electrical): Target Commercial Property Managers, Facility Ops Directors, Retail/Restaurant Building Managers.
   * B2B SaaS / Tech: Target Founders, CTOs, Growth Leaders.
   * Health / MedSpa / Dental: Target Practice Owners, Managing Partners, Clinic Directors.
   * Agencies / Studios: Target Agency Founders, Marketing Directors.
-- Generate industry-specific Spintax subject lines (e.g. for AC: "{Quick question|Brief inquiry} re: {{Company}}'s HVAC units" or "HVAC maintenance idea for {{Company}}").
+- Generate industry-specific Spintax subject lines (e.g. for AC: "{Quick HVAC question|Commercial AC teardown|AC maintenance fix}" or "emergency plumbing for {{Company}}").
 
-✍️ STAGE 2: VALUE-FIRST 3-TOUCH SYNTHESIS
-- Touch 1 (Day 1 - Initial): 1-sentence observation + Dream Outcome + Free Value Asset (${targetMagnet}) + 1-Question Low-Friction CTA (e.g. "${targetCta}").
-- Touch 2 (Day 3 - Threaded Follow-up): Starts with "Re: [Subject]" + specific case study proof point with concrete metrics.
+✍️ STAGE 2: DYNAMIC REALISTIC VALUE ASSET & SEQUENCE SYNTHESIS
+- DO NOT default to "60-second video" unless it actually fits the business. Adapt the upfront gift to the real industry:
+  * For Trades / Field Services (Plumbing, HVAC, Cleaning, Roofing): Offer a 1-page commercial rate card, fixed emergency response SLA, or 3-point maintenance checklist.
+  * For B2B Software / SaaS: Offer an interactive sandbox walkthrough ({{Pitch_Page_URL}}) or benchmark report.
+  * For Agencies / Consultants: Offer a teardown audit, landing page teardown ({{Pitch_Page_URL}}), or custom roadmap.
+  * For 3-Sentence Brevity Hook: Direct punchy observation + dream outcome + 1-question CTA without forcing an external link.
+- Touch 1 (Day 1 - Initial): 1-sentence observation + Dream Outcome + Realistic Free Asset + 1-Question Low-Friction CTA.
+- Touch 2 (Day 3 - Threaded Follow-up): Starts with "Re: [Subject]" + specific case study proof point with concrete numbers.
 - Touch 3 (Day 7 - Graceful Breakup): Starts with "Re: [Subject]" + low-pressure polite closing (leaving door open).
 - Naturally integrate merge variables from: ${availableTagsList}. Always format name tag as {{First_Name}} (with underscore) and company tag as {{Company}}.
 
@@ -127,14 +132,14 @@ OUTPUT FORMAT: Return ONLY valid JSON matching this schema:
       ? `User's Rough Sketch & Pitch Brief:
 "${roughSketch.trim()}"
 
-Analyze what they do, who they target, and their service/offer from the brief above, and synthesize a high-converting cold email sequence following the selected angle: ${selectedAngle}.
-Asset Link: ${targetMagnet}
-CTA: ${targetCta}`
-      : `Target Avatar: ${targetAudience}
+Analyze what they do, who they target, and their service/offer from the brief above. Synthesize a high-converting cold email sequence tailored specifically to their domain following angle: ${selectedAngle}.
+${targetMagnet ? `Custom Asset Specified by User: ${targetMagnet}` : 'Auto-synthesize the most realistic free value asset for their niche.'}
+${targetCta ? `Custom CTA: ${targetCta}` : 'Use a low-friction 1-question CTA appropriate for their industry.'}`
+      : `Target Avatar: ${targetAudience || 'target prospect'}
 Grand Slam Dream Outcome: ${targetOffer || 'help them scale with zero overhead'}
 Core Problem Solved: ${targetPain || 'wasting time on low-converting methods'}
-Lead Magnet / Free Asset: ${targetMagnet}
-CTA: ${targetCta}
+Lead Magnet / Free Asset: ${targetMagnet || 'a relevant 1-page breakdown or demo'}
+CTA: ${targetCta || 'Worth a quick look?'}
 Framework Strategy: ${selectedAngle}`;
 
     let rawJsonText = '';
