@@ -64,6 +64,12 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
   const handleCloneCampaign = (camp: Campaign, e?: React.MouseEvent) => {
     if (e) e.stopPropagation();
+    const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    if (currentPlan === 'free' && campaigns.length >= 1) {
+      setUpgradeReason('campaign_limit');
+      setIsUpgradeOpen(true);
+      return;
+    }
     setCampaignToClone(camp);
     setIsCloneModalOpen(true);
   };

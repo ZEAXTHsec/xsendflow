@@ -684,13 +684,14 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     }
 
     const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    if (userPlan === 'free' && campaigns.length >= 1) {
+      setUpgradeReason('campaign_limit');
+      setIsUpgradeOpen(true);
+      return;
+    }
     const activeCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
-    if (!canLaunchCampaign(activeCount, userPlan)) {
-      if (userPlan === 'free') {
-        setUpgradeReason('campaign_limit');
-      } else {
-        setUpgradeReason('pro_campaign_limit');
-      }
+    if (userPlan === 'pro' && activeCount >= 5) {
+      setUpgradeReason('pro_campaign_limit');
       setIsUpgradeOpen(true);
       return;
     }
@@ -864,6 +865,12 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
   const [campaignToClone, setCampaignToClone] = useState<Campaign | null>(null);
 
   const handleCloneCampaign = (camp: Campaign) => {
+    const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    if (plan === 'free' && campaigns.length >= 1) {
+      setUpgradeReason('campaign_limit');
+      setIsUpgradeOpen(true);
+      return;
+    }
     setCampaignToClone(camp);
     setIsCloneModalOpen(true);
   };
@@ -1192,8 +1199,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             <button
               onClick={() => {
                 const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-                const activeRunningCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'sending').length;
-                if (plan === 'free' && activeRunningCount >= 1) {
+                if (plan === 'free' && campaigns.length >= 1) {
                   setUpgradeReason('campaign_limit');
                   setIsUpgradeOpen(true);
                   return;
@@ -1205,9 +1211,9 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             >
               <Plus className="w-4 h-4" />
               <span>New Campaign Wizard</span>
-              {userPlan === 'free' && activeCount >= 1 && (
-                <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.2 rounded font-mono">
-                  1 ACTIVE
+              {userPlan === 'free' && campaigns.length >= 1 && (
+                <span className="text-[10px] bg-amber-400 text-slate-950 font-black px-1.5 py-0.5 rounded font-mono">
+                  1/1 CAMPAIGN (PRO ➔)
                 </span>
               )}
             </button>

@@ -55,8 +55,8 @@ export default function UpgradeProModal({
       desc: 'Free plan includes 1 mailbox. Upgrade to Pro to connect and rotate unlimited Google Workspace & Hostinger inboxes to protect your domain reputation.'
     },
     campaign_limit: {
-      title: 'Run Multiple Active Campaigns',
-      desc: 'Free tier supports 1 active campaign at a time. Pause your running campaign or upgrade to Pro to launch up to 5 simultaneous campaigns.'
+      title: 'Upgrade to Manage Multiple Campaigns',
+      desc: 'Free tier is limited to 1 campaign total. Upgrade to Pro ($29/mo) to create, clone, and run up to 5 campaigns simultaneously, or delete your existing campaign.'
     },
     pro_campaign_limit: {
       title: 'Scale to Unlimited Active Campaigns',

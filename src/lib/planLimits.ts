@@ -69,6 +69,13 @@ export function canAddMailbox(currentCount: number, plan: UserPlan = 'free'): bo
   return currentCount < limits.maxMailboxes;
 }
 
+export function canCreateCampaign(totalCampaignsCount: number, plan: UserPlan = 'free'): boolean {
+  if (plan === 'free') {
+    return totalCampaignsCount < 1;
+  }
+  return true;
+}
+
 export function canLaunchCampaign(currentActiveCount: number, plan: UserPlan = 'free'): boolean {
   const limits = PLAN_LIMITS[plan] || PLAN_LIMITS.free;
   return currentActiveCount < limits.maxActiveCampaigns;
