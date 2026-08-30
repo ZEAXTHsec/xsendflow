@@ -473,7 +473,13 @@ export default function CampaignsTab({ leads }: Props) {
           };
         }).filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email));
 
-        setUploadedRecipients(recips);
+        const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
+        if (userPlan === 'free' && recips.length > 250) {
+          alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
+          setUploadedRecipients(recips.slice(0, 250));
+        } else {
+          setUploadedRecipients(recips);
+        }
       }
     });
   };
@@ -508,7 +514,13 @@ export default function CampaignsTab({ leads }: Props) {
           status: 'pending' as const
         })).filter(r => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(r.email));
 
-        setUploadedRecipients(recips);
+        const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
+        if (userPlan === 'free' && recips.length > 250) {
+          alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
+          setUploadedRecipients(recips.slice(0, 250));
+        } else {
+          setUploadedRecipients(recips);
+        }
       }
     } catch {
       alert('Could not parse pasted CSV.');
@@ -530,7 +542,14 @@ export default function CampaignsTab({ leads }: Props) {
       pitchUrl: l.pitchUrl,
       status: 'pending'
     }));
-    setUploadedRecipients(recips);
+
+    const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free';
+    if (userPlan === 'free' && recips.length > 250) {
+      alert(`ℹ️ Free Plan Notice (250 Leads Cap):\nFree accounts are limited to 250 contacts per campaign. The first 250 contacts have been imported.\n\nUpgrade to Pro for unlimited leads per campaign.`);
+      setUploadedRecipients(recips.slice(0, 250));
+    } else {
+      setUploadedRecipients(recips);
+    }
   };
 
   const handleLoadCatchallSample = () => {
@@ -1024,6 +1043,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           trackClicks: targetCamp.trackClicks ?? true,
           unsubscribeText: targetCamp.unsubscribeText,
           campaignId: targetCamp.id,
+          userId: (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_email') : '') || 'user_default',
           userPlan: (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free'
         })
       });
@@ -1038,6 +1058,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             return { ...c, status: 'paused' };
           })
         );
+        window.dispatchEvent(new Event('xsendflow_senders_updated'));
+        return;
+      }
+
+      // If all senders failed or encountered provider limits, pause campaign and alert user
+      if (data.code === 'ALL_SENDERS_FAILED' || res.status === 503) {
+        setCampaigns(prev =>
+          prev.map(c => {
+            if (c.id !== id) return c;
+            return { ...c, status: 'paused' };
+          })
+        );
+        alert(`⚠️ Campaign Paused:\n${data.error}`);
         window.dispatchEvent(new Event('xsendflow_senders_updated'));
         return;
       }

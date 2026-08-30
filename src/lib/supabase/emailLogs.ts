@@ -45,6 +45,44 @@ export async function logDispatchedEmail(entry: EmailLogEntry): Promise<boolean>
 }
 
 /**
+ * Queries exact count of delivered emails sent by a user account today (since 00:00 UTC) across all mailboxes
+ */
+export async function getUserDailySentCount(userId: string): Promise<number> {
+  try {
+    const todayIso = new Date();
+    todayIso.setUTCHours(0, 0, 0, 0);
+    const startOfToday = todayIso.toISOString();
+
+    const cleanUser = encodeURIComponent(userId.toLowerCase().trim());
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/outbound_email_logs?user_id=eq.${cleanUser}&sent_at=gte.${encodeURIComponent(startOfToday)}&status=eq.delivered&select=id`,
+      {
+        headers: {
+          'apikey': SUPABASE_SERVICE_KEY,
+          'Authorization': `Bearer ${SUPABASE_SERVICE_KEY}`,
+          'Range-Unit': 'items',
+          'Prefer': 'count=exact'
+        }
+      }
+    );
+
+    if (!res.ok) return 0;
+    const contentRange = res.headers.get('content-range');
+    if (contentRange) {
+      const parts = contentRange.split('/');
+      if (parts[1]) {
+        return parseInt(parts[1], 10) || 0;
+      }
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data.length : 0;
+  } catch (err) {
+    console.error('Failed to fetch user daily count from Supabase:', err);
+    return 0;
+  }
+}
+
+/**
  * Queries exact count of delivered emails sent by a sender today (since 00:00 UTC)
  */
 export async function getSenderDailySentCount(senderEmail: string): Promise<number> {
@@ -55,7 +93,7 @@ export async function getSenderDailySentCount(senderEmail: string): Promise<numb
 
     const cleanEmail = encodeURIComponent(senderEmail.toLowerCase().trim());
     const res = await fetch(
-      `${SUPABASE_URL}/rest/v1/outbound_email_logs?sender_email=eq.${cleanEmail}&sent_at=gte.${encodeURIComponent(startOfToday)}&select=id`,
+      `${SUPABASE_URL}/rest/v1/outbound_email_logs?sender_email=eq.${cleanEmail}&sent_at=gte.${encodeURIComponent(startOfToday)}&status=eq.delivered&select=id`,
       {
         headers: {
           'apikey': SUPABASE_SERVICE_KEY,
