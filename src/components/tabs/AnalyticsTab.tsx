@@ -22,6 +22,7 @@ interface Props {
 }
 
 export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
+  const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
   const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
@@ -855,7 +856,21 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
           <div className="space-y-3.5">
             {senders.slice(0, 4).map((sender) => {
-              const pct = Math.min(100, Math.round(((sender.dailySentCount || 0) / (sender.dailyLimit || 100)) * 100));
+              // Calculate actual total sent emails across all campaigns using this sender
+              let actualSentToday = 0;
+              campaigns.forEach(camp => {
+                const usesSender = (camp.selectedSenderIds && camp.selectedSenderIds.includes(sender.id)) ||
+                                   camp.senderId === sender.id ||
+                                   (!camp.selectedSenderIds?.length && !camp.senderId);
+                if (usesSender && Array.isArray(camp.recipients)) {
+                  const count = camp.recipients.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
+                  actualSentToday += count;
+                }
+              });
+
+              const limit = sender.dailyLimit || 100;
+              const pct = Math.min(100, Math.round((actualSentToday / limit) * 100));
+
               return (
                 <div key={sender.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
                   <div className="flex items-center justify-between">
@@ -867,18 +882,29 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                       100% HEALTH
                     </span>
                   </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                      <span>Daily Sending Limit</span>
-                      <span>{sender.dailySentCount || 0} / {sender.dailyLimit || 100} sent today</span>
+
+                  {currentPlan === 'agency' ? (
+                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200/70 px-3 py-1.5 rounded-xl">
+                      <span className="flex items-center gap-1.5">
+                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                        <span>Agency Scale: Unlimited Cloud Quota</span>
+                      </span>
+                      <span className="font-mono">{actualSentToday} dispatched today</span>
                     </div>
-                    <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                      <div
-                        className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                        style={{ width: `${Math.max(5, pct)}%` }}
-                      />
+                  ) : (
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] font-bold text-slate-600">
+                        <span>Daily Sending Limit</span>
+                        <span>{actualSentToday} / {limit} sent today</span>
+                      </div>
+                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
+                        <div
+                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
+                          style={{ width: `${Math.max(5, pct)}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               );
             })}

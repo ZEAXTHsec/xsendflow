@@ -426,38 +426,66 @@ export default function SendersTab() {
         </div>
 
         <div className="divide-y divide-slate-100">
-          {senders.map(sender => (
-            <div key={sender.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition-colors">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2.5">
-                  <h4 className="text-sm font-bold text-slate-900">{sender.label}</h4>
-                  <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold flex items-center gap-1 font-mono">
-                    <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Active
-                  </span>
-                </div>
-                <div className="text-xs text-slate-500 font-mono">
-                  {sender.email} • {sender.smtpHost}:{sender.smtpPort}
-                </div>
-              </div>
+          {senders.map(sender => {
+            let actualSentToday = 0;
+            try {
+              const saved = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_campaigns_v2') : null;
+              if (saved) {
+                const camps = JSON.parse(saved);
+                if (Array.isArray(camps)) {
+                  camps.forEach((c: any) => {
+                    const uses = (c.selectedSenderIds && c.selectedSenderIds.includes(sender.id)) ||
+                                 c.senderId === sender.id ||
+                                 (!c.selectedSenderIds?.length && !c.senderId);
+                    if (uses && Array.isArray(c.recipients)) {
+                      actualSentToday += c.recipients.filter((r: any) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
+                    }
+                  });
+                }
+              }
+            } catch {}
 
-              <div className="flex items-center gap-6">
-                <div className="text-right">
-                  <div className="text-xs font-bold text-slate-900 font-mono">
-                    Sent Today: {sender.dailySentCount} / {sender.dailyLimit}
+            const plan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+
+            return (
+              <div key={sender.id} className="py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/60 p-3 rounded-2xl transition-colors">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2.5">
+                    <h4 className="text-sm font-bold text-slate-900">{sender.label}</h4>
+                    <span className="text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-2 py-0.5 rounded-md font-bold flex items-center gap-1 font-mono">
+                      <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" /> Active
+                    </span>
                   </div>
-                  <span className="text-[10px] text-slate-400">Daily Cap: {sender.dailyLimit}</span>
+                  <div className="text-xs text-slate-500 font-mono">
+                    {sender.email} • {sender.smtpHost}:{sender.smtpPort}
+                  </div>
                 </div>
 
-                <button
-                  onClick={() => handleDeleteSender(sender.id)}
-                  className="text-rose-600 hover:text-rose-700 p-1.5 rounded-xl hover:bg-rose-50 transition-colors"
-                  title="Remove Sender Account"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
+                <div className="flex items-center gap-6">
+                  {plan === 'agency' ? (
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200/70 px-2.5 py-1 rounded-lg font-mono">
+                      ⚡ Agency: Unlimited Dispatch
+                    </span>
+                  ) : (
+                    <div className="text-right">
+                      <div className="text-xs font-bold text-slate-900 font-mono">
+                        Sent Today: {actualSentToday} / {sender.dailyLimit || 100}
+                      </div>
+                      <span className="text-[10px] text-slate-400">Daily Cap: {sender.dailyLimit || 100}</span>
+                    </div>
+                  )}
+
+                  <button
+                    onClick={() => handleDeleteSender(sender.id)}
+                    className="text-rose-600 hover:text-rose-700 p-1.5 rounded-xl hover:bg-rose-50 transition-colors"
+                    title="Remove Sender Account"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 

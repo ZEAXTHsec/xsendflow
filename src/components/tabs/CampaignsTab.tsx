@@ -281,6 +281,8 @@ export default function CampaignsTab({ leads }: Props) {
   const [testEmailTo, setTestEmailTo] = useState('');
   const [testSentSuccess, setTestSentSuccess] = useState(false);
   const isSendingMapRef = React.useRef<Record<string, boolean>>({});
+  const lastSentTimeMapRef = React.useRef<Record<string, number>>({});
+  const nextTargetDelayMapRef = React.useRef<Record<string, number>>({});
 
   const [draftInfo, setDraftInfo] = useState<{ name: string; lastSavedAt: string; step: number } | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -787,6 +789,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     if (isFreePlanBlocked) {
       alert(`⚠️ Free Plan Limit (1 Active Campaign):\nYour new campaign "${newCampaign.name}" was saved as Paused because another campaign is already actively running.\n\nPause your active campaign anytime to start this one, or upgrade to Pro.`);
     } else if (windowCheck.inWindow) {
+      lastSentTimeMapRef.current[newCampaign.id] = Date.now();
       setTimeout(() => {
         handleSendBatchSimulation(newCampaign.id, newCampaign, 1);
       }, 200);
@@ -886,6 +889,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
         } else {
           const nextStatus = windowCheck.inWindow ? 'in_progress' : 'scheduled';
           if (nextStatus === 'in_progress') {
+            lastSentTimeMapRef.current[id] = Date.now();
             setTimeout(() => handleSendBatchSimulation(id), 200);
           }
           return { ...c, status: nextStatus };
@@ -1075,9 +1079,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
     }
   };
 
-  // Automated 15-second background campaign delivery ticker (paces out emails naturally)
+  // Automated background campaign delivery ticker respecting exact camp.delaySeconds + human jitter
   useEffect(() => {
     const interval = setInterval(() => {
+      const now = Date.now();
       const activeCampaigns = campaigns.filter(c => c.status === 'in_progress' || c.status === 'scheduled' || c.status === 'sending');
       for (const camp of activeCampaigns) {
         const windowCheck = inspectScheduleWindow(camp.windowStart, camp.windowEnd, camp.timezone, camp.is24Hours);
@@ -1085,11 +1090,23 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           continue; // Outside schedule window, wait!
         }
         const hasPending = camp.recipients.some(r => r.status === 'pending');
-        if (hasPending) {
+        if (!hasPending) continue;
+
+        const baseDelaySeconds = camp.delaySeconds || 45;
+        const targetDelayMs = nextTargetDelayMapRef.current[camp.id] || (baseDelaySeconds * 1000);
+        const lastSent = lastSentTimeMapRef.current[camp.id] || 0;
+
+        if (now - lastSent >= targetDelayMs) {
+          lastSentTimeMapRef.current[camp.id] = now;
+          // Set next delay with subtle organic human jitter (+/- 3 to 6 seconds)
+          const jitterSeconds = Math.floor(Math.random() * 8) - 3; // -3s to +4s
+          const nextDelay = Math.max(10, baseDelaySeconds + jitterSeconds);
+          nextTargetDelayMapRef.current[camp.id] = nextDelay * 1000;
+
           handleSendBatchSimulation(camp.id, undefined, 1);
         }
       }
-    }, 15000);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [campaigns, senders]);
