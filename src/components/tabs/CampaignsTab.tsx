@@ -1416,28 +1416,29 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-black text-white">{draftInfo.name}</span>
-                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.2 rounded-full">
+                <span className="text-[10px] font-mono font-bold bg-amber-400/20 text-amber-300 border border-amber-400/30 px-2 py-0.5 rounded-full">
                   Step {draftInfo.step} Draft
                 </span>
               </div>
               <p className="text-[11px] text-slate-300">
-                You have an unfinished campaign setup safely preserved. You can resume where you left off or discard.
+                You have an unfinished campaign auto-saved in your vault. Click resume to finish and launch.
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2.5 shrink-0">
             <button
               type="button"
               onClick={handleDiscardDraft}
-              className="text-xs font-bold text-slate-400 hover:text-rose-400 px-3 py-2 rounded-xl transition-colors"
+              className="text-xs font-bold text-rose-300 hover:text-white bg-rose-500/20 hover:bg-rose-600/40 border border-rose-500/40 px-3.5 py-2.5 rounded-xl transition-all flex items-center gap-1.5 active:scale-95 shadow-xs cursor-pointer"
             >
-              Discard Draft
+              <Trash2 className="w-3.5 h-3.5 text-rose-400" />
+              <span>Discard Draft</span>
             </button>
             <button
               type="button"
               onClick={() => handleResumeDraft()}
-              className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all font-mono"
+              className="text-xs font-bold bg-white hover:bg-slate-100 text-indigo-950 px-4 py-2.5 rounded-xl flex items-center gap-1.5 shadow-md active:scale-95 transition-all font-mono cursor-pointer"
             >
               <span>Resume Draft ➔</span>
             </button>
@@ -1471,6 +1472,22 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 className="text-xs font-bold text-indigo-700 bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 px-3.5 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
               >
                 <span>💾 Save Draft &amp; Exit</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm('Are you sure you want to discard this draft? All unsaved changes will be cleared.')) {
+                    try {
+                      localStorage.removeItem('xsendflow_wizard_draft');
+                      setDraftInfo(null);
+                    } catch {}
+                    setIsCreating(false);
+                  }
+                }}
+                className="text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-1.5 rounded-xl transition-all shadow-xs active:scale-95 flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-rose-600" />
+                <span>Discard Draft</span>
               </button>
               <button
                 onClick={() => setIsCreating(false)}
