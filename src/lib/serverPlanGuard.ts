@@ -86,13 +86,13 @@ export async function assertServerPlanPermission(
 
       const currentDailySent = isNewDay ? 0 : (profile.daily_sent_count || 0);
 
-      if (plan === 'free' && currentDailySent >= 50) {
+      if (plan === 'free' && currentDailySent >= 100) {
         return {
           allowed: false,
           plan,
-          error: 'TIER_LIMIT: Free tier daily limit of 50 emails reached. Resets at 00:00 UTC or upgrade to Pro for unlimited.',
+          error: 'TIER_LIMIT: Free tier daily limit of 100 emails reached. Resets at 00:00 UTC or upgrade to Pro for higher limits.',
           currentCount: currentDailySent,
-          maxLimit: 50
+          maxLimit: 100
         };
       }
     }

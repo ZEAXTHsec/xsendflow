@@ -23,8 +23,18 @@ interface Props {
 
 export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
   const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-  const [timeRange, setTimeRange] = useState<'7d' | '30d' | 'all'>('7d');
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+  const [campaigns, setCampaigns] = useState<Campaign[]>(() => {
+    if (typeof window === 'undefined') return [];
+    try {
+      const saved = localStorage.getItem('xsendflow_campaigns_v2');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) return parsed;
+      }
+    } catch {}
+    return [];
+  });
+  const [dbDailyCounts, setDbDailyCounts] = useState<Record<string, number>>({});
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<'campaign_limit' | 'pro_campaign_limit' | 'mailbox_limit'>('campaign_limit');
   const [isCloneModalOpen, setIsCloneModalOpen] = useState(false);
@@ -216,12 +226,28 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
 
   useEffect(() => {
     loadCampaigns();
-    const handleSync = () => loadCampaigns();
+    const fetchStats = async () => {
+      try {
+        const res = await fetch('/api/senders/daily-stats');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.counts) setDbDailyCounts(data.counts);
+        }
+      } catch {}
+    };
+    fetchStats();
+
+    const handleSync = () => {
+      loadCampaigns();
+      fetchStats();
+    };
     window.addEventListener('storage', handleSync);
     window.addEventListener('xsendflow_campaigns_updated', handleSync);
+    window.addEventListener('xsendflow_senders_updated', handleSync);
     return () => {
       window.removeEventListener('storage', handleSync);
       window.removeEventListener('xsendflow_campaigns_updated', handleSync);
+      window.removeEventListener('xsendflow_senders_updated', handleSync);
     };
   }, []);
 
@@ -836,14 +862,14 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
       {/* 4. TWO-COLUMN OPERATIONAL STATUS GRID */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         
-        {/* Left Column: Mailbox Rotation Health */}
+        {/* Left Column: Account Daily Sending Quota Tracker */}
         <div className="p-6 rounded-3xl bg-white border border-slate-200 shadow-sm space-y-5">
           <div className="flex items-center justify-between border-b border-slate-100 pb-4">
             <div className="space-y-1">
               <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-                <Mail className="w-4 h-4 text-blue-600" /> Connected Mailbox Health &amp; Daily Quota
+                <Zap className="w-4 h-4 text-amber-500 fill-amber-500" /> Account Daily Sending Quota
               </h3>
-              <p className="text-xs text-slate-500">Individual inbox pacing prevents domain burn penalties.</p>
+              <p className="text-xs text-slate-500">Real-time daily outbound volume across your workspace. Resets at 00:00 UTC.</p>
             </div>
             <button
               onClick={onOpenSettings}
@@ -854,60 +880,96 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
             </button>
           </div>
 
-          <div className="space-y-3.5">
-            {senders.slice(0, 4).map((sender) => {
-              // Calculate actual total sent emails across all campaigns using this sender
-              let actualSentToday = 0;
-              campaigns.forEach(camp => {
-                const usesSender = (camp.selectedSenderIds && camp.selectedSenderIds.includes(sender.id)) ||
-                                   camp.senderId === sender.id ||
-                                   senders.length === 1; // If user has 1 mailbox connected, all workspace dispatches flow through it
-                if (usesSender && Array.isArray(camp.recipients)) {
-                  const count = camp.recipients.filter((r: CampaignRecipient) => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
-                  actualSentToday += count;
-                }
-              });
+          {/* Main Account Daily Quota Tracker Bar */}
+          {(() => {
+            let totalLocalSentToday = 0;
+            campaigns.forEach(c => {
+              if (Array.isArray(c.recipients)) {
+                totalLocalSentToday += c.recipients.filter(r => r.status === 'sent' || r.status === 'opened' || r.status === 'replied').length;
+              }
+            });
+            let totalDbSentToday = 0;
+            Object.values(dbDailyCounts).forEach(cnt => { totalDbSentToday += cnt; });
+            const totalWorkspaceSentToday = Math.max(totalLocalSentToday, totalDbSentToday);
 
-              const limit = currentPlan === 'free' ? 100 : (sender.dailyLimit || 500);
-              const pct = Math.min(100, Math.round((actualSentToday / limit) * 100));
+            const planDailyCap = currentPlan === 'free' ? 100 : currentPlan === 'pro' ? 500 : 999999;
+            const quotaPct = Math.min(100, Math.round((totalWorkspaceSentToday / (currentPlan === 'agency' ? 1000 : planDailyCap)) * 100));
 
-              return (
-                <div key={sender.id} className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-2.5">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-xs font-extrabold text-slate-900">{sender.label || 'SMTP Mailbox'}</div>
-                      <div className="text-[11px] font-mono text-slate-500">{sender.email}</div>
+            return (
+              <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block">Today's Dispatch Volume</span>
+                    <div className="text-lg font-black text-slate-900 font-mono">
+                      {currentPlan === 'agency' ? (
+                        <span>{totalWorkspaceSentToday} Dispatched</span>
+                      ) : (
+                        <span>{totalWorkspaceSentToday} / {planDailyCap} <span className="text-xs text-slate-500 font-normal">sent today</span></span>
+                      )}
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold font-mono">
-                      100% HEALTH
-                    </span>
                   </div>
-
-                  {currentPlan === 'agency' ? (
-                    <div className="flex items-center justify-between text-[11px] font-bold text-amber-800 bg-amber-50 border border-amber-200/70 px-3 py-1.5 rounded-xl">
-                      <span className="flex items-center gap-1.5">
-                        <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
-                        <span>Agency Scale: Unlimited Cloud Quota</span>
-                      </span>
-                      <span className="font-mono">{actualSentToday} dispatched today</span>
-                    </div>
-                  ) : (
-                    <div className="space-y-1">
-                      <div className="flex justify-between text-[11px] font-bold text-slate-600">
-                        <span>Daily Sending Limit</span>
-                        <span>{actualSentToday} / {limit} sent today</span>
-                      </div>
-                      <div className="w-full bg-slate-200 rounded-full h-1.5 overflow-hidden">
-                        <div
-                          className="bg-indigo-600 h-full rounded-full transition-all duration-500"
-                          style={{ width: `${Math.max(5, pct)}%` }}
-                        />
-                      </div>
-                    </div>
-                  )}
+                  <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold font-mono uppercase border ${
+                    currentPlan === 'agency'
+                      ? 'bg-amber-50 text-amber-800 border-amber-300'
+                      : currentPlan === 'pro'
+                      ? 'bg-indigo-50 text-indigo-800 border-indigo-200'
+                      : 'bg-slate-100 text-slate-700 border-slate-200'
+                  }`}>
+                    {currentPlan === 'agency' ? '⚡ Agency Scale' : currentPlan === 'pro' ? '👑 Pro (500/day)' : '⚡ Free Plan (100/day)'}
+                  </span>
                 </div>
-              );
-            })}
+
+                {currentPlan === 'agency' ? (
+                  <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                    <div className="bg-gradient-to-r from-amber-400 to-amber-500 h-full rounded-full w-full" />
+                  </div>
+                ) : (
+                  <div className="space-y-1">
+                    <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${
+                          quotaPct >= 90 ? 'bg-rose-500' : quotaPct >= 60 ? 'bg-amber-500' : 'bg-indigo-600'
+                        }`}
+                        style={{ width: `${Math.max(4, quotaPct)}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-slate-400 font-mono">
+                      <span>0 sent</span>
+                      <span>{planDailyCap - totalWorkspaceSentToday > 0 ? `${planDailyCap - totalWorkspaceSentToday} remaining today` : 'Daily cap reached'}</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+
+          {/* Connected Mailboxes List */}
+          <div className="space-y-2">
+            <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 px-1">
+              Connected Outbound Inboxes ({senders.length})
+            </div>
+            {senders.length === 0 ? (
+              <div className="p-3.5 bg-slate-50 border border-slate-200/80 rounded-xl text-xs text-slate-500 text-center">
+                No sender mailboxes connected yet. Click "Manage Inboxes" to add SMTP.
+              </div>
+            ) : (
+              senders.slice(0, 4).map(sender => (
+                <div key={sender.id} className="p-3 bg-slate-50 border border-slate-200/80 rounded-xl flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-6 h-6 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-black text-[10px]">
+                      {(sender.label || sender.email).slice(0, 2).toUpperCase()}
+                    </div>
+                    <div>
+                      <div className="text-xs font-bold text-slate-900">{sender.label || sender.email}</div>
+                      <div className="text-[10px] text-slate-500 font-mono">{sender.email}</div>
+                    </div>
+                  </div>
+                  <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold font-mono flex items-center gap-1">
+                    <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Active
+                  </span>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

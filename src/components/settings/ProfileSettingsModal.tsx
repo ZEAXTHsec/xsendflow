@@ -620,10 +620,10 @@ export default function ProfileSettingsModal({
                   <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-1">
                     <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Daily Send Cap</span>
                     <div className="text-lg font-extrabold text-slate-900 font-mono">
-                      {license.plan === 'free' ? '50 emails/day' : 'Unlimited'}
+                      {license.plan === 'free' ? '100 emails/day' : 'Unlimited'}
                     </div>
                     <span className="text-[10px] text-slate-400 block">
-                      {license.plan === 'free' ? 'Resets daily 00:00 UTC' : 'Provider Safe Rotation'}
+                      {license.plan === 'free' ? 'Resets daily 00:00 UTC' : 'Multi-Inbox Fleet Active'}
                     </span>
                   </div>
 

@@ -313,7 +313,7 @@ export default function StudioPage() {
                 className="px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-blue-500/10 border border-amber-400/40 text-amber-900 text-xs font-bold flex items-center gap-1.5 hover:border-indigo-400 transition-all active:scale-95 shadow-2xs group"
               >
                 <Zap className="w-3.5 h-3.5 text-amber-600 fill-amber-500 group-hover:scale-110 transition-transform" />
-                <span>Free Plan (50/day) — Upgrade to Pro ➔</span>
+                <span>Free Plan (100/day) — Upgrade to Pro ➔</span>
               </button>
             )}
 
