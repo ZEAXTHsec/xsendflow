@@ -84,6 +84,10 @@ export default function UpgradeProModal({
     }
   }[triggerReason];
 
+  const currentPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+  const isProUser = currentPlan === 'pro' || targetTier === 'agency' || triggerReason === 'pro_campaign_limit' || triggerReason === 'client_reports';
+  const activePlanKey: 'pro' | 'agency' = isProUser ? 'agency' : selectedPlan;
+
   const planPricing = {
     pro: {
       name: 'Pro Unlimited',
@@ -103,17 +107,17 @@ export default function UpgradeProModal({
       name: 'Agency Scale',
       monthly: 79,
       annual: 690,
-      badge: 'Agencies & Teams',
+      badge: isProUser ? 'Next Tier Upgrade' : 'Agencies & Teams',
       desc: 'For agencies running multi-client fleets',
       features: [
-        'Everything in Pro Unlimited',
         'Unlimited Simultaneous Active Campaigns',
-        'Multi-Client Workspace Isolation',
+        'Multi-Client Workspace Isolation & Sub-accounts',
         'Shareable Live Client Reports (/report/[token])',
-        'Dedicated High-Throughput Cloud Sockets'
+        'Dedicated High-Throughput Cloud Sockets',
+        'Everything in Pro Unlimited'
       ]
     }
-  }[selectedPlan];
+  }[activePlanKey];
 
   const currentPrice = billingCycle === 'monthly' ? planPricing.monthly : planPricing.annual;
 
@@ -133,8 +137,8 @@ export default function UpgradeProModal({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           amount: currentPrice,
-          planId: selectedPlan,
-          plan: selectedPlan,
+          planId: activePlanKey,
+          plan: activePlanKey,
           billingCycle,
           userEmail,
           userId: userId || null
@@ -157,7 +161,7 @@ export default function UpgradeProModal({
           email: userEmail || 'user@example.com'
         },
         theme: {
-          color: selectedPlan === 'agency' ? '#9333ea' : '#6366f1'
+          color: activePlanKey === 'agency' ? '#9333ea' : '#6366f1'
         },
         handler: async function (response: any) {
           try {
@@ -168,7 +172,7 @@ export default function UpgradeProModal({
                 razorpay_order_id: response.razorpay_order_id,
                 razorpay_payment_id: response.razorpay_payment_id,
                 razorpay_signature: response.razorpay_signature,
-                planId: selectedPlan,
+                planId: activePlanKey,
                 userEmail,
                 userId: userId || null
               })
@@ -177,8 +181,8 @@ export default function UpgradeProModal({
             if (verifyRes.ok) {
               try { confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } }); } catch {}
               if (typeof window !== 'undefined') {
-                localStorage.setItem('xsendflow_user_plan', selectedPlan);
-                createDefaultLicense(selectedPlan as UserPlan, billingCycle);
+                localStorage.setItem('xsendflow_user_plan', activePlanKey);
+                createDefaultLicense(activePlanKey as UserPlan, billingCycle);
                 window.dispatchEvent(new Event('xsendflow_plan_updated'));
                 window.dispatchEvent(new Event('xsendflow_license_updated'));
               }
@@ -213,10 +217,16 @@ export default function UpgradeProModal({
           <div className="space-y-1">
             <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[10px] font-mono font-bold uppercase tracking-wider">
               <Sparkles className="w-3 h-3 text-indigo-400" />
-              <span>Scale &amp; Growth Plan</span>
+              <span>{isProUser ? 'VIP Agency Upgrade' : 'Scale & Growth Plan'}</span>
             </div>
-            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">{triggerCopy.title}</h3>
-            <p className="text-xs text-slate-400 leading-relaxed max-w-md pt-0.5">{triggerCopy.desc}</p>
+            <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+              {isProUser ? 'Scale to Agency Fleet Capacity' : triggerCopy.title}
+            </h3>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-md pt-0.5">
+              {isProUser
+                ? 'You are on Pro Unlimited (5 active campaigns cap). Upgrade to Agency Scale to launch unlimited simultaneous active campaigns and manage multiple client workspaces.'
+                : triggerCopy.desc}
+            </p>
           </div>
 
           <button
@@ -229,76 +239,107 @@ export default function UpgradeProModal({
           </button>
         </div>
 
-        {/* Plan Selector Radio Cards (Zero-Layout-Shift, Instant Feedback) */}
-        <div className="grid grid-cols-2 gap-3 relative z-10">
-          {/* Pro Plan Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('pro')}
-            className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
-              selectedPlan === 'pro'
-                ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 text-white shadow-md shadow-indigo-950/50'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-            }`}
-          >
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold flex items-center gap-1 text-white">
-                  <Zap className="w-3.5 h-3.5 text-indigo-400" /> Pro Unlimited
-                </span>
-                <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                  selectedPlan === 'pro' ? 'border-indigo-400 bg-indigo-500' : 'border-slate-600'
-                }`}>
-                  {selectedPlan === 'pro' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+        {/* Plan Selector / Tier Presentation */}
+        {isProUser ? (
+          <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/60 via-slate-900 to-indigo-950/60 border border-purple-500/80 shadow-lg shadow-purple-950/40 relative z-10 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-purple-500/20 text-purple-400 border border-purple-500/30 flex items-center justify-center shrink-0">
+                  <Building2 className="w-5 h-5" />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h4 className="text-sm font-black text-white">Agency Scale Fleet Tier</h4>
+                    <span className="text-[10px] font-mono font-bold bg-amber-400 text-slate-950 px-2 py-0.2 rounded-full">
+                      UNLIMITED
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-purple-300">Unlimited Active Campaigns &amp; Multi-Client Fleets</p>
+                </div>
+              </div>
+
+              <div className="text-right shrink-0">
+                <div className="text-xl font-black text-white font-mono">
+                  ${billingCycle === 'monthly' ? '79' : '690'}
+                  <span className="text-xs text-slate-400 font-sans font-normal">/{billingCycle === 'monthly' ? 'mo' : 'yr'}</span>
+                </div>
+                <span className="text-[10px] text-indigo-300 font-mono font-semibold">
+                  Current: Pro Plan ($29/mo)
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 leading-tight">Solo founders &amp; teams</p>
             </div>
+          </div>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 relative z-10">
+            {/* Pro Plan Card */}
+            <button
+              type="button"
+              onClick={() => setSelectedPlan('pro')}
+              className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
+                selectedPlan === 'pro'
+                  ? 'bg-indigo-950/40 border-indigo-500 ring-1 ring-indigo-500 text-white shadow-md shadow-indigo-950/50'
+                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold flex items-center gap-1 text-white">
+                    <Zap className="w-3.5 h-3.5 text-indigo-400" /> Pro Unlimited
+                  </span>
+                  <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                    selectedPlan === 'pro' ? 'border-indigo-400 bg-indigo-500' : 'border-slate-600'
+                  }`}>
+                    {selectedPlan === 'pro' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">Solo founders &amp; teams</p>
+              </div>
 
-            <div className="pt-3 flex items-baseline gap-1">
-              <span className="text-lg font-black text-white font-mono tracking-tight">
-                ${billingCycle === 'monthly' ? '29' : '249'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-              </span>
-            </div>
-          </button>
-
-          {/* Agency Plan Card */}
-          <button
-            type="button"
-            onClick={() => setSelectedPlan('agency')}
-            className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
-              selectedPlan === 'agency'
-                ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-500 text-white shadow-md shadow-purple-950/50'
-                : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-            }`}
-          >
-            <div className="space-y-1">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold flex items-center gap-1 text-white">
-                  <Building2 className="w-3.5 h-3.5 text-purple-400" /> Agency Scale
+              <div className="pt-3 flex items-baseline gap-1">
+                <span className="text-lg font-black text-white font-mono tracking-tight">
+                  ${billingCycle === 'monthly' ? '29' : '249'}
                 </span>
-                <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
-                  selectedPlan === 'agency' ? 'border-purple-400 bg-purple-500' : 'border-slate-600'
-                }`}>
-                  {selectedPlan === 'agency' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                <span className="text-[10px] text-slate-400 font-medium">
+                  /{billingCycle === 'monthly' ? 'mo' : 'yr'}
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 leading-tight">Agencies &amp; multi-client</p>
-            </div>
+            </button>
 
-            <div className="pt-3 flex items-baseline gap-1">
-              <span className="text-lg font-black text-white font-mono tracking-tight">
-                ${billingCycle === 'monthly' ? '79' : '690'}
-              </span>
-              <span className="text-[10px] text-slate-400 font-medium">
-                /{billingCycle === 'monthly' ? 'mo' : 'yr'}
-              </span>
-            </div>
-          </button>
-        </div>
+            {/* Agency Plan Card */}
+            <button
+              type="button"
+              onClick={() => setSelectedPlan('agency')}
+              className={`p-3.5 rounded-2xl text-left transition-all duration-150 border relative flex flex-col justify-between ${
+                selectedPlan === 'agency'
+                  ? 'bg-purple-950/40 border-purple-500 ring-1 ring-purple-500 text-white shadow-md shadow-purple-950/50'
+                  : 'bg-slate-900/60 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+              }`}
+            >
+              <div className="space-y-1">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold flex items-center gap-1 text-white">
+                    <Building2 className="w-3.5 h-3.5 text-purple-400" /> Agency Scale
+                  </span>
+                  <span className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center ${
+                    selectedPlan === 'agency' ? 'border-purple-400 bg-purple-500' : 'border-slate-600'
+                  }`}>
+                    {selectedPlan === 'agency' && <span className="w-1.5 h-1.5 bg-white rounded-full" />}
+                  </span>
+                </div>
+                <p className="text-[10px] text-slate-400 leading-tight">Agencies &amp; multi-client</p>
+              </div>
+
+              <div className="pt-3 flex items-baseline gap-1">
+                <span className="text-lg font-black text-white font-mono tracking-tight">
+                  ${billingCycle === 'monthly' ? '79' : '690'}
+                </span>
+                <span className="text-[10px] text-slate-400 font-medium">
+                  /{billingCycle === 'monthly' ? 'mo' : 'yr'}
+                </span>
+              </div>
+            </button>
+          </div>
+        )}
 
         {/* Feature Matrix Included */}
         <div className="p-4 rounded-2xl bg-slate-900/70 border border-slate-800/80 space-y-2.5 relative z-10">

@@ -2224,6 +2224,19 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                 </div>
               )}
 
+              {userPlan === 'pro' && activeCount >= 5 && (
+                <div className="p-3 bg-purple-50 border border-purple-200 rounded-xl text-xs text-purple-900 flex items-center justify-between gap-3">
+                  <span>🔒 Pro Plan: 5 active campaigns are already running. This campaign will be saved as <strong>Paused</strong>.</span>
+                  <button
+                    type="button"
+                    onClick={() => { setUpgradeReason('pro_campaign_limit'); setIsUpgradeOpen(true); }}
+                    className="text-xs font-black text-purple-900 underline hover:text-purple-950 shrink-0"
+                  >
+                    Upgrade to Agency Scale ➔
+                  </button>
+                </div>
+              )}
+
               <div className="flex items-center justify-between pt-4 border-t border-slate-100">
                 <button
                   onClick={() => setWizardStep(3)}
@@ -2244,12 +2257,18 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   <button
                     onClick={handleFinalizeCreateCampaign}
                     className={`text-xs font-bold px-7 py-3 rounded-xl shadow-lg transition-all active:scale-95 glow-tag ${
-                      userPlan === 'free' && activeCount >= 1
+                      (userPlan === 'free' && activeCount >= 1) || (userPlan === 'pro' && activeCount >= 5)
                         ? 'bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white shadow-amber-500/20'
                         : 'bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white shadow-emerald-500/20'
                     }`}
                   >
-                    <span>{userPlan === 'free' && activeCount >= 1 ? 'Save Campaign as Paused 💾' : 'Launch & Schedule Campaign 🚀'}</span>
+                    <span>
+                      {userPlan === 'free' && activeCount >= 1
+                        ? 'Save Campaign as Paused 💾'
+                        : userPlan === 'pro' && activeCount >= 5
+                        ? 'Save Campaign as Paused (5 Active) 💾'
+                        : 'Launch & Schedule Campaign 🚀'}
+                    </span>
                   </button>
                 </div>
               </div>
