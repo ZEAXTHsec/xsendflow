@@ -868,7 +868,7 @@ export default function AnalyticsTab({ onNavigateTab, onOpenSettings }: Props) {
                 }
               });
 
-              const limit = sender.dailyLimit || 100;
+              const limit = currentPlan === 'free' ? 100 : (sender.dailyLimit || 500);
               const pct = Math.min(100, Math.round((actualSentToday / limit) * 100));
 
               return (

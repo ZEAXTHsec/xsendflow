@@ -1022,11 +1022,26 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           fromName: targetCamp.fromName,
           trackOpens: targetCamp.trackOpens ?? true,
           trackClicks: targetCamp.trackClicks ?? true,
-          unsubscribeText: targetCamp.unsubscribeText
+          unsubscribeText: targetCamp.unsubscribeText,
+          campaignId: targetCamp.id,
+          userPlan: (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') || 'free'
         })
       });
 
       const data = await res.json();
+
+      // If daily quota was hit on server, forcefully pause campaign and keep recipients pending
+      if (data.code === 'DAILY_QUOTA_EXCEEDED' || res.status === 429) {
+        setCampaigns(prev =>
+          prev.map(c => {
+            if (c.id !== id) return c;
+            return { ...c, status: 'paused' };
+          })
+        );
+        window.dispatchEvent(new Event('xsendflow_senders_updated'));
+        return;
+      }
+
       const results: Array<{ recipientId: string; success: boolean; error?: string }> = data.results || [];
       const sentIds = new Set(results.filter(r => r.success).map(r => r.recipientId));
       const failedMap = new Map(results.filter(r => !r.success).map(r => [r.recipientId, r.error || 'Delivery failed']));
@@ -1056,6 +1071,7 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           };
         })
       );
+      window.dispatchEvent(new Event('xsendflow_senders_updated'));
     } catch (err: unknown) {
       const errMessage = err instanceof Error ? err.message : 'Network error';
       // Mark attempted recipients as failed to prevent deadlocks

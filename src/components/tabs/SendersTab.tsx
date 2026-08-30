@@ -469,9 +469,9 @@ export default function SendersTab() {
                   ) : (
                     <div className="text-right">
                       <div className="text-xs font-bold text-slate-900 font-mono">
-                        Sent Today: {actualSentToday} / {sender.dailyLimit || 100}
+                        Sent Today: {actualSentToday} / {plan === 'free' ? 100 : (sender.dailyLimit || 500)}
                       </div>
-                      <span className="text-[10px] text-slate-400">Daily Cap: {sender.dailyLimit || 100}</span>
+                      <span className="text-[10px] text-slate-400">Daily Cap: {plan === 'free' ? 100 : (sender.dailyLimit || 500)}</span>
                     </div>
                   )}
 

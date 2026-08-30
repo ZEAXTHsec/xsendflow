@@ -3,6 +3,7 @@ import nodemailer from 'nodemailer';
 import { parseDeepSpintax } from '@/lib/engine/spintaxFSM';
 import { selectHealthySender } from '@/lib/engine/humanJitter';
 import { SenderAccount } from '@/components/tabs/SendersTab';
+import { logDispatchedEmail, getSenderDailySentCount } from '@/lib/supabase/emailLogs';
 
 export async function POST(req: NextRequest) {
   try {
@@ -14,7 +15,10 @@ export async function POST(req: NextRequest) {
       fromName,
       trackOpens = true,
       trackClicks = true,
-      unsubscribeText
+      unsubscribeText,
+      campaignId = 'general',
+      userId,
+      userPlan = 'free'
     } = await req.json();
 
     if (!Array.isArray(senders) || !senders.length) {
@@ -26,6 +30,23 @@ export async function POST(req: NextRequest) {
 
     const results = [];
     const failedSenderIds = new Set<string>();
+
+    // Hard Daily Quota Gate (Free: 100/day, Pro: 500/day, Agency: Unlimited)
+    if (userPlan !== 'agency') {
+      for (const s of senders) {
+        const currentDailySent = await getSenderDailySentCount(s.email);
+        const limit = userPlan === 'free' ? 100 : (s.dailyLimit || 500);
+        if (currentDailySent >= limit) {
+          return NextResponse.json({
+            success: false,
+            code: 'DAILY_QUOTA_EXCEEDED',
+            error: `Daily ${userPlan.toUpperCase()} plan limit of ${limit} emails reached for ${s.email}. Campaign paused until daily reset at 00:00 UTC. Upgrade to ${userPlan === 'free' ? 'Pro or Agency' : 'Agency'} for higher sending.`,
+            currentCount: currentDailySent,
+            limit
+          }, { status: 429 });
+        }
+      }
+    }
 
     for (let i = 0; i < recipients.length; i++) {
       const recipient = recipients[i];
@@ -132,6 +153,15 @@ export async function POST(req: NextRequest) {
           }
         });
 
+        // Log delivered email to Supabase for daily quota tracking
+        await logDispatchedEmail({
+          user_id: userId || sender.email,
+          sender_email: sender.email,
+          recipient_email: recipient.email,
+          campaign_id: campaignId,
+          status: 'delivered'
+        });
+
         results.push({
           recipientId: recipient.id,
           email: recipient.email,
@@ -151,6 +181,15 @@ export async function POST(req: NextRequest) {
         if (!isLeadBounce) {
           failedSenderIds.add(sender.id);
         }
+
+        // Log failed / bounced email to Supabase
+        await logDispatchedEmail({
+          user_id: userId || sender.email,
+          sender_email: sender.email,
+          recipient_email: recipient.email,
+          campaign_id: campaignId,
+          status: isLeadBounce ? 'bounced' : 'failed'
+        });
 
         results.push({
           recipientId: recipient.id,
