@@ -1,0 +1,13 @@
+email,first_name,company,clean_title,icebreaker,pitch_page_url,subject,body,is_role_account
+jose@munichprop.de,José,München PropTech,CEO,Loved the recent growth trajectory at München PropTech—congrats on the momentum.,http://localhost:3000/p/mnchenproptech-jos?name=Jos%C3%A9&company=M%C3%BCnchen%20PropTech&title=CEO,Quick question for José,"Hi José,
+
+I noticed you lead München PropTech and wanted to reach out.",no
+bad-row@example.com,,,,Saw your work leading initiatives at your company and wanted to reach out directly.,http://localhost:3000/p/company-prospect?name=&company=&title=Growth%20Leader,"Quick question for ","Hi ,
+
+I noticed you lead  and wanted to reach out.",no
+elena@apex.io,Elena,Apex Growth,,Noticed what your team is building at Apex Growth; really impressed by your approach.,http://localhost:3000/p/apexgrowth-elena?name=Elena&company=Apex%20Growth&title=Growth%20Leader,Quick question for Elena,"Hi Elena,
+
+I noticed you lead Apex Growth and wanted to reach out.",no
+marcus@vance.com,,Vance Capital,Partner,Was researching top teams in your space and Vance Capital immediately stood out.,http://localhost:3000/p/vancecapital-prospect?name=&company=Vance%20Capital&title=Partner,"Quick question for ","Hi ,
+
+I noticed you lead Vance Capital and wanted to reach out.",no

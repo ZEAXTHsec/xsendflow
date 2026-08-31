@@ -4,7 +4,7 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Mail, Lock, Sparkles, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Mail, Lock, Sparkles, ShieldCheck, ArrowRight, CheckCircle2, AlertCircle, Key } from 'lucide-react';
 import Logo from '@/components/ui/Logo';
 
 import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
@@ -17,6 +17,13 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
+
+  // AppSumo / Lifetime Voucher State
+  const [showVoucherBox, setShowVoucherBox] = useState(false);
+  const [voucherCode, setVoucherCode] = useState('');
+  const [voucherEmail, setVoucherEmail] = useState('');
+  const [voucherLoading, setVoucherLoading] = useState(false);
+  const [voucherStatus, setVoucherStatus] = useState<{ ok: boolean; msg: string } | null>(null);
 
   const supabase = createClient();
 
@@ -145,6 +152,67 @@ export default function LoginPage() {
     }
     document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
     window.location.href = '/studio';
+  };
+
+  const handleRedeemVoucher = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!voucherCode.trim()) {
+      setVoucherStatus({ ok: false, msg: 'Please enter your license key.' });
+      return;
+    }
+    const targetEmail = (voucherEmail.trim() || email.trim() || 'founder@outreach.io').toLowerCase();
+
+    setVoucherLoading(true);
+    setVoucherStatus(null);
+
+    try {
+      const res = await fetch('/api/license/redeem', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          code: voucherCode.trim(),
+          userEmail: targetEmail
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        setVoucherStatus({ ok: true, msg: `Success! Upgraded to ${data.plan.toUpperCase()} plan.` });
+        
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('xsendflow_mock_user', JSON.stringify({ id: `usr-${Date.now()}`, email: targetEmail }));
+          localStorage.setItem('xsendflow_display_name', targetEmail.split('@')[0]);
+          localStorage.setItem('xsendflow_user_plan', data.plan);
+          localStorage.setItem('xsendflow_license_v2', JSON.stringify({
+            key: data.licenseKey || voucherCode.trim().toUpperCase(),
+            plan: data.plan,
+            activeUntil: new Date(Date.now() + 365 * 86400000).toISOString(),
+            seats: data.plan === 'agency' ? 10 : 3
+          }));
+
+          if (data.plan === 'agency') {
+            localStorage.setItem('xsendflow_senders', JSON.stringify(AGENCY_MOCK_SENDERS));
+            localStorage.setItem('xsendflow_campaigns_v2', JSON.stringify(getAgencyMockCampaigns(window.location.origin)));
+          }
+
+          window.dispatchEvent(new Event('xsendflow_user_updated'));
+          window.dispatchEvent(new Event('xsendflow_plan_updated'));
+          window.dispatchEvent(new Event('xsendflow_license_updated'));
+          window.dispatchEvent(new Event('xsendflow_senders_updated'));
+        }
+
+        document.cookie = 'xsendflow_mock_session=1; path=/; max-age=86400';
+        setTimeout(() => {
+          window.location.href = '/studio';
+        }, 800);
+      } else {
+        setVoucherStatus({ ok: false, msg: data.error || 'Invalid voucher code' });
+      }
+    } catch (err: any) {
+      setVoucherStatus({ ok: false, msg: err.message || 'Failed to redeem voucher' });
+    } finally {
+      setVoucherLoading(false);
+    }
   };
 
   return (
@@ -316,14 +384,14 @@ export default function LoginPage() {
           </form>
 
           {/* Toggle between Sign In & Sign Up */}
-          <div className="text-center mt-6 pt-6 border-t border-slate-800/60 text-xs text-slate-400">
+          <div className="text-center mt-6 pt-6 border-t border-slate-800/60 text-xs text-slate-400 space-y-4">
             {isSignUp ? (
               <p>
                 Already have an account?{' '}
                 <button
                   type="button"
                   onClick={() => { setIsSignUp(false); setErrorMsg(''); }}
-                  className="text-cyan-400 font-bold hover:underline"
+                  className="text-cyan-400 font-bold hover:underline cursor-pointer"
                 >
                   Sign In
                 </button>
@@ -334,12 +402,74 @@ export default function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setIsSignUp(true); setErrorMsg(''); }}
-                  className="text-cyan-400 font-bold hover:underline"
+                  className="text-cyan-400 font-bold hover:underline cursor-pointer"
                 >
                   Sign Up Free
                 </button>
               </p>
             )}
+
+            {/* ═══ APPSUMO / LIFETIME VOUCHER EXPANDER ═══ */}
+            <div className="pt-2 border-t border-slate-800/60 text-left">
+              <button
+                type="button"
+                onClick={() => setShowVoucherBox(!showVoucherBox)}
+                className="w-full flex items-center justify-between text-[11px] font-bold text-indigo-300 hover:text-indigo-200 bg-indigo-950/40 hover:bg-indigo-950/70 border border-indigo-800/40 px-3.5 py-2.5 rounded-xl transition-all cursor-pointer"
+              >
+                <span className="flex items-center gap-2">
+                  <Key className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Have an AppSumo / Lifetime Code?</span>
+                </span>
+                <span className="text-xs">{showVoucherBox ? '▲' : '▼'}</span>
+              </button>
+
+              {showVoucherBox && (
+                <form onSubmit={handleRedeemVoucher} className="mt-3 p-3.5 rounded-2xl bg-black/40 border border-indigo-900/60 space-y-2.5 animate-in fade-in">
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">AppSumo / Voucher Code</label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="e.g. XSF-PRO-PASS or XSF-AGENCY-VIP"
+                      value={voucherCode}
+                      onChange={e => setVoucherCode(e.target.value)}
+                      className="w-full bg-[#070a13] border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Account Email</label>
+                    <input
+                      type="email"
+                      required
+                      placeholder="founder@company.com"
+                      value={voucherEmail}
+                      onChange={e => setVoucherEmail(e.target.value)}
+                      className="w-full bg-[#070a13] border border-slate-800 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={voucherLoading}
+                    className="w-full bg-gradient-to-r from-amber-600 to-indigo-600 hover:from-amber-500 hover:to-indigo-500 text-white font-bold text-xs py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 transition-all shadow-md active:scale-95 disabled:opacity-50 cursor-pointer"
+                  >
+                    <span>{voucherLoading ? 'Activating License...' : 'Redeem & Launch Studio 🚀'}</span>
+                  </button>
+
+                  {voucherStatus && (
+                    <div className={`p-2 rounded-lg text-[11px] flex items-center gap-1.5 ${
+                      voucherStatus.ok 
+                        ? 'bg-emerald-950/60 border border-emerald-800 text-emerald-300' 
+                        : 'bg-rose-950/60 border border-rose-800 text-rose-300'
+                    }`}>
+                      {voucherStatus.ok ? <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />}
+                      <span>{voucherStatus.msg}</span>
+                    </div>
+                  )}
+                </form>
+              )}
+            </div>
           </div>
         </div>
       </div>

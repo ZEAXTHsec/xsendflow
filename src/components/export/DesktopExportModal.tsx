@@ -20,22 +20,24 @@ export default function DesktopExportModal({ isOpen, onClose, leads, sequence }:
 
   if (!isOpen) return null;
 
-  const validLeads = leads.filter(l => l.isValidEmail);
-  const step1 = sequence.find(s => s.id === 1) || sequence[0];
+  const validLeads = (leads || []).filter(l => l && l.email && l.isValidEmail !== false);
+  const step1 = (sequence && sequence.length > 0)
+    ? (sequence.find(s => s.id === 1) || sequence[0])
+    : { id: 1, subject: 'Quick question re: {{Company}}', body: 'Hey {{First_Name}},\n\nWanted to reach out to {{Company}}.' };
 
   const handleExportCSV = () => {
     // Generate CSV data rows with unique Spintax variation per lead
-    const exportRows = validLeads.map(lead => {
+    const exportRows = (validLeads.length > 0 ? validLeads : (leads || []).filter(l => l && l.email)).map(lead => {
       // 1. Replace variables in step 1 subject & body
       let personalizedSubject = (step1?.subject || '')
-        .replace(/\{\{First_Name\}\}/g, lead.cleanFirstName || '')
-        .replace(/\{\{Company\}\}/g, lead.cleanCompany || '')
+        .replace(/\{\{First_Name\}\}/g, lead.cleanFirstName || lead.rawFirstName || '')
+        .replace(/\{\{Company\}\}/g, lead.cleanCompany || lead.rawCompany || '')
         .replace(/\{\{Icebreaker\}\}/g, lead.icebreaker || '')
         .replace(/\{\{Pitch_Page_URL\}\}/g, lead.pitchUrl || '');
 
       let personalizedBody = (step1?.body || '')
-        .replace(/\{\{First_Name\}\}/g, lead.cleanFirstName || '')
-        .replace(/\{\{Company\}\}/g, lead.cleanCompany || '')
+        .replace(/\{\{First_Name\}\}/g, lead.cleanFirstName || lead.rawFirstName || '')
+        .replace(/\{\{Company\}\}/g, lead.cleanCompany || lead.rawCompany || '')
         .replace(/\{\{Icebreaker\}\}/g, lead.icebreaker || '')
         .replace(/\{\{Pitch_Page_URL\}\}/g, lead.pitchUrl || '');
 
@@ -45,11 +47,11 @@ export default function DesktopExportModal({ isOpen, onClose, leads, sequence }:
 
       return {
         email: lead.email,
-        first_name: lead.cleanFirstName,
-        company: lead.cleanCompany,
-        clean_title: lead.cleanTitle,
-        icebreaker: lead.icebreaker,
-        pitch_page_url: lead.pitchUrl,
+        first_name: lead.cleanFirstName || lead.rawFirstName || '',
+        company: lead.cleanCompany || lead.rawCompany || '',
+        clean_title: lead.cleanTitle || lead.rawTitle || '',
+        icebreaker: lead.icebreaker || '',
+        pitch_page_url: lead.pitchUrl || '',
         subject: personalizedSubject,
         body: personalizedBody,
         is_role_account: lead.isRoleEmail ? 'yes' : 'no'
