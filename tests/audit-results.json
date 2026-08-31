@@ -1,0 +1,56 @@
+[
+  {
+    "category": "Navigation",
+    "feature": "Studio Load",
+    "status": "PASS",
+    "details": "Loaded page successfully (Title: \"XSendFlow Studio — AI Cold Email Acceleration Suite\")"
+  },
+  {
+    "category": "Navigation",
+    "feature": "Tab: Campaigns",
+    "status": "FAIL",
+    "details": "Tab \"Campaigns\" not found in navigation bar"
+  },
+  {
+    "category": "Navigation",
+    "feature": "Tab: Lead Sanitizer",
+    "status": "FAIL",
+    "details": "Tab \"Lead Sanitizer\" not found in navigation bar"
+  },
+  {
+    "category": "Navigation",
+    "feature": "Tab: Spintax Studio",
+    "status": "FAIL",
+    "details": "Tab \"Spintax Studio\" not found in navigation bar"
+  },
+  {
+    "category": "Navigation",
+    "feature": "Tab: Pitch Pages",
+    "status": "FAIL",
+    "details": "Tab \"Pitch Pages\" not found in navigation bar"
+  },
+  {
+    "category": "Navigation",
+    "feature": "Tab: Analytics",
+    "status": "FAIL",
+    "details": "Tab \"Analytics\" not found in navigation bar"
+  },
+  {
+    "category": "State & Plan",
+    "feature": "Initial Plan Storage",
+    "status": "PASS",
+    "details": "Active plan is \"free\""
+  },
+  {
+    "category": "State & Plan",
+    "feature": "Initial Leads in Master DB",
+    "status": "INFO",
+    "details": "Master Lead Database currently contains 0 leads"
+  },
+  {
+    "category": "State & Plan",
+    "feature": "Initial Campaigns in Storage",
+    "status": "INFO",
+    "details": "Campaign storage currently contains 0 campaigns"
+  }
+]

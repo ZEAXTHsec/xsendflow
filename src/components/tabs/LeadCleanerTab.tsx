@@ -12,6 +12,7 @@ import { Lead } from '@/lib/types';
 import { sanitizeFirstName, sanitizeCompanyName, sanitizeJobTitle, isRoleBasedEmail, isValidEmailFormat, generateLocalIcebreaker, createSlug } from '@/lib/sanitizer';
 import UpgradeProModal from '../modals/UpgradeProModal';
 import { canImportLeads, UserPlan } from '@/lib/planLimits';
+import { syncUploadedLeadsToMasterDB } from '@/lib/leadDatabase';
 
 interface Props {
   leads: Lead[];
@@ -83,8 +84,9 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
   };
 
   const handleLoadSamples = () => {
-    const cleaned = cleanLeadItems(SAMPLE_B2B_LEADS);
-    setLeads(cleaned);
+    const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+    const syncRes = syncUploadedLeadsToMasterDB(SAMPLE_B2B_LEADS, userPlan, leads);
+    setLeads(syncRes.updatedMasterLeads);
     try { confetti({ particleCount: 50, spread: 60, origin: { y: 0.6 } }); } catch {}
   };
 
@@ -112,21 +114,9 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
         }).filter(r => r.email);
 
         const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-        const maxAllowed = userPlan === 'free' ? 250 : 999999;
-        const availableSlots = Math.max(0, maxAllowed - leads.length);
-
-        if (userPlan === 'free' && parsed.length > availableSlots) {
-          const allowedItems = parsed.slice(0, availableSlots);
-          const cleaned = cleanLeadItems(allowedItems);
-          setLeads([...cleaned, ...leads]);
-          setUpgradeReason('contact_limit');
-          setIsUpgradeOpen(true);
-          alert(`⚡ Free Plan: Imported ${allowedItems.length} leads. ${parsed.length - allowedItems.length} leads held in reserve. Upgrade to Pro to import all ${parsed.length} contacts.`);
-        } else {
-          const cleaned = cleanLeadItems(parsed);
-          setLeads([...cleaned, ...leads]);
-          try { confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } }); } catch {}
-        }
+        const syncRes = syncUploadedLeadsToMasterDB(parsed, userPlan, leads);
+        setLeads(syncRes.updatedMasterLeads);
+        try { confetti({ particleCount: 70, spread: 70, origin: { y: 0.6 } }); } catch {}
       }
     });
   };
@@ -167,29 +157,29 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
       }).filter(i => i.email && i.email.includes('@'));
 
       const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-      const maxAllowed = userPlan === 'free' ? 250 : 999999;
-      const availableSlots = Math.max(0, maxAllowed - leads.length);
-
-      if (userPlan === 'free' && items.length > availableSlots) {
-        const allowedItems = items.slice(0, availableSlots);
-        const cleaned = cleanLeadItems(allowedItems);
-        setLeads([...cleaned, ...leads]);
-        setPastedText('');
-        setIsPasting(false);
-        setUpgradeReason('contact_limit');
-        setIsUpgradeOpen(true);
-        alert(`⚡ Free Plan: Imported ${allowedItems.length} leads. ${items.length - allowedItems.length} leads held in reserve. Upgrade to Pro to import all ${items.length} contacts.`);
-      } else {
-        const cleaned = cleanLeadItems(items);
-        setLeads([...cleaned, ...leads]);
-        setPastedText('');
-        setIsPasting(false);
-        try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } }); } catch {}
-      }
+      const syncRes = syncUploadedLeadsToMasterDB(items, userPlan, leads);
+      setLeads(syncRes.updatedMasterLeads);
+      setPastedText('');
+      setIsPasting(false);
+      try { confetti({ particleCount: 60, spread: 60, origin: { y: 0.6 } }); } catch {}
     } catch {
       alert('Could not parse pasted data. Ensure comma or tab separated format.');
     }
   };
+
+  const isInitialMount = React.useRef(true);
+  React.useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+    try {
+      localStorage.setItem('xsendflow_leads', JSON.stringify(leads));
+      window.dispatchEvent(new CustomEvent('xsendflow_leads_updated', { detail: { leads } }));
+    } catch (e) {
+      console.error(e);
+    }
+  }, [leads]);
 
   const handleGenerateAiIcebreakers = async () => {
     if (!leads.length) return;
@@ -252,12 +242,23 @@ export default function LeadCleanerTab({ leads, setLeads, onProceedToSequence }:
   };
 
   const handleDeleteLead = (id: string) => {
-    setLeads(prev => prev.filter(l => l.id !== id));
+    setLeads(prev => {
+      const next = prev.filter(l => l.id !== id);
+      try {
+        localStorage.setItem('xsendflow_leads', JSON.stringify(next));
+        window.dispatchEvent(new CustomEvent('xsendflow_leads_updated', { detail: { leads: next } }));
+      } catch {}
+      return next;
+    });
   };
 
   const handleClearAll = () => {
-    if (confirm('Clear all contacts from Lead Database?')) {
+    if (confirm('Clear all contacts from Master Lead Database?')) {
       setLeads([]);
+      try {
+        localStorage.setItem('xsendflow_leads', '[]');
+        window.dispatchEvent(new CustomEvent('xsendflow_leads_updated', { detail: { leads: [] } }));
+      } catch {}
     }
   };
 

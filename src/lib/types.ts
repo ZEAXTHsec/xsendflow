@@ -14,6 +14,8 @@ export interface Lead {
   pitchSlug?: string;
   pitchUrl?: string;
   status: 'pending' | 'cleaned' | 'error';
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface SequenceStep {

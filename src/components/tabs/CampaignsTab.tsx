@@ -18,6 +18,7 @@ import { canRotateMailboxes, canLaunchCampaign, UserPlan } from '@/lib/planLimit
 import { GLOBAL_TIMEZONES, inspectScheduleWindow, getTargetLocalTime, extractIanaTimezone, detectUserTimezone, getDefaultDynamicWindow } from '@/lib/engine/timeZoneScheduler';
 import { getAgencyMockCampaigns, getHighVolumeMockCampaigns } from '@/lib/mockData/agencyMockData';
 import { sanitizeEmailBatch, validateSingleEmail } from '@/lib/engine/leadValidator';
+import { syncUploadedLeadsToMasterDB } from '@/lib/leadDatabase';
 
 export interface CampaignStep {
   id: number;
@@ -60,6 +61,9 @@ export interface Campaign {
   trackClicks?: boolean;
   includeUnsubscribe?: boolean;
   unsubscribeText?: string;
+  includeSignature?: boolean;
+  signatureText?: string;
+  signatureScope?: 'step1_only' | 'all_steps';
   createdAt: string;
 }
 
@@ -100,7 +104,7 @@ const getInitialSenders = (): SenderAccount[] => {
   return [];
 };
 
-export default function CampaignsTab({ leads }: Props) {
+export default function CampaignsTab({ leads = [], onImportLeadsToStudio }: Props) {
   const [campaigns, setCampaigns] = useState<Campaign[]>(getInitialCampaigns);
   const [senders, setSenders] = useState<SenderAccount[]>(getInitialSenders);
   const [userPlan, setUserPlan] = useState<UserPlan>(() => {
@@ -217,11 +221,35 @@ export default function CampaignsTab({ leads }: Props) {
   };
 
   // Tracking & Unsubscribe Preferences
-  const [trackOpens, setTrackOpens] = useState(true);
+  const [trackOpens, setTrackOpens] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const pref = localStorage.getItem('xsendflow_default_track_opens');
+      if (pref !== null) return pref === 'true';
+    }
+    return true;
+  });
   const [trackClicks, setTrackClicks] = useState(true);
   const [includeUnsubscribe, setIncludeUnsubscribe] = useState(true);
   const [unsubscribeStyle, setUnsubscribeStyle] = useState<'casual' | 'link' | 'reply' | 'custom'>('casual');
   const [customUnsubscribeText, setCustomUnsubscribeText] = useState('PS: If you would rather not hear from me, let me know and I will remove you right away.');
+
+  // Email Signature Preferences
+  const [includeSignature, setIncludeSignature] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const p = localStorage.getItem('xsendflow_default_include_signature');
+      if (p !== null) return p === 'true';
+    }
+    return true;
+  });
+  const [signatureText, setSignatureText] = useState<string>(() => {
+    if (typeof window !== 'undefined') {
+      const s = localStorage.getItem('xsendflow_default_signature');
+      if (s) return s;
+    }
+    return 'Best,\n{{Sender_Name}}\n{{Sender_Company}}';
+  });
+  const [signatureScope, setSignatureScope] = useState<'step1_only' | 'all_steps'>('step1_only');
+
   const [isUpgradeOpen, setIsUpgradeOpen] = useState(false);
   const [upgradeReason, setUpgradeReason] = useState<'mailbox_limit' | 'campaign_limit' | 'pro_campaign_limit' | 'contact_limit' | 'vps_daemon'>('mailbox_limit');
 
@@ -246,13 +274,13 @@ export default function CampaignsTab({ leads }: Props) {
       id: 1,
       dayDelay: 0,
       subject: '{Quick question|Brief inquiry} re: {{Company}}',
-      body: 'Hey {{First_Name}},\n\n{{Icebreaker}}\n\nReached out because we help teams scale outbound without landing in spam.\n\nPut together a quick 60-second walkthrough tailored for {{Company}} here: {{Pitch_Page_URL}}\n\nWorth a quick chat?\n\nBest,\nYour Name'
+      body: 'Hey {{First_Name}},\n\n{{Icebreaker}}\n\nReached out because we help teams scale outbound without landing in spam.\n\nPut together a quick 60-second walkthrough tailored for {{Company}} here: {{Pitch_Page_URL}}\n\nWorth a quick chat?'
     },
     {
       id: 2,
       dayDelay: 3,
       subject: 'Re: quick question re: {{Company}}',
-      body: 'Hi {{First_Name}},\n\nWanted to share a quick case study—we recently boosted inboxing to 99% for a B2B partner.\n\nCurious if optimizing email infrastructure is a focus for {{Company}} this quarter?\n\nBest,\nYour Name'
+      body: 'Hi {{First_Name}},\n\nWanted to share a quick case study—we recently boosted inboxing to 99% for a B2B partner.\n\nCurious if optimizing email infrastructure is a focus for {{Company}} this quarter?'
     }
   ]);
   const [activeStepIndex, setActiveStepIndex] = useState(0);
@@ -853,10 +881,22 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       trackClicks,
       includeUnsubscribe,
       unsubscribeText: resolvedUnsubscribeText,
+      includeSignature,
+      signatureText: includeSignature ? signatureText : '',
+      signatureScope,
       createdAt: new Date().toISOString()
     };
 
     setCampaigns([newCampaign, ...campaigns]);
+
+    // ═══ AUTO-SYNC UPLOADED LEADS INTO MASTER LEAD DATABASE ═══
+    if (uploadedRecipients && uploadedRecipients.length > 0) {
+      const syncRes = syncUploadedLeadsToMasterDB(uploadedRecipients, userPlan, leads);
+      if (onImportLeadsToStudio) {
+        onImportLeadsToStudio(syncRes.updatedMasterLeads);
+      }
+    }
+
     setIsCreating(false);
     setWizardStep(1);
     setName('');
@@ -1847,6 +1887,87 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       </div>
                     </label>
                   </div>
+                </div>
+
+                {/* Email Signature Options Card */}
+                <div className="sm:col-span-2 p-4 rounded-2xl bg-slate-50 border border-slate-200 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={includeSignature}
+                        onChange={e => setIncludeSignature(e.target.checked)}
+                        className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                      />
+                      <span className="text-xs font-extrabold text-slate-900 flex items-center gap-1.5">
+                        <span>✍️ Append Email Signature</span>
+                      </span>
+                    </label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold text-slate-500">
+                        {includeSignature ? (signatureScope === 'step1_only' ? 'Touch 1 Only' : 'All Touches') : 'Off'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {includeSignature && (
+                    <div className="space-y-3 pt-2 border-t border-slate-200 animate-in fade-in">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <label className="text-[11px] font-bold text-slate-600">Apply Signature To:</label>
+                          <select
+                            value={signatureScope}
+                            onChange={e => setSignatureScope(e.target.value as any)}
+                            className="text-xs font-bold bg-white border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 focus:border-indigo-500"
+                          >
+                            <option value="step1_only">✓ Touch 1 Only (Recommended for High Inboxing)</option>
+                            <option value="all_steps">✓ All Follow-up Touches</option>
+                          </select>
+                        </div>
+
+                        {/* Quick Presets */}
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-slate-400">Presets:</span>
+                          <button
+                            type="button"
+                            onClick={() => setSignatureText('Best,\n{{Sender_Name}}\n{{Sender_Company}}')}
+                            className="text-[10px] font-medium bg-white hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-0.5 rounded border border-slate-200 transition-all cursor-pointer"
+                          >
+                            Minimalist
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setSignatureText('Best regards,\n{{Sender_Name}}\nFounder & CEO | {{Sender_Company}}\n{{Sender_Website}}')}
+                            className="text-[10px] font-medium bg-white hover:bg-indigo-50 text-slate-600 hover:text-indigo-700 px-2 py-0.5 rounded border border-slate-200 transition-all cursor-pointer"
+                          >
+                            Founder
+                          </button>
+                        </div>
+                      </div>
+
+                      <textarea
+                        rows={3}
+                        value={signatureText}
+                        onChange={e => setSignatureText(e.target.value)}
+                        placeholder="Best,&#10;{{Sender_Name}}&#10;{{Sender_Company}}"
+                        className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500 leading-relaxed"
+                      />
+
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400">Insert tag:</span>
+                        {['Sender_Name', 'Sender_Company', 'Sender_Title', 'Sender_Website'].map(tag => (
+                          <button
+                            key={tag}
+                            type="button"
+                            onClick={() => setSignatureText(prev => `${prev.trim()}\n{{${tag}}}`)}
+                            className="text-[10px] font-mono font-bold bg-slate-100 hover:bg-indigo-50 text-indigo-700 border border-slate-200 px-2 py-0.5 rounded transition-all cursor-pointer"
+                          >
+                            + {'{{'}{tag}{'}}'}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
 
                 {/* Customizable Opt-Out & Unsubscribe Mechanism */}
@@ -2841,6 +2962,169 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                       }}
                       className="w-full bg-white border border-slate-200 rounded-xl p-4 text-xs text-slate-900 font-mono leading-relaxed focus:outline-none focus:border-indigo-500"
                     />
+
+                    {/* ═══ SIGNATURE STUDIO & LIVE PREVIEW IN STEP 3 ═══ */}
+                    <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs space-y-3.5 mt-3">
+                      {/* Header with Active Toggle and Scope */}
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 border-b border-slate-100 pb-3">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold text-sm shrink-0 border border-indigo-100">
+                            ✍️
+                          </div>
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <span className="text-xs font-bold text-slate-900">Email Signature</span>
+                              <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded-full border ${
+                                includeSignature && (signatureScope === 'all_steps' || activeStepIndex === 0)
+                                  ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                                  : 'bg-slate-100 text-slate-500 border-slate-200'
+                              }`}>
+                                {includeSignature && (signatureScope === 'all_steps' || activeStepIndex === 0) ? `✓ Attached to Touch ${activeStepIndex + 1}` : '✕ Disabled on this Touch'}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-500">
+                              Plain-text sign-off automatically appended beneath your email body.
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Controls */}
+                        <div className="flex items-center gap-2">
+                          <label className="flex items-center gap-2 cursor-pointer bg-slate-50 hover:bg-slate-100 px-3 py-1.5 rounded-xl border border-slate-200 transition-colors">
+                            <input
+                              type="checkbox"
+                              checked={includeSignature}
+                              onChange={e => setIncludeSignature(e.target.checked)}
+                              className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                            />
+                            <span className="text-xs font-bold text-slate-800">
+                              {includeSignature ? 'Enabled' : 'Disabled'}
+                            </span>
+                          </label>
+
+                          {includeSignature && (
+                            <select
+                              value={signatureScope}
+                              onChange={e => setSignatureScope(e.target.value as any)}
+                              className="text-xs font-bold bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 text-slate-800 focus:border-indigo-500 cursor-pointer"
+                            >
+                              <option value="step1_only">Touch 1 Only (Recommended)</option>
+                              <option value="all_steps">All Touches</option>
+                            </select>
+                          )}
+                        </div>
+                      </div>
+
+                      {includeSignature && (
+                        <div className="space-y-3 animate-in fade-in">
+                          {/* Quick Presets & Tag Insertion */}
+                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] font-bold text-slate-500 mr-1">Signature Presets:</span>
+                              {[
+                                { label: '⚡ Minimalist', text: 'Best,\n{{Sender_Name}}\n{{Sender_Company}}' },
+                                { label: '👔 Executive Founder', text: 'Best regards,\n{{Sender_Name}}\nFounder & CEO | {{Sender_Company}}\n{{Sender_Website}}' },
+                                { label: '🚀 Growth Partner', text: 'Cheers,\n{{Sender_Name}}\nHead of Outbound • {{Sender_Company}}' }
+                              ].map(preset => (
+                                <button
+                                  key={preset.label}
+                                  type="button"
+                                  onClick={() => setSignatureText(preset.text)}
+                                  className="text-[10px] font-bold bg-slate-50 hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 px-2.5 py-1 rounded-lg transition-all shadow-2xs cursor-pointer active:scale-95"
+                                >
+                                  {preset.label}
+                                </button>
+                              ))}
+                            </div>
+
+                            {/* Dynamic Tag Chips */}
+                            <div className="flex flex-wrap items-center gap-1.5">
+                              <span className="text-[10px] text-slate-400">Insert tag:</span>
+                              {['Sender_Name', 'Sender_Company', 'Sender_Title', 'Sender_Website'].map(tag => (
+                                <button
+                                  key={tag}
+                                  type="button"
+                                  onClick={() => setSignatureText(prev => `${prev.trim()}\n{{${tag}}}`)}
+                                  className="text-[10px] font-mono font-bold bg-slate-50 hover:bg-indigo-50 text-indigo-700 border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer"
+                                >
+                                  + {'{{'}{tag}{'}}'}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Editable Signature Textarea */}
+                          <textarea
+                            rows={3}
+                            value={signatureText}
+                            onChange={e => setSignatureText(e.target.value)}
+                            placeholder="Best,&#10;{{Sender_Name}}&#10;{{Sender_Company}}"
+                            className="w-full bg-slate-50/70 border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-900 focus:bg-white focus:outline-none focus:border-indigo-500 leading-relaxed transition-all"
+                          />
+
+                          {/* ═══ LIVE COMBINED EMAIL PREVIEW (BODY + SIGNATURE + UNSUB) ═══ */}
+                          <div className="p-4 bg-slate-50/90 rounded-2xl border border-slate-200 space-y-2.5">
+                            <div className="flex items-center justify-between border-b border-slate-200/80 pb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-[11px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                                  <span>📧 Live Recipient View (Touch {activeStepIndex + 1})</span>
+                                </span>
+                                <span className="text-[10px] font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-md border border-emerald-200">
+                                  Clean 99%+ Inboxing Format
+                                </span>
+                              </div>
+                              <span className="text-[10px] text-slate-400 font-mono">Simulated Recipient: John (Acme Corp)</span>
+                            </div>
+
+                            <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-2xs font-sans text-xs text-slate-800 space-y-3 leading-relaxed">
+                              {/* Rendered Subject */}
+                              <div className="border-b border-slate-100 pb-2">
+                                <span className="text-[10px] font-bold uppercase text-slate-400 block">Subject</span>
+                                <span className="font-bold text-slate-900 font-mono text-xs">
+                                  {(steps[activeStepIndex].subject || 'Subject...')
+                                    .replace(/\{([^}]+)\}/g, (match, choices) => choices.split('|')[0])
+                                    .replace(/\{\{Company\}\}/gi, 'Acme Corp')
+                                    .replace(/\{\{First_Name\}\}/gi, 'John')}
+                                </span>
+                              </div>
+
+                              {/* Rendered Body */}
+                              <div className="whitespace-pre-line text-slate-700">
+                                {(steps[activeStepIndex].body || 'Email body text...')
+                                  .replace(/\{([^}]+)\}/g, (match, choices) => choices.split('|')[0])
+                                  .replace(/\{\{First_Name\}\}/gi, 'John')
+                                  .replace(/\{\{Company\}\}/gi, 'Acme Corp')
+                                  .replace(/\{\{Website\}\}/gi, 'acmecorp.com')
+                                  .replace(/\{\{Icebreaker\}\}/gi, 'Saw your recent growth milestone on LinkedIn.')
+                                  .replace(/\{\{Pitch_Page_URL\}\}/gi, 'https://xsendflow.com/p/acme-corp')}
+                              </div>
+
+                              {/* Rendered Signature */}
+                              {includeSignature && (signatureScope === 'all_steps' || activeStepIndex === 0) && (
+                                <div className="border-t border-slate-200 pt-2 font-mono text-[11px] text-slate-700 whitespace-pre-line leading-relaxed">
+                                  <span className="text-slate-400 block text-[10px]">--</span>
+                                  {signatureText
+                                    .replace(/\{\{Sender_Name\}\}/gi, fromName || (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_display_name') : '') || 'Your Name')
+                                    .replace(/\{\{Sender_Company\}\}/gi, (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_org_name') : '') || 'Outreach Labs')
+                                    .replace(/\{\{Sender_Title\}\}/gi, 'Founder & CEO')
+                                    .replace(/\{\{Sender_Website\}\}/gi, 'https://xsendflow.com')}
+                                </div>
+                              )}
+
+                              {/* Rendered Unsubscribe Opt-Out */}
+                              {includeUnsubscribe && (
+                                <div className="border-t border-slate-100 pt-2 text-[10px] text-slate-400 italic">
+                                  {unsubscribeStyle === 'casual' && 'PS: If you would rather not hear from me, let me know and I will remove you right away.'}
+                                  {unsubscribeStyle === 'reply' && "Reply 'stop' to opt out."}
+                                  {unsubscribeStyle === 'link' && 'Click here to unsubscribe: https://xsendflow.com/unsub?email=john@acme.com'}
+                                  {unsubscribeStyle === 'custom' && customUnsubscribeText}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   {/* Spintax Samples Drawer */}
@@ -2958,6 +3242,52 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                   <div>
                     <span className="text-slate-500 block text-[11px] uppercase font-bold">Sending Window</span>
                     <span className="font-mono text-slate-800">{windowStart}–{windowEnd} ({timezone.split(' ')[0]})</span>
+                  </div>
+                </div>
+
+                {/* Tracking, Signature & Master Lead DB Status Row */}
+                <div className="pt-3 border-t border-slate-200 grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                      <span>👁️ Open Pixel:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setTrackOpens(!trackOpens)}
+                      className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                        trackOpens 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
+                          : 'bg-slate-100 text-slate-600 border-slate-300'
+                      }`}
+                    >
+                      {trackOpens ? '✓ Active' : '✕ Off'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-white rounded-xl border border-slate-200">
+                    <span className="font-bold text-slate-700 flex items-center gap-1.5">
+                      <span>✍️ Signature:</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setIncludeSignature(!includeSignature)}
+                      className={`text-[11px] font-bold px-2 py-1 rounded-lg border transition-all cursor-pointer ${
+                        includeSignature 
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-300' 
+                          : 'bg-slate-100 text-slate-600 border-slate-300'
+                      }`}
+                    >
+                      {includeSignature ? (signatureScope === 'step1_only' ? '✓ Touch 1' : '✓ All Touches') : '✕ Off'}
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between p-2.5 bg-indigo-50/60 rounded-xl border border-indigo-100 text-indigo-900">
+                    <span className="font-bold flex items-center gap-1.5">
+                      <span>📥 Lead DB:</span>
+                    </span>
+                    <span className="font-mono font-bold text-[11px] bg-white text-indigo-700 px-2 py-0.5 rounded-lg border border-indigo-200">
+                      Sync ({uploadedRecipients.length})
+                    </span>
                   </div>
                 </div>
               </div>

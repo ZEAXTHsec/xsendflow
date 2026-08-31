@@ -3,13 +3,23 @@ import nodemailer from 'nodemailer';
 
 export async function POST(req: NextRequest) {
   try {
-    const { sender, to, subject, body } = await req.json();
+    const { sender, to, subject, body, signatureText, includeSignature = false, fromName } = await req.json();
 
     if (!sender || !to || !subject || !body) {
       return NextResponse.json({
         success: false,
         error: 'Missing required parameters (sender, to, subject, or body).'
       }, { status: 400 });
+    }
+
+    let finalBody = body.trim();
+    if (includeSignature && signatureText) {
+      let cleanSig = signatureText
+        .replace(/\{\{Sender_Name\}\}/gi, fromName || sender.fromName || sender.label || 'Outreach')
+        .replace(/\{\{Sender_Company\}\}/gi, sender.company || 'XSendFlow')
+        .replace(/\{\{Sender_Title\}\}/gi, 'Growth Partner')
+        .replace(/\{\{Sender_Website\}\}/gi, 'https://xsendflow.com');
+      finalBody += `\n\n--\n${cleanSig.trim()}`;
     }
 
     const port = Number(sender.smtpPort || 587);
@@ -30,10 +40,10 @@ export async function POST(req: NextRequest) {
     });
 
     const info = await transporter.sendMail({
-      from: `"${sender.fromName || sender.label || 'XSendFlow'}" <${sender.email || sender.smtpUser}>`,
+      from: `"${fromName || sender.fromName || sender.label || 'XSendFlow'}" <${sender.email || sender.smtpUser}>`,
       to: to.trim(),
       subject: subject.trim(),
-      text: body.trim(),
+      text: finalBody,
     });
 
     return NextResponse.json({

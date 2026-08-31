@@ -15,6 +15,10 @@ export async function POST(req: NextRequest) {
       fromName,
       trackOpens = true,
       trackClicks = true,
+      includeSignature = false,
+      signatureText = '',
+      signatureScope = 'step1_only',
+      stepIndex = 0,
       unsubscribeText,
       campaignId = 'general',
       userId,
@@ -117,9 +121,23 @@ export async function POST(req: NextRequest) {
           renderedBody = replaceTag(renderedBody, 'Pitch_Page_URL', pitchUrl);
           renderedBody = replaceTag(renderedBody, 'Unsubscribe_Link', unsubUrl);
 
+          // 3. Optional Signature Insertion (Deliverability-optimized plain text)
+          const shouldAppendSig = includeSignature && signatureText && (signatureScope === 'all_steps' || stepIndex === 0);
+          if (shouldAppendSig) {
+            let renderedSig = signatureText;
+            renderedSig = replaceTag(renderedSig, 'Sender_Name', fromName || sender.label || 'Outreach');
+            renderedSig = replaceTag(renderedSig, 'Sender_Company', sender.company || 'XSendFlow');
+            renderedSig = replaceTag(renderedSig, 'Sender_Title', sender.title || 'Growth Partner');
+            renderedSig = replaceTag(renderedSig, 'Sender_Website', sender.website || 'https://xsendflow.com');
+            renderedSig = replaceTag(renderedSig, 'First_Name', firstName);
+            renderedSig = replaceTag(renderedSig, 'Company', company);
+            
+            renderedBody += `\n\n--\n${renderedSig.trim()}`;
+          }
+
           if (unsubscribeText) {
             const resolvedUnsub = replaceTag(unsubscribeText, 'Unsubscribe_Link', unsubUrl);
-            renderedBody += `\n\n${resolvedUnsub}`;
+            renderedBody += `\n\n${resolvedUnsub.trim()}`;
           }
 
           const trackingPixel = trackOpens 

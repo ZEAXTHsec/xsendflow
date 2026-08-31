@@ -17,13 +17,19 @@ import {
 import { Lead, SequenceStep } from '@/lib/types';
 import { UserPlan } from '@/lib/planLimits';
 import { getStoredLicense, LicenseDetails } from '@/lib/licenseEngine';
+import { getStoredMasterLeads } from '@/lib/leadDatabase';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { AGENCY_MOCK_SENDERS, getAgencyMockCampaigns } from '@/lib/mockData/agencyMockData';
 
 export default function StudioPage() {
   const [activeTab, setActiveTab] = useState<'analytics' | 'campaigns' | 'leads'>('analytics');
-  const [leads, setLeads] = useState<Lead[]>([]);
+  const [leads, setLeads] = useState<Lead[]>(() => {
+    if (typeof window !== 'undefined') {
+      return getStoredMasterLeads();
+    }
+    return [];
+  });
   const [isExportOpen, setIsExportOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [settingsTab, setSettingsTab] = useState<'profile' | 'billing' | 'senders' | 'api' | 'preferences'>('senders');
@@ -86,13 +92,20 @@ export default function StudioPage() {
       setIsSettingsOpen(true);
     };
 
+    const handleLeadsUpdate = (e: any) => {
+      const updated = e?.detail?.leads || getStoredMasterLeads();
+      setLeads(updated);
+    };
+
     window.addEventListener('xsendflow_plan_updated', handlePlanUpdate);
     window.addEventListener('xsendflow_license_updated', handlePlanUpdate);
     window.addEventListener('xsendflow_open_settings', handleOpenSettings);
+    window.addEventListener('xsendflow_leads_updated', handleLeadsUpdate);
     return () => {
       window.removeEventListener('xsendflow_plan_updated', handlePlanUpdate);
       window.removeEventListener('xsendflow_license_updated', handlePlanUpdate);
       window.removeEventListener('xsendflow_open_settings', handleOpenSettings);
+      window.removeEventListener('xsendflow_leads_updated', handleLeadsUpdate);
     };
   }, []);
 
@@ -112,32 +125,7 @@ export default function StudioPage() {
   useEffect(() => {
     async function checkAuth() {
       try {
-        // 1. First check if a real Supabase session exists (e.g. from Google OAuth)
-        const { data: { session } } = await supabase.auth.getSession();
-        if (session?.user) {
-          setUser(session.user);
-          // Clear mock storage so real authenticated user takes full effect
-          localStorage.removeItem('xsendflow_mock_user');
-
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('plan')
-            .eq('id', session.user.id)
-            .single();
-
-          if (profile?.plan) {
-            setUserPlan(profile.plan as UserPlan);
-            localStorage.setItem('xsendflow_user_plan', profile.plan);
-          } else {
-            // New Google OAuth user defaults to agency/pro for test or free
-            const currentPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
-            setUserPlan(currentPlan);
-          }
-          setAuthLoading(false);
-          return;
-        }
-
-        // 2. If no real session, check mock session for local testing
+        // Fast-path: Check mock / local session first for instantaneous response
         const mockUserStr = typeof window !== 'undefined' ? localStorage.getItem('xsendflow_mock_user') : null;
         if (mockUserStr) {
           try {
@@ -150,10 +138,37 @@ export default function StudioPage() {
           } catch {}
         }
 
-        const guest = { id: 'guest-founder', email: 'outreach@xsendflow.com' };
-        setUser(guest);
+        // 1. Check if a real Supabase session exists (with 1.5s timeout)
+        const sessionRes: any = await Promise.race([
+          supabase.auth.getSession(),
+          new Promise(res => setTimeout(() => res({ data: { session: null } }), 1500))
+        ]);
+        const session = sessionRes?.data?.session;
+        if (session?.user) {
+          setUser(session.user);
+          localStorage.removeItem('xsendflow_mock_user');
+
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('plan')
+            .eq('id', session.user.id)
+            .single();
+
+          if (profile?.plan) {
+            setUserPlan(profile.plan as UserPlan);
+            localStorage.setItem('xsendflow_user_plan', profile.plan);
+          } else {
+            const currentPlan = (localStorage.getItem('xsendflow_user_plan') as UserPlan) || 'free';
+            setUserPlan(currentPlan);
+          }
+          setAuthLoading(false);
+          return;
+        }
+
+        // 2. No session and no mock user -> user remains null to enforce sign-in gate
+        setUser(null);
       } catch (err) {
-        setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
+        setUser(null);
       } finally {
         setAuthLoading(false);
       }
@@ -180,10 +195,10 @@ export default function StudioPage() {
           try {
             setUser(JSON.parse(mockUserStr));
           } catch {
-            setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
+            setUser(null);
           }
         } else {
-          setUser({ id: 'guest-founder', email: 'outreach@xsendflow.com' });
+          setUser(null);
         }
       }
       setAuthLoading(false);

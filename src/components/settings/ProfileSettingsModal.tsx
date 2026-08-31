@@ -109,7 +109,27 @@ export default function ProfileSettingsModal({
   // Preferences state
   const [defaultTimezone, setDefaultTimezone] = useState('America/New_York (EST)');
   const [defaultDelay, setDefaultDelay] = useState(45);
-  const [emailSignature, setEmailSignature] = useState('Best regards,\nYour Name');
+  const [defaultTrackOpens, setDefaultTrackOpens] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const p = localStorage.getItem('xsendflow_default_track_opens');
+      if (p !== null) return p === 'true';
+    }
+    return true;
+  });
+  const [defaultIncludeSignature, setDefaultIncludeSignature] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const p = localStorage.getItem('xsendflow_default_include_signature');
+      if (p !== null) return p === 'true';
+    }
+    return true;
+  });
+  const [emailSignature, setEmailSignature] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const s = localStorage.getItem('xsendflow_default_signature');
+      if (s) return s;
+    }
+    return 'Best,\n{{Sender_Name}}\n{{Sender_Company}}';
+  });
   const [savedPrefSuccess, setSavedPrefSuccess] = useState(false);
 
   useEffect(() => {
@@ -284,6 +304,14 @@ export default function ProfileSettingsModal({
   };
 
   const handleSavePreferences = () => {
+    try {
+      localStorage.setItem('xsendflow_default_track_opens', String(defaultTrackOpens));
+      localStorage.setItem('xsendflow_default_include_signature', String(defaultIncludeSignature));
+      localStorage.setItem('xsendflow_default_timezone', defaultTimezone);
+      localStorage.setItem('xsendflow_default_delay', String(defaultDelay));
+      localStorage.setItem('xsendflow_default_signature', emailSignature);
+      window.dispatchEvent(new Event('xsendflow_preferences_updated'));
+    } catch {}
     setSavedPrefSuccess(true);
     setTimeout(() => setSavedPrefSuccess(false), 2500);
   };
@@ -1226,14 +1254,117 @@ export default function ProfileSettingsModal({
                     <span className="text-[10px] text-slate-400">Applies randomized delays (±15s) to mirror human pacing and prevent ESP fingerprinting.</span>
                   </div>
 
-                  <div className="space-y-1.5">
-                    <label className="text-xs font-bold uppercase tracking-wider text-slate-600">Default Email Signature</label>
-                    <textarea
-                      rows={3}
-                      value={emailSignature}
-                      onChange={e => setEmailSignature(e.target.value)}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 text-xs font-mono"
-                    />
+                  {/* ═══ SIGNATURE STUDIO CARD ═══ */}
+                  <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <label className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+                          <span>✍️ Default Email Signature</span>
+                        </label>
+                        <p className="text-[11px] text-slate-500">
+                          Appended cleanly to sequence steps. Minimalist plain text ensures 99%+ primary inboxing.
+                        </p>
+                      </div>
+
+                      <label className="flex items-center gap-2 cursor-pointer bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-2xs hover:border-indigo-300 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={defaultIncludeSignature}
+                          onChange={e => setDefaultIncludeSignature(e.target.checked)}
+                          className="rounded text-indigo-600 focus:ring-indigo-500 w-4 h-4"
+                        />
+                        <span className="text-xs font-bold text-slate-700">
+                          {defaultIncludeSignature ? '✓ Enabled' : '✕ Disabled'}
+                        </span>
+                      </label>
+                    </div>
+
+                    {defaultIncludeSignature && (
+                      <div className="space-y-3 animate-in fade-in">
+                        {/* Quick Presets */}
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <span className="text-[10px] font-bold text-slate-500 mr-1">Proven Presets:</span>
+                          {[
+                            { label: '⚡ Minimalist (High Inboxing)', text: 'Best,\n{{Sender_Name}}\n{{Sender_Company}}' },
+                            { label: '👔 Executive Founder', text: 'Best regards,\n{{Sender_Name}}\nFounder & CEO | {{Sender_Company}}\n{{Sender_Website}}' },
+                            { label: '🚀 Growth Partner', text: 'Cheers,\n{{Sender_Name}}\nHead of Outbound • {{Sender_Company}}' }
+                          ].map(preset => (
+                            <button
+                              key={preset.label}
+                              type="button"
+                              onClick={() => setEmailSignature(preset.text)}
+                              className="text-[10px] font-bold bg-white hover:bg-indigo-50 text-slate-700 hover:text-indigo-700 border border-slate-200 px-2.5 py-1 rounded-lg transition-all shadow-2xs cursor-pointer active:scale-95"
+                            >
+                              {preset.label}
+                            </button>
+                          ))}
+                        </div>
+
+                        {/* Signature Textarea */}
+                        <div className="space-y-1.5">
+                          <textarea
+                            rows={3}
+                            value={emailSignature}
+                            onChange={e => setEmailSignature(e.target.value)}
+                            placeholder="Best,&#10;{{Sender_Name}}&#10;{{Sender_Company}}"
+                            className="w-full bg-white border border-slate-200 rounded-xl p-3 text-xs font-mono text-slate-900 focus:outline-none focus:border-indigo-500 leading-relaxed"
+                          />
+
+                          {/* Clickable Merge Tag Chips */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+                            <span className="text-[10px] text-slate-400">Insert tag:</span>
+                            {['Sender_Name', 'Sender_Company', 'Sender_Title', 'Sender_Website'].map(tag => (
+                              <button
+                                key={tag}
+                                type="button"
+                                onClick={() => setEmailSignature(prev => `${prev.trim()}\n{{${tag}}}`)}
+                                className="text-[10px] font-mono font-bold bg-slate-100 hover:bg-indigo-50 text-indigo-700 border border-slate-200 px-2 py-0.5 rounded-md transition-all cursor-pointer"
+                              >
+                                + {'{{'}{tag}{'}}'}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Live Signature Simulated Preview Box */}
+                        <div className="p-3 bg-white rounded-xl border border-slate-200 shadow-2xs space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">Live Email Preview</span>
+                            <span className="text-[9px] font-mono font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.2 rounded">Deliverability Optimized</span>
+                          </div>
+                          <div className="text-xs text-slate-600 font-sans space-y-1.5">
+                            <p className="text-slate-400 italic text-[11px]">[...your sequence body text will appear here...]</p>
+                            <div className="border-t border-slate-200 pt-2 font-mono text-[11px] text-slate-700 whitespace-pre-line leading-relaxed">
+                              <span className="text-slate-400 block text-[10px]">--</span>
+                              {emailSignature
+                                .replace(/\{\{Sender_Name\}\}/gi, displayName || 'Alex Turner')
+                                .replace(/\{\{Sender_Company\}\}/gi, orgName || 'Outreach Labs')
+                                .replace(/\{\{Sender_Title\}\}/gi, 'Head of Growth')
+                                .replace(/\{\{Sender_Website\}\}/gi, 'https://xsendflow.com')}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Open Tracking Default Toggle */}
+                  <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-100 flex items-center justify-between">
+                    <div>
+                      <h5 className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+                        <span>👁️ Default Open Tracking (1x1 Transparent Pixel)</span>
+                      </h5>
+                      <p className="text-[11px] text-slate-600">Injects an invisible tracking pixel into outgoing sequence steps to monitor opens.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={defaultTrackOpens}
+                        onChange={e => setDefaultTrackOpens(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                    </label>
                   </div>
 
                   {savedPrefSuccess && (
