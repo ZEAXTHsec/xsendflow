@@ -361,6 +361,8 @@ export default function CampaignsTab({ leads = [], onImportLeadsToStudio }: Prop
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [testEmailTo, setTestEmailTo] = useState('');
   const [testSentSuccess, setTestSentSuccess] = useState(false);
+  const [testSentError, setTestSentError] = useState<string | null>(null);
+  const [testSending, setTestSending] = useState(false);
   const isSendingMapRef = React.useRef<Record<string, boolean>>({});
   const lastSentTimeMapRef = React.useRef<Record<string, number>>({});
   const nextTargetDelayMapRef = React.useRef<Record<string, number>>({});
@@ -802,7 +804,7 @@ export default function CampaignsTab({ leads = [], onImportLeadsToStudio }: Prop
       id: nextStepNum,
       dayDelay: nextStepNum === 3 ? 4 : 5,
       subject: `Re: follow up on {{Company}}`,
-      body: `Hi {{First_Name}},\n\nFollowing up to see if you had any bandwidth to take a look at the custom walkthrough for {{Company}} ({{Pitch_Page_URL}})?\n\nBest,\nYour Name`
+      body: `Hi {{First_Name}},\n\nFollowing up to see if you had any bandwidth to take a look at the custom walkthrough for {{Company}} ({{Pitch_Page_URL}})?`
     };
     setSteps([...steps, newStep]);
     setActiveStepIndex(steps.length);
@@ -1383,15 +1385,16 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
       return;
     }
 
-    const senderToUse = senders[0] || {
-      id: 'default',
-      email: 'outreach@xsendflow.com',
-      label: 'Default Sender',
-      smtpHost: 'smtp.gmail.com',
-      smtpPort: 587,
-      smtpUser: 'outreach@xsendflow.com',
-      smtpPass: '••••••••'
-    };
+    if (senders.length === 0) {
+      setTestSentError('No outbound mailboxes connected. Please add an SMTP sender in Settings ➔ Senders first.');
+      return;
+    }
+
+    const senderToUse = senders.find(s => selectedSenderIds.includes(s.id)) || senders[0];
+
+    setTestSending(true);
+    setTestSentError(null);
+    setTestSentSuccess(false);
 
     try {
       const res = await fetch('/api/campaigns/send-test', {
@@ -1401,24 +1404,29 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           sender: senderToUse,
           to: testEmailTo.trim(),
           subject: steps[0]?.subject || 'Quick test from XSendFlow',
-          body: steps[0]?.body || 'This is a live test email from XSendFlow'
+          body: steps[0]?.body || 'This is a live test email from XSendFlow',
+          includeSignature,
+          signatureText: includeSignature ? signatureText : '',
+          fromName: fromName.trim() || senderToUse.label || 'Outreach'
         })
       });
       const data = await res.json();
       if (data.success) {
         setTestSentSuccess(true);
+        setTimeout(() => {
+          setTestSentSuccess(false);
+          setTestModalOpen(false);
+          setTestEmailTo('');
+        }, 2500);
       } else {
-        setTestSentSuccess(true); // show confirmation
+        setTestSentError(data.error || 'Failed to dispatch test email. Please check your SMTP settings.');
       }
-    } catch {
-      setTestSentSuccess(true);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : 'Network error sending test email';
+      setTestSentError(msg);
+    } finally {
+      setTestSending(false);
     }
-
-    setTimeout(() => {
-      setTestSentSuccess(false);
-      setTestModalOpen(false);
-      setTestEmailTo('');
-    }, 2500);
   };
 
   const loadSampleCampaignData = () => {
@@ -1708,42 +1716,61 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
-                    {senders.map(s => {
-                      const isSelected = selectedSenderIds.length === 0 || selectedSenderIds.includes(s.id);
-                      return (
-                        <label
-                          key={s.id}
-                          className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
-                            isSelected ? 'bg-white border-indigo-300 shadow-xs' : 'bg-slate-100/50 border-slate-200 opacity-60'
-                          }`}
-                        >
-                          <input
-                            type="checkbox"
-                            checked={isSelected}
-                            onChange={(e) => {
-                              const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
-                              if (e.target.checked) {
-                                if (selectedSenderIds.length >= 1 && !canRotateMailboxes(userPlan)) {
-                                  setIsUpgradeOpen(true);
-                                  return;
+                  {senders.length === 0 ? (
+                    <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                      <div className="flex items-center gap-2.5">
+                        <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
+                        <div>
+                          <h5 className="text-xs font-bold text-amber-950">No Outbound Mailboxes Connected</h5>
+                          <p className="text-[11px] text-amber-800">You need at least 1 connected SMTP inbox to dispatch emails.</p>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => window.dispatchEvent(new CustomEvent('xsendflow_open_settings', { detail: { tab: 'senders' } }))}
+                        className="text-xs font-bold bg-amber-600 hover:bg-amber-700 text-white px-3.5 py-2 rounded-xl transition-all shadow-xs shrink-0 cursor-pointer"
+                      >
+                        ⚙️ Connect Mailbox in Settings
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-200">
+                      {senders.map(s => {
+                        const isSelected = selectedSenderIds.length === 0 || selectedSenderIds.includes(s.id);
+                        return (
+                          <label
+                            key={s.id}
+                            className={`flex items-center gap-2.5 p-2.5 rounded-xl border cursor-pointer transition-all ${
+                              isSelected ? 'bg-white border-indigo-300 shadow-xs' : 'bg-slate-100/50 border-slate-200 opacity-60'
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isSelected}
+                              onChange={(e) => {
+                                const userPlan = (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_plan') : 'free') as UserPlan || 'free';
+                                if (e.target.checked) {
+                                  if (selectedSenderIds.length >= 1 && !canRotateMailboxes(userPlan)) {
+                                    setIsUpgradeOpen(true);
+                                    return;
+                                  }
+                                  setSelectedSenderIds(prev => [...prev.filter(id => id !== s.id), s.id]);
+                                } else {
+                                  const remaining = (selectedSenderIds.length === 0 ? senders.map(snd => snd.id) : selectedSenderIds).filter(id => id !== s.id);
+                                  setSelectedSenderIds(remaining);
                                 }
-                                setSelectedSenderIds(prev => [...prev.filter(id => id !== s.id), s.id]);
-                              } else {
-                                const remaining = (selectedSenderIds.length === 0 ? senders.map(snd => snd.id) : selectedSenderIds).filter(id => id !== s.id);
-                                setSelectedSenderIds(remaining);
-                              }
-                            }}
-                            className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
-                          />
-                          <div className="min-w-0 flex-1">
-                            <span className="text-xs font-bold text-slate-900 block truncate">{s.label}</span>
-                            <span className="text-[10px] font-mono text-slate-500 block truncate">{s.email}</span>
-                          </div>
-                        </label>
-                      );
-                    })}
-                  </div>
+                              }}
+                              className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"
+                            />
+                            <div className="min-w-0 flex-1">
+                              <span className="text-xs font-bold text-slate-900 block truncate">{s.label}</span>
+                              <span className="text-[10px] font-mono text-slate-500 block truncate">{s.email}</span>
+                            </div>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <div className="space-y-1.5">
@@ -3824,20 +3851,43 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
 
             {testSentSuccess && (
               <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-xl text-xs text-emerald-800 font-medium flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-emerald-600" />
+                <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>Test email dispatched successfully! Check your inbox.</span>
               </div>
             )}
 
+            {testSentError && (
+              <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl text-xs text-rose-800 font-medium flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 text-rose-600 shrink-0" />
+                <span className="leading-relaxed">{testSentError}</span>
+              </div>
+            )}
+
             <div className="flex justify-end gap-2 pt-2">
-              <button onClick={() => setTestModalOpen(false)} className="text-xs font-semibold px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl">
+              <button
+                type="button"
+                onClick={() => {
+                  setTestModalOpen(false);
+                  setTestSentError(null);
+                }}
+                className="text-xs font-semibold px-4 py-2 text-slate-600 hover:bg-slate-100 rounded-xl"
+              >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSendTestEmail}
-                className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-xl shadow-md shadow-indigo-500/20 active:scale-95"
+                disabled={testSending}
+                className="text-xs font-bold bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-5 py-2 rounded-xl shadow-md shadow-indigo-500/20 active:scale-95 disabled:opacity-50 flex items-center gap-1.5"
               >
-                Send Test Now
+                {testSending ? (
+                  <>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                    <span>Sending Test...</span>
+                  </>
+                ) : (
+                  <span>Send Test Now</span>
+                )}
               </button>
             </div>
           </div>
