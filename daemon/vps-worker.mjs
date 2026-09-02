@@ -13,11 +13,25 @@
 
 import { createClient } from '@supabase/supabase-js';
 import nodemailer from 'nodemailer';
-import dotenv from 'dotenv';
+import fs from 'fs';
 import path from 'path';
 
-dotenv.config({ path: path.resolve(process.cwd(), '.env.local') });
-dotenv.config();
+// Native Zero-Dependency .env.local reader
+try {
+  const envPath = path.resolve(process.cwd(), '.env.local');
+  if (fs.existsSync(envPath)) {
+    const lines = fs.readFileSync(envPath, 'utf8').split('\n');
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (trimmed && !trimmed.startsWith('#') && trimmed.includes('=')) {
+        const [k, ...v] = trimmed.split('=');
+        if (k && !process.env[k.trim()]) {
+          process.env[k.trim()] = v.join('=').trim().replace(/^['"]|['"]$/g, '');
+        }
+      }
+    }
+  }
+} catch {}
 
 const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://putztvsdxuprkbxufrge.supabase.co';
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InB1dHp0dnNkeHVwcmtieHVmcmdlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMyMzQ4MjIsImV4cCI6MjA5ODgxMDgyMn0.b2Xla5rxDtSYlF9pcouQS8do0LdXK_OKVeiW3w0PeJo';
