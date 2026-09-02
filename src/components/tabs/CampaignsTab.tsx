@@ -457,9 +457,14 @@ export default function CampaignsTab({ leads = [], onImportLeadsToStudio }: Prop
     const handleDiscardDraftEvent = () => {
       setDraftInfo(null);
     };
+    const handleOpenWizardEvent = () => {
+      handleOpenCreateWizard();
+    };
+    window.addEventListener('xsendflow_open_campaign_wizard', handleOpenWizardEvent);
     window.addEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
     window.addEventListener('xsendflow_draft_discarded', handleDiscardDraftEvent);
     return () => {
+      window.removeEventListener('xsendflow_open_campaign_wizard', handleOpenWizardEvent);
       window.removeEventListener('xsendflow_resume_draft', handleResumeDraftEvent);
       window.removeEventListener('xsendflow_draft_discarded', handleDiscardDraftEvent);
     };
@@ -1210,7 +1215,15 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           const rawSub = targetCamp.steps[0]?.subject || 'Quick question re: {{Company}}';
           const rawBody = targetCamp.steps[0]?.body || 'Hey {{First_Name}}, checking in.';
           const resolvedSub = rawSub.replace(/\{\{First_Name\}\}/gi, r.firstName || 'there').replace(/\{\{Company\}\}/gi, r.company || 'your team');
-          const resolvedBody = rawBody.replace(/\{\{First_Name\}\}/gi, r.firstName || 'there').replace(/\{\{Company\}\}/gi, r.company || 'your team').replace(/\{\{Pitch_Page_URL\}\}/gi, r.pitchUrl || 'https://xsendflow.com');
+          let resolvedBody = rawBody.replace(/\{\{First_Name\}\}/gi, r.firstName || 'there').replace(/\{\{Company\}\}/gi, r.company || 'your team').replace(/\{\{Pitch_Page_URL\}\}/gi, r.pitchUrl || 'https://xsendflow.com');
+          if (targetCamp.includeSignature && targetCamp.signatureText) {
+            let cleanSig = targetCamp.signatureText
+              .replace(/\{\{Sender_Name\}\}/gi, targetCamp.fromName || sender.label || 'Outreach')
+              .replace(/\{\{Sender_Company\}\}/gi, 'XSendFlow')
+              .replace(/\{\{Sender_Title\}\}/gi, 'Growth Partner')
+              .replace(/\{\{Sender_Website\}\}/gi, 'https://xsendflow.com');
+            resolvedBody += `\n\n--\n${cleanSig.trim()}`;
+          }
           return {
             id: `sim-${Date.now()}-${r.id}`,
             campaignId: id,
@@ -1260,6 +1273,10 @@ const isInsideScheduleWindow = (windowStart: string, windowEnd: string, timezone
           fromName: targetCamp.fromName,
           trackOpens: targetCamp.trackOpens ?? true,
           trackClicks: targetCamp.trackClicks ?? true,
+          includeSignature: targetCamp.includeSignature ?? false,
+          signatureText: targetCamp.signatureText || '',
+          signatureScope: targetCamp.signatureScope || 'step1_only',
+          stepIndex: 0,
           unsubscribeText: targetCamp.unsubscribeText,
           campaignId: targetCamp.id,
           userId: (typeof window !== 'undefined' ? localStorage.getItem('xsendflow_user_email') : '') || 'user_default',

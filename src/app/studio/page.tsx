@@ -407,7 +407,12 @@ export default function StudioPage() {
           <LeadCleanerTab
             leads={leads}
             setLeads={setLeads}
-            onProceedToSequence={() => setActiveTab('campaigns')}
+            onProceedToSequence={() => {
+              setActiveTab('campaigns');
+              setTimeout(() => {
+                window.dispatchEvent(new Event('xsendflow_open_campaign_wizard'));
+              }, 50);
+            }}
           />
         </div>
       </main>

@@ -419,6 +419,7 @@ export default function ProfileSettingsModal({
           {/* Sidebar */}
           <div className="w-full sm:w-52 bg-slate-50/90 border-b sm:border-b-0 sm:border-r border-slate-200 p-3 space-y-1 shrink-0 overflow-y-auto">
             <button
+              id="settings-tab-profile"
               onClick={() => setActiveTab('profile')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 activeTab === 'profile'
@@ -431,6 +432,7 @@ export default function ProfileSettingsModal({
             </button>
 
             <button
+              id="settings-tab-billing"
               onClick={() => setActiveTab('billing')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 activeTab === 'billing'
@@ -448,6 +450,7 @@ export default function ProfileSettingsModal({
             </button>
 
             <button
+              id="settings-tab-senders"
               onClick={() => setActiveTab('senders')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 activeTab === 'senders'
@@ -460,6 +463,7 @@ export default function ProfileSettingsModal({
             </button>
 
             <button
+              id="settings-tab-api"
               onClick={() => setActiveTab('api')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 activeTab === 'api'
@@ -472,6 +476,7 @@ export default function ProfileSettingsModal({
             </button>
 
             <button
+              id="settings-tab-preferences"
               onClick={() => setActiveTab('preferences')}
               className={`w-full text-left px-3.5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all ${
                 activeTab === 'preferences'

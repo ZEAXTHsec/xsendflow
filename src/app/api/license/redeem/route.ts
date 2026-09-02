@@ -3,7 +3,10 @@ import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function POST(req: NextRequest) {
   try {
-    const { code, userId, userEmail } = await req.json();
+    const body = await req.json();
+    const code = body.code || body.licenseKey || '';
+    const userId = body.userId;
+    const userEmail = body.userEmail;
 
     if (!code || typeof code !== 'string') {
       return NextResponse.json({ success: false, error: 'License key is required' }, { status: 400 });
